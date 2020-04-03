@@ -14,7 +14,7 @@ import netcdf_read_write
 # Collections
 UavsarData = collections.namedtuple("UavsarData",["dtarray","lon","lat","TS"]);
 LevData = collections.namedtuple("LevData",["name","lat","lon","dtarray", "leveling"]);
-TSXData = collections.namedtuple("TSXData",["lon","lat","vvel","vvel_std",
+TREData = collections.namedtuple("TREData",["lon","lat","vvel","vvel_std",
 	"evel","evel_std","starttime","endtime"]);
 
 # GET FILE NAMES
@@ -217,10 +217,51 @@ def inputs_tsx(filename):
 	endtime=dt.datetime.strptime("2013-09-01","%Y-%m-%d");  # Hard coded for this experiment. 
 
 	# Packaging it up
-	myTSX = TSXData(lon=lon, lat=lat, vvel=zvel, vvel_std=zvel_std, evel=evel, evel_std=evel_std, 
+	myTSX = TREData(lon=lon, lat=lat, vvel=zvel, vvel_std=zvel_std, evel=evel, evel_std=evel_std, 
 		starttime=starttime, endtime=endtime);
 
 	return myTSX;
+
+
+# S1 INPUT FUNCTIONS
+def inputs_S1(filename):
+	# Reading data from SNT1 TRE data. 
+	print("Reading in %s" % filename);
+	wb = xlrd.open_workbook(filename);
+
+	# Vertical velocities
+	sheet = wb.sheet_by_index(2);
+	numcols = sheet.ncols;
+	numrows = sheet.nrows; 
+	data = [[sheet.cell_value(r,c) for c in range(numcols)] for r in range(numrows)];
+	length, width = np.shape(data);
+	zvel = [data[i][0] for i in range(1,length)];
+	zvel_std = [data[i][1] for i in range(1,length)];
+	lat = [data[i][2] for i in range(1,length)];
+	lon = [data[i][3] for i in range(1,length)];
+
+	# East velocities
+	sheet = wb.sheet_by_index(3);
+	numcols = sheet.ncols;
+	numrows = sheet.nrows; 
+	data = [[sheet.cell_value(r,c) for c in range(numcols)] for r in range(numrows)];
+	length, width = np.shape(data);
+	evel = [data[i][0] for i in range(1,length)];
+	evel_std = [data[i][1] for i in range(1,length)];
+
+	if "SNT1" in filename:
+		starttime=dt.datetime.strptime("2014-04-01","%Y-%m-%d");
+		endtime=dt.datetime.strptime("2018-04-01","%Y-%m-%d");  # Hard coded for this experiment. 
+	if "SNT2" in filename:
+		starttime=dt.datetime.strptime("2018-05-01","%Y-%m-%d");
+		endtime=dt.datetime.strptime("2019-08-01","%Y-%m-%d");  # Hard coded for this experiment. 
+
+	# Packaging it up
+	myS1 = TREData(lon=lon, lat=lat, vvel=zvel, vvel_std=zvel_std, evel=evel, evel_std=evel_std, 
+		starttime=starttime, endtime=endtime);
+
+	return myS1;
+
 
 
 

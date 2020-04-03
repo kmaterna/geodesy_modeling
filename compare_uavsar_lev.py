@@ -28,6 +28,7 @@ import matplotlib.cm as cm
 import datetime as dt 
 import sys
 import stacking_utilities
+import netcdf_read_write
 import multiSAR_compare_tools
 import multiSAR_input_functions
 
@@ -166,6 +167,41 @@ def plot_pixel_ts(TS, dtarray, i, j):
 	plt.savefig("Comparisons/onepixel.png");
 	return;
 
+def plot_incremental_TS_redblue(TS_NC_file, xdates, TS_image_file, vmin=-50, vmax=200, aspect=1):
+	# Make a nice time series plot. 
+	# With incremental displacement data. 
+	tdata, xdata, ydata, TS_array = netcdf_read_write.read_3D_netcdf(TS_NC_file);
+	num_rows_plots=3;
+	num_cols_plots=4;
+
+	# Combining the two shortest intervals into one. 
+	print(np.shape(TS_array));
+	selected = [0,1,2,3,4,5,6,7,8,9,10];
+	TS_array = TS_array[selected,:,:];
+	xdates = [xdates[i] for i in range(11) if i in selected];
+	print(np.shape(TS_array));
+	print(len(xdates));
+
+	f, axarr = plt.subplots(num_rows_plots,num_cols_plots,figsize=(16,10),dpi=300);
+	for i in range(1,len(xdates)):
+		rownum, colnum = stacking_utilities.get_axarr_numbers(num_rows_plots,num_cols_plots,i);
+		data = np.subtract(TS_array[i,:,:],TS_array[i-1,:,:]);
+		axarr[rownum][colnum].imshow(data,aspect=aspect,cmap='RdYlBu_r',vmin=vmin,vmax=vmax);
+		titlestr = dt.datetime.strftime(xdates[i],"%Y-%m-%d");
+		axarr[rownum][colnum].get_xaxis().set_visible(False);
+		axarr[rownum][colnum].set_title(titlestr,fontsize=20);
+
+	cbarax = f.add_axes([0.75,0.35,0.2,0.3],visible=False);
+	color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
+	custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='RdYlBu_r');
+	custom_cmap.set_array(np.arange(vmin, vmax));
+	cb = plt.colorbar(custom_cmap,aspect=12,fraction=0.2, orientation='vertical');
+	cb.set_label('Displacement (mm)', fontsize=18);
+	cb.ax.tick_params(labelsize=12);
+
+	plt.savefig(TS_image_file);
+	return;
+
 
 if __name__=="__main__":
 	# CONFIGURE
@@ -176,19 +212,20 @@ if __name__=="__main__":
 	myUAVSAR = multiSAR_input_functions.inputs_uavsar(file_dict["uavsar"]);
 	
 	# Plotting and Comparing
-	stacking_utilities.plot_incremental_timeseries(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "Comparisons/increments.png", vmin=-50, vmax=100, aspect=1/4);
+	plot_incremental_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "Comparisons/increments.png", vmin=-100, vmax=100, aspect=1/4);
 	stacking_utilities.plot_full_timeseries(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "Comparisons/full_TS.png", vmin=-50, vmax=180, aspect=1/4);
 	# find_leveling_in_uavsar(myLev, myUAVSAR);  # only have to do the first time. 
-	# row, col = read_paired_leveling_idx("Comparisons/leveling_index_cache.txt");
+	row, col = read_paired_leveling_idx("Comparisons/leveling_index_cache.txt");
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 0, 1, 1, 4);  # 2009 to 2011
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 1, 2, 4, 6);  # 2011 to 2011
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 2, 3, 6, 7);  # Brawley coseismic
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 4, 7, 8);  # 2012 to 2013
+	# one_to_one_comparison(myLev, myUAVSAR, row, col, 4, 5, 8, 9);  # 2013 to 2014
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 5, 7, 9);  # 2012 to 2014
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 5, 8, 9, 10);  # 2014 to 2017
 	# one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 8, 7, 10);  # 2012 to 2017
 
-	i_p506, j_p506 = get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, -115.510,33.081);
+	i_p506, j_p506 = multiSAR_input_functions.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, -115.510,33.081);
 	plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, i_p506, j_p506);
 
 
