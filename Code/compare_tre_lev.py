@@ -1,4 +1,7 @@
-# Compare TSX from 2012-2013 with Leveling
+# Compare TRE Data with Leveling: 
+# TSX from 2012-2013
+# S1 from 2014-2018
+# S1 from 2018-2019
 # Holy Cow I reproduced Mariana's results. 
 
 import numpy as np 
@@ -7,7 +10,7 @@ import matplotlib
 import matplotlib.cm as cm
 import datetime as dt 
 import sys
-import multiSAR_compare_tools
+import multiSAR_utilities
 import multiSAR_input_functions
 import haversine
 
@@ -16,7 +19,7 @@ def plot_TRE(tsxData,output_dir):
 	plt.figure(figsize=(10,10));
 	plt.scatter(tsxData.lon, tsxData.lat, c=tsxData.vvel, s=10);
 	plt.colorbar();
-	plt.savefig(output_dir+"TSX_vvel.png");
+	plt.savefig(output_dir+"TRE_vvel.png");
 	return;
 
 
@@ -93,28 +96,29 @@ def one_to_one_comparison(myLev, treData, vector_index, lev1, lev2, sat, output_
 
 if __name__=="__main__":
 	# Opening stuff
-	file_dict = multiSAR_input_functions.get_file_dictionary();
+	config_filename = "config_file.txt"
+	file_dict = multiSAR_input_functions.get_file_dictionary(config_filename);
 	myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0], file_dict["leveling"].split()[1]);
 	myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);
 
 	#TSX experiment
-	output_dir = "Comparisons/TSX/"
+	output_dir = "TSX/"
 	tsxData = multiSAR_input_functions.inputs_tsx(file_dict["tsx"]);
-	vector_index = multiSAR_compare_tools.find_leveling_in_vector(myLev, tsxData);
+	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, tsxData);
 	one_to_one_comparison(myLev, tsxData, vector_index, 3, 4, "TSX", output_dir);  # the 2012-2013 interval
 	plot_TRE(tsxData,output_dir);
 
 	# S1 experiment
-	output_dir = "Comparisons/SNT1/"
+	output_dir = "SNT1/"
 	s1Data = multiSAR_input_functions.inputs_S1(file_dict["snt1"]);
-	vector_index = multiSAR_compare_tools.find_leveling_in_vector(myLev, s1Data);
+	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, s1Data);
 	one_to_one_comparison(myLev, s1Data, vector_index, 5, 8, "S1", output_dir); # the 2014-2018 interval
 	plot_TRE(s1Data,output_dir);
 
 	# S1 experiment
-	output_dir = "Comparisons/SNT2/"
+	output_dir = "SNT2/"
 	s1Data = multiSAR_input_functions.inputs_S1(file_dict["snt2"]);
-	vector_index = multiSAR_compare_tools.find_leveling_in_vector(myLev, s1Data);
+	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, s1Data);
 	one_to_one_comparison(myLev, s1Data, vector_index, 8, 9, "S1", output_dir); # the 2014-2018 interval
 	plot_TRE(s1Data,output_dir);
 

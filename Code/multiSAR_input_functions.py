@@ -18,9 +18,9 @@ TREData = collections.namedtuple("TREData",["lon","lat","vvel","vvel_std",
 	"evel","evel_std","starttime","endtime"]);
 
 # GET FILE NAMES
-def get_file_dictionary():
+def get_file_dictionary(config_filename):
 	this_dict = {};
-	ifile=open("directory_points.txt");
+	ifile=open(config_filename);
 	for line in ifile:
 		data_type = line.split(":")[0];
 		total_data_files = line.split(":")[1][1:-1];
@@ -29,7 +29,7 @@ def get_file_dictionary():
 	return this_dict;
 
 
-# UAVSAR INPUT FUNCTIONS
+# UAVSAR INPUT FUNCTIONS FOR NETCDF FORMAT
 def inputs_uavsar(filename):
 	# Reads a TS file from my interferogram processing
 	print("Reading UAVSAR files in directory %s" % filename);
@@ -46,6 +46,8 @@ def inputs_uavsar(filename):
 		dtarray.append(day0+dt.timedelta(days=int(tdata[i])));
 	myUAVSAR = UavsarData(dtarray=dtarray, lon=lon, lat=lat, TS=zdata);
 	return myUAVSAR;
+
+# WILL HAVE TO WRITE A DIFFERENT UAVSAR INPUT FUNCTION FOR OTHER FORMAT
 
 
 # LEVELING INPUT FUNCTIONS

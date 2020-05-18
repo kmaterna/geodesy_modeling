@@ -8,10 +8,10 @@ import datetime as dt
 Catalog = collections.namedtuple("Catalog",["dtarray","lon","lat","depth","Mag"]);
 
 def configure():
-	filename = "../QTM/qtm_final_12dev.hypo"
-	field_filename = "../TRE_Data/CEC_Data/Data/DOGGR_GIS/Fields_Boundaries.txt"
-	bbox = [-115.66, -115.43, 33.0, 33.04, 0, 6]; # lon, lat, depth ranges
-	# bbox = [-115.66, -115.43, 32.9, 33.1, 0, 20]; # lon, lat, depth ranges  # very general
+	filename = "../../../General_Data/QTM/qtm_final_12dev.hypo"
+	field_filename = "../_Project_Data/TRE_Data/CEC_Data/Data/DOGGR_GIS/Fields_Boundaries.txt"
+	# bbox = [-115.66, -115.43, 33.0, 33.04, 0, 6]; # lon, lat, depth ranges
+	bbox = [-115.66, -115.43, 32.9, 33.1, 0, 20]; # lon, lat, depth ranges  # very general
 	return filename, field_filename, bbox;
 
 def input_qtm(filename):
@@ -107,7 +107,7 @@ def mapping_plot(MyCat, boundary_lons, boundary_lats):
 	plt.ylabel("Latitude",fontsize=18);
 	plt.xlim([-115.66, -115.43]);
 	plt.ylim([32.9, 33.1]);
-	plt.savefig("QTM/QTM_12dev.png");
+	plt.savefig("QTM_12dev.png");
 	return;
 
 def add_Brawley_annotations(ax):
@@ -134,7 +134,16 @@ def cumulative_seismicity_plot(MyCat):
 	plt.xlabel("Time",fontsize=18);
 	plt.ylabel("Cumulative Earthquakes",fontsize=18);
 	plt.title("Cumulative Seismicity In Brawley",fontsize=20);
-	plt.savefig("QTM/StackedSeismicity.png");
+	plt.savefig("StackedSeismicity.png");
+	return;
+
+def write_catalog(MyCat, outfile):
+	print("Writing Catalog in %s " % (outfile) );
+	ofile=open(outfile,'w');
+	for i in range(len(MyCat.dtarray)):
+		datestr=dt.datetime.strftime(MyCat.dtarray[i],"%Y-%m-%d-%H-%M-%S");
+		ofile.write("%s %f %f %.3f %.2f\n" % (datestr, MyCat.lon[i], MyCat.lat[i], MyCat.depth[i], MyCat.Mag[i]) );
+	ofile.close();
 	return;
 
 if __name__=="__main__":
@@ -144,5 +153,7 @@ if __name__=="__main__":
 	BrawleyCat = restrict_cat_box(MyCat, bbox);
 	mapping_plot(BrawleyCat, boundary_lons, boundary_lats);
 	cumulative_seismicity_plot(BrawleyCat);
+	write_catalog(BrawleyCat,"Brawley_QTM.txt");
+
 
 

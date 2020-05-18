@@ -29,7 +29,7 @@ import datetime as dt
 import sys
 import stacking_utilities
 import netcdf_read_write
-import multiSAR_compare_tools
+import multiSAR_utilities
 import multiSAR_input_functions
 
 # Uavsar_col = collections.namedtuple("Uavsar_col",["dtarray","lon","lat","TS"]);
@@ -40,12 +40,12 @@ def find_leveling_in_uavsar(myLev, myUAVSAR):
 	# Identify its location in the UAVSAR file
 	# It might be outside of the bounds. 
 	# Makes a cache so we don't have to keep doing this all the time. 
-	ofile=open("Comparisons/leveling_index_cache.txt",'w');
+	ofile=open("leveling_index_cache.txt",'w');
 	ofile.write("# BM BM_Lat BM_Lat I J IJ_lon IJ_lat Distance(km)\n");
 	for bm in range(len(myLev.lat)):
 		name = myLev.name[bm].split()[0];
-		i_found, j_found = multiSAR_compare_tools.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, myLev.lon[bm], myLev.lat[bm]);
-		if ifound == -1:
+		i_found, j_found = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, myLev.lon[bm], myLev.lat[bm]);
+		if i_found == -1:
 			print("Point %s outside of domain." % name); 
 			ofile.write("%s %f %f %d %d %f %f\n" % (name,myLev.lon[bm], myLev.lat[bm], 
 				-1, -1, np.nan, np.nan) );
@@ -75,8 +75,8 @@ def avg_uavsar_disp(TS, slicenum, row, col):
 
 
 
-def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2):
-	filename = "Comparisons/one_to_one_"+str(lev1)+str(lev2)+"_"+str(uav1)+str(uav2);
+def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, outdir):
+	filename = outdir+"/one_to_one_"+str(lev1)+str(lev2)+"_"+str(uav1)+str(uav2);
 
 	oto_lev=[];
 	oto_uavsar=[];
@@ -158,7 +158,7 @@ def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2):
 
 	return;
 
-def plot_pixel_ts(TS, dtarray, i, j,name):
+def plot_pixel_ts(TS, dtarray, i, j,name, outdir):
 	pixel_value=[];
 	pixel_value2=[];
 	width_pixels=80;
@@ -170,10 +170,10 @@ def plot_pixel_ts(TS, dtarray, i, j,name):
 	plt.plot(dtarray, pixel_value2,'.--',color='red',markersize=12);
 	plt.xlabel("Time");
 	plt.ylabel("Displacement (mm)");
-	plt.savefig("Comparisons/"+name+"onepixel.png");
+	plt.savefig(outdir+"/"+name+"_onepixel.png");
 	return;
 
-def plot_TS_redblue(TS_NC_file, xdates, TS_image_file, vmin=-50, vmax=200, 
+def plot_TS_redblue(TS_NC_file, xdates, TS_image_file, outdir, vmin=-50, vmax=200, 
 	aspect=1, incremental=False, gps_i=[], gps_j=[]):
 	# Make a nice time series plot. 
 	# With incremental displacement data. 
@@ -222,7 +222,7 @@ def plot_TS_redblue(TS_NC_file, xdates, TS_image_file, vmin=-50, vmax=200,
 	cb.set_label('Displacement (mm)', fontsize=18);
 	cb.ax.tick_params(labelsize=12);
 
-	plt.savefig(TS_image_file);
+	plt.savefig(outdir+"/"+TS_image_file);
 	return;
 
 
@@ -231,7 +231,7 @@ def get_list_of_pixels_from_pts(raster_lons, raster_lats, target_lons, target_la
 	i_found=[];
 	j_found=[];
 	for i in range(len(target_lons)):
-		itemp, jtemp = multiSAR_compare_tools.get_nearest_pixel_in_raster(raster_lons, raster_lats, target_lons[i], target_lats[i]);
+		itemp, jtemp = multiSAR_utilities.get_nearest_pixel_in_raster(raster_lons, raster_lats, target_lons[i], target_lats[i]);
 		if itemp != -1:
 			i_found.append(itemp);
 			j_found.append(jtemp);
@@ -240,41 +240,43 @@ def get_list_of_pixels_from_pts(raster_lons, raster_lats, target_lons, target_la
 
 if __name__=="__main__":
 	# CONFIGURE
-	file_dict = multiSAR_input_functions.get_file_dictionary();	 
+	file_dict = multiSAR_input_functions.get_file_dictionary("config_file.txt");	 
+	outdir="UAVSAR_Apr29";
+
 	# INPUTS
 	myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0], file_dict["leveling"].split()[1]);
 	myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);
 	myUAVSAR = multiSAR_input_functions.inputs_uavsar(file_dict["uavsar"]);
 
-	# Stations P506, P495, WMDG, and WMCA
-	gps_lons = [-115.510, -115.628392, -115.581895, -115.613];
-	gps_lats = [33.081, 33.044960, 33.038325, 33.072];
+	# Stations P506, P495, WMDG, and WMCA and CRRS
+	gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];
+	gps_lats = [33.081, 33.044960, 33.038325, 33.072, 33.070];
 	ipts, jpts = get_list_of_pixels_from_pts(myUAVSAR.lon, myUAVSAR.lat, gps_lons, gps_lats);
 	
 	# Plotting UAVSAR in a reasonable way
-	plot_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "Comparisons/increments.png", 
-		vmin=-100, vmax=100, aspect=4, incremental=True, gps_i=i_found, gps_j=j_found);
-	plot_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "Comparisons/full_TS.png", 
+	plot_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "increments.png", outdir,
+		vmin=-100, vmax=100, aspect=4, incremental=True, gps_i=ipts, gps_j=jpts);
+	plot_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "full_TS.png", outdir, 
 		vmin=-160, vmax=160, aspect=4, incremental=False, gps_i=ipts, gps_j=jpts);
 	
 	# Comparing UAVSAR with leveling.
 	# find_leveling_in_uavsar(myLev, myUAVSAR);  # only have to do the first time. 
-	row, col = read_paired_leveling_idx("Comparisons/leveling_index_cache.txt");
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 0, 1, 1, 4);  # 2009 to 2011
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 1, 2, 4, 6);  # 2011 to 2011
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 2, 3, 6, 7);  # Brawley coseismic
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 4, 7, 8);  # 2012 to 2013
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 4, 5, 8, 9);  # 2013 to 2014
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 5, 7, 9);  # 2012 to 2014
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 5, 8, 9, 10);  # 2014 to 2017
-	# one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 8, 7, 10);  # 2012 to 2017
+	row, col = read_paired_leveling_idx("leveling_index_cache.txt");
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 0, 1, 1, 4, outdir);  # 2009 to 2011
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 1, 2, 4, 6, outdir);  # 2011 to 2011
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 2, 3, 6, 7, outdir);  # Brawley coseismic
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 4, 7, 8, outdir);  # 2012 to 2013
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 4, 5, 8, 9, outdir);  # 2013 to 2014
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 5, 7, 9, outdir);  # 2012 to 2014
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 5, 8, 9, 10, outdir);  # 2014 to 2017
+	one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 8, 7, 10, outdir);  # 2012 to 2017
 
 	# Comparing UAVSAR with GPS
-	# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[0], jpts[0],"P506");
-	# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[1], jpts[1],"P495");
-	# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[2], jpts[2],"WMDG");
-	# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[3], jpts[3],"WMCA");
-	# i_REF, j_REF = multiSAR_compare_tools.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, -115.7, 33.0); # a guess, but close to reference point. 
+	plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[0], jpts[0],"P506", outdir);
+	plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[1], jpts[1],"P495", outdir);
+	plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[2], jpts[2],"WMDG", outdir);
+	plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[3], jpts[3],"WMCA", outdir);
+	# i_REF, j_REF = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, -115.7, 33.0); # a guess, but close to reference point. 
 	# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, i_REF, j_REF,"REF");
 
 
