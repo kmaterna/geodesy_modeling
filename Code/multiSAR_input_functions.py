@@ -6,9 +6,12 @@
 # Envisat
 
 import numpy as np 
+import matplotlib.pyplot as plt 
 import datetime as dt 
 import collections
 import xlrd
+import struct
+import xml.etree.ElementTree as ET
 import netcdf_read_write
 
 # Collections
@@ -47,7 +50,41 @@ def inputs_uavsar(filename):
 	myUAVSAR = UavsarData(dtarray=dtarray, lon=lon, lat=lat, TS=zdata);
 	return myUAVSAR;
 
+
 # WILL HAVE TO WRITE A DIFFERENT UAVSAR INPUT FUNCTION FOR OTHER FORMAT
+def inputs_uavsar_unw_geo(filename):
+	# For the unw format produced by isce (one minor change from that format)
+	# (BIL scheme assumed)
+	# There must be a matching xml in this directory
+	# --------------------
+
+	# Parse xml in a slightly manual fashion, looking for length and width
+	xml_file = filename+".xml";
+	tree = ET.parse(xml_file);
+	root = tree.getroot();  # open xml file
+	for element in root:  # we can index through the root
+		if element.attrib['name']=="coordinate1":
+			for subE in element:
+				if len(subE)>0:
+					if subE.attrib['name']=='size':
+						ncols = int(subE[0].text);
+		if element.attrib['name']=="coordinate2":
+			for subE in element:
+				if len(subE)>0:
+					if subE.attrib['name']=='size':
+						nrows = int(subE[0].text);
+
+	# Open the binary file
+	f = open(filename,'rb');
+	final_shape=(nrows,ncols*2);  # unw has two bands with BIL scheme
+	num_data = final_shape[0]*final_shape[1];
+	rawnum = f.read();
+	floats = np.array(struct.unpack('f'*num_data, rawnum))
+	data = floats.reshape(final_shape);	
+	f.close();
+	return data;
+
+
 
 
 # LEVELING INPUT FUNCTIONS
@@ -202,6 +239,14 @@ def write_leveling_ivertible_format(myLev, idx1, idx2, filename):
 		if ~np.isnan(data):
 			ofile.write("%f %f %f %f 0 0 1\n" % (myLev.lon[i], myLev.lat[i], data, unc) )
 	ofile.close();
+	return;
+
+def plot_leveling(txtfile, plotname):
+	[lon, lat, disp] = np.loadtxt(txtfile,unpack=True, skiprows=1, usecols=(0,1,2));
+	plt.figure(dpi=300);
+	plt.scatter(lon, lat, c=disp, s=40,cmap='rainbow')
+	plt.colorbar();
+	plt.savefig(plotname);
 	return;
 
 
