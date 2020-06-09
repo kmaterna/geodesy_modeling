@@ -226,7 +226,7 @@ def compute_rel_to_datum_nov_2009(data):
 	return referenced_object; 
 
 
-def write_leveling_ivertible_format(myLev, idx1, idx2, filename):
+def write_leveling_invertible_format(myLev, idx1, idx2, filename):
 	# One header line
 	# One datum line (automatically first in the leveling array anyway)
 	# Lon, lat, disp, sigma, 0, 0, 1 (in m)
