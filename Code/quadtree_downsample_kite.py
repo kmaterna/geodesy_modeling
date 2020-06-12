@@ -13,7 +13,7 @@ import numpy as np
 from kite import Scene
 import geojson2txt
 
-def kite_downsample_isce_unw(datafile, los_rdr_file, outname, 
+def kite_downsample_isce_unw(datafile, outname, 
 	epislon=1, nan_allowed=0.99, tile_size_min=0.002, tile_size_max=0.010):
 	# -------- quadtree downsample an interferogram --------- # 
 	# epsilon - variance cutoff before the quadtree splits
@@ -21,8 +21,8 @@ def kite_downsample_isce_unw(datafile, los_rdr_file, outname,
 	# tile_size_min - degrees
 	# tile_size_max - degrees
 	# datafile: .unw.geo file with a matching .xml in the same directory
-	# los_rdr_file: los.rdr.geo as produced by isce
 	# outname: the geojson produced
+	# los_rdr_file: los.rdr.geo as produced by isce must be in the same directory
 	print("Quadtree Downsampling the file %s into geojson %s " % (datafile, outname) );
 	sc = Scene.import_data(datafile);
 	qt = sc.quadtree
