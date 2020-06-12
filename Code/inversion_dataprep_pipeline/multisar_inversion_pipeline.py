@@ -62,20 +62,21 @@ def write_out_leveling(config):
 	return;
 
 def get_gps_displacements(config):
+	"""
+	For GPS, we only have to write the proper format text file. 
+	"""
 	print("Starting to extract GPS from %s to %s " % (config["starttime"], config["endtime"]) );
 	stations = downsample_gps_ts.read_station_ts(config);
-	downsample_gps_ts.show_timeseries(config, stations);
-	# Next: have to make the GPS relative to some kind of reference station
-
-
+	displacement_objects = downsample_gps_ts.get_displacements_show_ts(config, stations);
+	multiSAR_input_functions.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]+config["gps_textfile"]);
 	return;
+
+
 
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
-	# write_out_leveling(config);
-	# downsample_and_cut_uavsar(config);
+	write_out_leveling(config);
+	downsample_and_cut_uavsar(config);
 	get_gps_displacements(config);
-
-
 
 

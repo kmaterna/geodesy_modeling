@@ -1,20 +1,23 @@
 # June 2020
+# A series of functions to help get GPS TS into 
 
 import numpy as np 
 import datetime as dt 
 import matplotlib.pyplot as plt 
+import collections
 import stations_within_radius
 import gps_input_pipeline
 
-# Timeseries = collections.namedtuple("Timeseries",['name','coords','dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
+Timeseries = collections.namedtuple("Timeseries",['name','coords','dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
 def read_station_ts(config):
 	blacklist=[];
 	station_names,_,_ = stations_within_radius.get_stations_within_box(config["gps_bbox"]);
 	[dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist, "pbo","NA");
+	# Maybe here we should correct co-seismic steps for EMC? 
 	return dataobj_list;
 
-def get_subsample(station, starttime, endtime):
+def subsample_in_time(station, starttime, endtime):
 	# Take a station and give us the data points corresponding to the starttime and endtime
 	# return E0, N0, U0, E1, N1, U1;
 	dE_array_start=[]; dN_array_start=[]; dU_array_start=[];
@@ -43,36 +46,40 @@ def get_subsample(station, starttime, endtime):
 
 	return E0, N0, U0, E1, N1, U1;
 
-
-
-def show_timeseries(config,stations):
+def get_displacements_show_ts(config,stations):
+	# Get the values of TS at starttime and endtime
 	starttime = dt.datetime.strptime(config["starttime"],"%Y-%m-%d")
 	endtime = dt.datetime.strptime(config["endtime"],"%Y-%m-%d")
 	startlim = starttime - dt.timedelta(days=365);
 	endlim = endtime + dt.timedelta(days=365);
-
+	gps_displacements_object=[];
 
 	for station in stations:
-		E0, N0, U0, E1, N1, U1 = get_subsample(station, starttime, endtime);
+		E0, N0, U0, E1, N1, U1 = subsample_in_time(station, starttime, endtime);
+		one_object = Timeseries(name=station.name, coords=station.coords, dtarray=[starttime, endtime], 
+			dN=[0, N1-N0], dE=[0, E1-E0], dU=[0,U1-U0],
+			Sn=[config["gps_sigma"],config["gps_sigma"]], Se=[config["gps_sigma"],config["gps_sigma"]], Su=[3*config["gps_sigma"],3*config["gps_sigma"]],
+			EQtimes=station.EQtimes);
+		gps_displacements_object.append(one_object);
 
 		f,axarr = plt.subplots(3,1,figsize=(12,8),dpi=300);
 		axarr[0].plot(station.dtarray, station.dE,'.');
 		axarr[0].set_xlim([startlim, endlim]);
 		axarr[0].plot(starttime, E0, '.', color='red',markersize=15);
 		axarr[0].plot(endtime, E1, '.', color='red',markersize=15);
+		axarr[0].set_ylabel('East (mm)')
 		axarr[1].plot(station.dtarray, station.dN,'.');
 		axarr[1].set_xlim([startlim, endlim]);
 		axarr[1].plot(starttime, N0, '.', color='red',markersize=15);
 		axarr[1].plot(endtime, N1, '.', color='red',markersize=15);
+		axarr[1].set_ylabel('North (mm)');
 		axarr[2].plot(station.dtarray, station.dU,'.');
 		axarr[2].set_xlim([startlim, endlim]);
 		axarr[2].plot(starttime, U0, '.', color='red',markersize=15);
 		axarr[2].plot(endtime, U1, '.', color='red',markersize=15);		
-		plt.savefig(station.name+"_ts.png");
+		axarr[2].set_ylabel('Up (mm)');
+		plt.savefig(config["prep_inputs_dir"]+"gps_"+station.name+"_ts.png");
 		plt.close();
 
-		# Next, have to write the displacements out. 
-
-
-
-	return;
+	return gps_displacements_object;
+	

@@ -19,6 +19,9 @@ UavsarData = collections.namedtuple("UavsarData",["dtarray","lon","lat","TS"]);
 LevData = collections.namedtuple("LevData",["name","lat","lon","dtarray", "leveling"]);
 TREData = collections.namedtuple("TREData",["lon","lat","vvel","vvel_std",
 	"evel","evel_std","starttime","endtime"]);
+Timeseries = collections.namedtuple("Timeseries",['name','coords',
+	'dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
+
 
 # GET FILE NAMES
 def get_file_dictionary(config_filename):
@@ -50,8 +53,7 @@ def inputs_uavsar(filename):
 	myUAVSAR = UavsarData(dtarray=dtarray, lon=lon, lat=lat, TS=zdata);
 	return myUAVSAR;
 
-
-# WILL HAVE TO WRITE A DIFFERENT UAVSAR INPUT FUNCTION FOR OTHER FORMAT
+# UAVSAR INPUT FUNCTION FOR ISCE FORMAT
 def inputs_uavsar_unw_geo(filename):
 	# For the unw format produced by isce (one minor change from that format)
 	# (BIL scheme assumed)
@@ -83,7 +85,6 @@ def inputs_uavsar_unw_geo(filename):
 	data = floats.reshape(final_shape);	
 	f.close();
 	return data;
-
 
 
 
@@ -225,31 +226,6 @@ def compute_rel_to_datum_nov_2009(data):
 	referenced_object = LevData(name=data.name, lon=data.lon, lat = data.lat, dtarray=referenced_dates, leveling=arrays_of_ref_leveling);
 	return referenced_object; 
 
-
-def write_leveling_invertible_format(myLev, idx1, idx2, filename):
-	# One header line
-	# One datum line (automatically first in the leveling array anyway)
-	# Lon, lat, disp, sigma, 0, 0, 1 (in m)
-	print("Writing leveling to file %s " % filename);
-	ofile=open(filename,'w');
-	ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" % (dt.datetime.strftime(myLev.dtarray[idx1],"%Y-%m-%d"), dt.datetime.strftime(myLev.dtarray[idx2],"%Y-%m-%d") ) )
-	for i in range(len(myLev.leveling)):
-		data = myLev.leveling[i][idx2] - myLev.leveling[i][idx1];
-		unc = 0.010;  # 1 cm
-		if ~np.isnan(data):
-			ofile.write("%f %f %f %f 0 0 1\n" % (myLev.lon[i], myLev.lat[i], data, unc) )
-	ofile.close();
-	return;
-
-def plot_leveling(txtfile, plotname):
-	[lon, lat, disp] = np.loadtxt(txtfile,unpack=True, skiprows=1, usecols=(0,1,2));
-	plt.figure(dpi=300);
-	plt.scatter(lon, lat, c=disp, s=40,cmap='rainbow')
-	plt.colorbar();
-	plt.savefig(plotname);
-	return;
-
-
 # TSX INPUT FUNCTIONS
 def inputs_tsx(filename):
 	# Reading data from TSX TRE data. 
@@ -325,6 +301,48 @@ def inputs_S1(filename):
 
 	return myS1;
 
+
+
+# -------------- WRITE FUNCTIONS ------------- # 
+
+def write_leveling_invertible_format(myLev, idx1, idx2, filename):
+	# One header line
+	# One datum line (automatically first in the leveling array anyway)
+	# Lon, lat, disp, sigma, 0, 0, 1 (in m)
+	print("Writing leveling to file %s " % filename);
+	ofile=open(filename,'w');
+	ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" % (dt.datetime.strftime(myLev.dtarray[idx1],"%Y-%m-%d"), dt.datetime.strftime(myLev.dtarray[idx2],"%Y-%m-%d") ) )
+	for i in range(len(myLev.leveling)):
+		data = myLev.leveling[i][idx2] - myLev.leveling[i][idx1];
+		unc = 0.010;  # 1 cm
+		if ~np.isnan(data):
+			ofile.write("%f %f %f %f 0 0 1\n" % (myLev.lon[i], myLev.lat[i], data, unc) )
+	ofile.close();
+	return;
+
+def plot_leveling(txtfile, plotname):
+	[lon, lat, disp] = np.loadtxt(txtfile,unpack=True, skiprows=1, usecols=(0,1,2));
+	plt.figure(dpi=300);
+	plt.scatter(lon, lat, c=disp, s=40,cmap='rainbow')
+	plt.colorbar();
+	plt.savefig(plotname);
+	return;
+
+def write_gps_invertible_format(gps_object_list, filename):
+	# One header line
+	# GPS Data in meters
+	print("Writing GPS displacements into file %s " % filename);
+	ofile=open(filename,'w');
+	ofile.write("# Header: lon, lat, dE, dN, dU, Se, Sn, Su (m)\n");
+	for station in gps_object_list:
+		if np.isnan(station.dE[1]):
+			continue;
+		else:
+			ofile.write('%f %f ' % (station.coords[0], station.coords[1]) );
+			ofile.write("%f %f %f " % (0.001*station.dE[1], 0.001*station.dN[1], 0.001*station.dU[1]) );
+			ofile.write("%f %f %f\n" % (station.Se[1], station.Sn[1], station.Su[1]) );
+	ofile.close();
+	return;
 
 
 
