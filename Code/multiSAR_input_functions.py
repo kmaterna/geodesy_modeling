@@ -305,7 +305,7 @@ def inputs_S1(filename):
 
 # -------------- WRITE FUNCTIONS ------------- # 
 
-def write_leveling_invertible_format(myLev, idx1, idx2, filename):
+def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
 	# One header line
 	# One datum line (automatically first in the leveling array anyway)
 	# Lon, lat, disp, sigma, 0, 0, 1 (in m)
@@ -314,7 +314,6 @@ def write_leveling_invertible_format(myLev, idx1, idx2, filename):
 	ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" % (dt.datetime.strftime(myLev.dtarray[idx1],"%Y-%m-%d"), dt.datetime.strftime(myLev.dtarray[idx2],"%Y-%m-%d") ) )
 	for i in range(len(myLev.leveling)):
 		data = myLev.leveling[i][idx2] - myLev.leveling[i][idx1];
-		unc = 0.010;  # 1 cm
 		if ~np.isnan(data):
 			ofile.write("%f %f %f %f 0 0 1\n" % (myLev.lon[i], myLev.lat[i], data, unc) )
 	ofile.close();

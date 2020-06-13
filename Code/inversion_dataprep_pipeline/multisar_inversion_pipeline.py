@@ -36,7 +36,7 @@ def downsample_and_cut_uavsar(config):
 	if config["flip_uavsar_los"]:
 		data = -1*data;  # away from satellite = negative motion
 
-	# Setup: rdrfile, xmlfile, datafile
+	# Setup Downsampling: rdrfile, xmlfile, datafile
 	uavsar_unw_file = config["prep_inputs_dir"]+config["uavsar_unw_file"];
 	geojson_file = config["prep_inputs_dir"]+config["geojson_file"];
 	uav_plotfile = config["prep_inputs_dir"]+config["uav_plotfile"];
@@ -48,22 +48,22 @@ def downsample_and_cut_uavsar(config):
 	# # Downsample, bbox, and Print
 	quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file, 
 		config["epsilon"], config["nan_allowed"], config["tile_size_min"], config["tile_size_max"]);
-	quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile, bbox=config["uavsar_bbox"], std_min=0.010);
+	quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile, bbox=config["uavsar_bbox"], std_min=config["uavsar_std_min"]);
 	return;
 
-def write_out_leveling(config):
+def get_leveling_displacements(config):
 	"""
 	For leveling, we only have to write the proper format text file. 
 	"""
 	myLev = multiSAR_input_functions.inputs_leveling(config["leveling_filename"], config["leveling_errors_filename"]);
 	myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);  # Computing relative displacements from 2009 onward
-	multiSAR_input_functions.write_leveling_invertible_format(myLev, config["leveling_start"], config["leveling_end"], config["prep_inputs_dir"]+config["lev_outfile"]);
+	multiSAR_input_functions.write_leveling_invertible_format(myLev, config["leveling_start"], config["leveling_end"], config["leveling_unc"], config["prep_inputs_dir"]+config["lev_outfile"]);
 	multiSAR_input_functions.plot_leveling(config["prep_inputs_dir"]+config["lev_outfile"], config["prep_inputs_dir"]+config["lev_plot"]);
 	return;
 
 def get_gps_displacements(config):
 	"""
-	For GPS, we only have to write the proper format text file. 
+	For GPS, we only have to write the proper format text file, and sometimes we make other corrections. 
 	"""
 	print("Starting to extract GPS from %s to %s " % (config["starttime"], config["endtime"]) );
 	stations = downsample_gps_ts.read_station_ts(config);
@@ -75,8 +75,8 @@ def get_gps_displacements(config):
 
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
-	write_out_leveling(config);
 	downsample_and_cut_uavsar(config);
+	get_leveling_displacements(config);
 	get_gps_displacements(config);
 
 

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import collections
 import stations_within_radius
 import gps_input_pipeline
+import gps_ts_functions
 
 Timeseries = collections.namedtuple("Timeseries",['name','coords','dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
@@ -14,8 +15,19 @@ def read_station_ts(config):
 	blacklist=[];
 	station_names,_,_ = stations_within_radius.get_stations_within_box(config["gps_bbox"]);
 	[dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist, "pbo","NA");
-	# Maybe here we should correct co-seismic steps for EMC? 
-	return dataobj_list;
+	
+	# Now we are doing a bit of adjustments, like for coseismic offsets and base stations, etc.
+	ref_dataobjlist = [];
+	for one_object in dataobj_list:
+		if one_object.name==config["gps_reference"]:
+			reference_station = one_object;
+
+	for one_object in dataobj_list:
+		refobj = gps_ts_functions.get_referenced_data(one_object, reference_station);
+		ref_dataobjlist.append(refobj);
+
+	return ref_dataobjlist;
+	# return dataobj_list;
 
 def subsample_in_time(station, starttime, endtime):
 	# Take a station and give us the data points corresponding to the starttime and endtime
@@ -82,4 +94,3 @@ def get_displacements_show_ts(config,stations):
 		plt.close();
 
 	return gps_displacements_object;
-	
