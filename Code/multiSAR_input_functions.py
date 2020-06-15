@@ -1,4 +1,4 @@
-# A series of functions to  input various data types
+# A series of functions for io of various data types
 # Leveling
 # UAVSAR
 # TSX
@@ -18,7 +18,7 @@ import netcdf_read_write
 UavsarData = collections.namedtuple("UavsarData",["dtarray","lon","lat","TS"]);
 LevData = collections.namedtuple("LevData",["name","lat","lon","dtarray", "leveling"]);
 TREData = collections.namedtuple("TREData",["lon","lat","vvel","vvel_std",
-	"evel","evel_std","starttime","endtime"]);
+	"evel","evel_std","starttime","endtime"]); # in mm/yr
 Timeseries = collections.namedtuple("Timeseries",['name','coords',
 	'dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
@@ -344,5 +344,29 @@ def write_gps_invertible_format(gps_object_list, filename):
 	return;
 
 
+def write_tre_invertible_format(TRE_obj, bbox, unc_min, filename):
+	# This function uses vertical displacements from TRE to make an insar file that can be inverted.
+	# Useful for TSX and S1 from the TRE datasets 
+	print("Writing InSAR displacements into file %s " % filename);
 
+	# Divide by the number of years of observation
+	tdelta = TRE_obj.endtime-TRE_obj.starttime;
+	tre_interval_years = tdelta.days / 365.24;  # the number of years spanned by the TRE velocity. 
 
+	ofile=open(filename,'w');
+	ofile.write("# Vertical Displacements from TRE: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" );
+	for i in range(len(TRE_obj.lon)):
+		if TRE_obj.lon[i]>=bbox[0] and TRE_obj.lon[i]<=bbox[1]:
+			if TRE_obj.lat[i]>=bbox[2] and TRE_obj.lat[i]<=bbox[3]:
+				if np.isnan(TRE_obj.vvel[i]):
+					continue;
+				else:
+					std = TRE_obj.vvel_std[i] * 0.001;  # in m
+					if std < unc_min:
+						std = unc_min;
+					ofile.write('%f %f ' % (TRE_obj.lon[i], TRE_obj.lat[i]) );
+					ofile.write('%f %f ' % (0.001*TRE_obj.vvel[i]*tre_interval_years , std) );
+					ofile.write('0 0 1\n');
+					# Writing in meters
+	ofile.close();
+	return; 

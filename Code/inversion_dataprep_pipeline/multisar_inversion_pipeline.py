@@ -9,6 +9,7 @@ import numpy as np
 import subprocess
 import json
 import sys
+import datetime as dt
 import multiSAR_input_functions
 import quadtree_downsample_kite
 import downsample_gps_ts
@@ -24,7 +25,7 @@ def welcome_and_parse(argv):
 	return config;
 
 
-def downsample_and_cut_uavsar(config):
+def downsample_cut_write_uavsar(config):
 	"""
 	For UAVSAR, we quadtree downsample, multiply by -1, and chop. 
 	"""
@@ -51,7 +52,7 @@ def downsample_and_cut_uavsar(config):
 	quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile, bbox=config["uavsar_bbox"], std_min=config["uavsar_std_min"]);
 	return;
 
-def get_leveling_displacements(config):
+def write_leveling_displacements(config):
 	"""
 	For leveling, we only have to write the proper format text file. 
 	"""
@@ -61,7 +62,7 @@ def get_leveling_displacements(config):
 	multiSAR_input_functions.plot_leveling(config["prep_inputs_dir"]+config["lev_outfile"], config["prep_inputs_dir"]+config["lev_plot"]);
 	return;
 
-def get_gps_displacements(config):
+def write_gps_displacements(config):
 	"""
 	For GPS, we only have to write the proper format text file, and sometimes we make other corrections. 
 	"""
@@ -71,12 +72,39 @@ def get_gps_displacements(config):
 	multiSAR_input_functions.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]+config["gps_textfile"]);
 	return;
 
+def write_s1_tre_displacements(config):
+	"""
+	For S1, we read the format, and write the insar file 
+	Might want to downsample in the future?  That doesn't have to be so fancy as quadtree. 
+	"""
+	if "s1_filename" not in config.keys():
+		print("No S1 in this inversion");
+		return;
+	print("Starting to extract S1 TRE-format from %s " % (config["s1_filename"]) );
+	TRE_S1 = multiSAR_input_functions.inputs_S1(config["s1_filename"]);
+	multiSAR_input_functions.write_tre_invertible_format(TRE_S1, config["s1_bbox"], config["s1_unc"], config["prep_inputs_dir"]+config["s1_datafile"]);
+	return;
+
+def write_tsx_tre_displacements(config):
+	"""
+	For TSX, we read the format, and write the insar file 
+	Might want to downsample in the future?  That doesn't have to be so fancy as quadtree. 
+	"""	
+	if "tsx_filename" not in config.keys():
+		print("No TSX in this inversion");
+		return;	
+	print("Starting to extract TSX TRE-format from %s " % (config["tsx_filename"]) );
+	TRE_TSX = multiSAR_input_functions.inputs_tsx(config["tsx_filename"]);
+	multiSAR_input_functions.write_tre_invertible_format(TRE_TSX, config["tsx_bbox"], config["tsx_unc"], config["prep_inputs_dir"]+config["tsx_datafile"]);	
+	return; 
 
 
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
-	downsample_and_cut_uavsar(config);
-	get_leveling_displacements(config);
-	get_gps_displacements(config);
+	downsample_cut_write_uavsar(config);
+	write_leveling_displacements(config);
+	write_gps_displacements(config);
+	write_s1_tre_displacements(config);
+	write_tsx_tre_displacements(config);
 
 
