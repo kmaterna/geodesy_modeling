@@ -14,6 +14,7 @@ import multiSAR_input_functions
 import quadtree_downsample_kite
 import downsample_gps_ts
 import remove_coseismic_model
+import remove_insar_ramp
 
 def welcome_and_parse(argv):
 	print("Welcome to the multiSAR data input pipeline.")
@@ -62,8 +63,19 @@ def downsample_cut_write_uavsar(config):
 		os.chdir("Edit_for_EMC/EMC_coseismic/EMC_coseismic_model");
 		subprocess.call(["python","/Users/kmaterna/Documents/B_Research/Github_Tools/Elastic_stresses_py/Code/elastic_stresses_driver.py","config.txt"],shell=False);
 		os.chdir("../../../");	
-		subprocess.call(["cp",model_output_points,config["adjust_EMC_uavsar"]],shell=False);		
-		remove_coseismic_model.remove_model_los(uav_textfile, config["adjust_EMC_uavsar"]);
+		subprocess.call(["cp",model_output_points,config["adjust_EMC_uavsar"]],shell=False);
+		adjusted_file = uav_textfile.split(".txt")[0]+"_cos_corrected.txt";  # new file
+		remove_coseismic_model.remove_model_los(uav_textfile, config["adjust_EMC_uavsar"], adjusted_file);
+		uav_textfile = adjusted_file;  # get ready for the next step. 
+	
+	# adjusted_file = uav_textfile.split(".txt")[0]+"_cos_corrected.txt";  # new file
+	# ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_cos_corrected_ramp_removed.txt";  # no-ramps file
+
+	# Now we remove a ramp. 
+	if "remove_uavsar_ramp" in config.keys():
+		ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_ramp_removed.txt";  # no-ramps file
+		remove_insar_ramp.remove_ramp(adjusted_file, ramp_adjusted_file);
+
 	return;
 
 

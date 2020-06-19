@@ -4,7 +4,7 @@
 
 import numpy as np 
 
-def remove_model_los(los_file, model_disps_file):
+def remove_model_los(los_file, model_disps_file, adjusted_file):
 	# Pseudocode: 
 	# What is the modeled delta-e, delta-n, and delta-u of each point relative to the reference point? 
 	# Then, how does that project into the local LOS? 
@@ -25,8 +25,7 @@ def remove_model_los(los_file, model_disps_file):
 
 		corrected_los.append ( disp[i] - los_view );
 
-	namestem = los_file.split(".txt")[0];
-	ofile=open(namestem+"_cos_corrected.txt",'w');
+	ofile=open(adjusted_file,'w');
 	ofile.write("# Header: lon, lat, disp(m), sig(m), unitE, unitN, unitU from ground to satellite\n");
 	for i in range(len(lon_meas)): 
 		ofile.write("%f %f %f %f %f %f %f \n" % (lon_meas[i], lat_meas[i], corrected_los[i], sig[i], unit_e[i], unit_n[i], unit_u[i]) );
