@@ -8,10 +8,10 @@ import datetime as dt
 Catalog = collections.namedtuple("Catalog",["dtarray","lon","lat","depth","Mag"]);
 
 def configure():
-	filename = "../../../General_Data/QTM/qtm_final_12dev.hypo"
+	filename = "../../../Misc/General_Data/QTM/qtm_final_12dev.hypo"
 	field_filename = "../_Project_Data/TRE_Data/CEC_Data/Data/DOGGR_GIS/Fields_Boundaries.txt"
-	# bbox = [-115.66, -115.43, 33.0, 33.04, 0, 6]; # lon, lat, depth ranges
-	bbox = [-115.66, -115.43, 32.9, 33.1, 0, 20]; # lon, lat, depth ranges  # very general
+	# bbox = [-115.66, -115.43, 33.0, 33.04, 0, 6]; # lon, lat, depth ranges, NBGF-specific
+	bbox = [-115.66, -115.43, 32.9, 33.1, 0, 8]; # lon, lat, depth ranges  # general Brawley Area
 	return filename, field_filename, bbox;
 
 def input_qtm(filename):
