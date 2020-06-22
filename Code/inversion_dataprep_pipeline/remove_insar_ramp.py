@@ -30,6 +30,7 @@ def remove_ramp(insar_textfile, ramp_removed_file, data_segments = []):
 
 	ofile=open(ramp_removed_file,'w');
 	print("Writing ramp-removed data into file %s " % ramp_removed_file);
+	ofile.write("# Header: lon, lat, disp(m), sigma, unit_e, unit_n, unit_u\n");
 	for i in range(len(lon_meas)):
 		ofile.write("%f %f %f %f %f %f %f\n" % (lon_meas[i], lat_meas[i], new_disp[i], sig[i], unit_e[i], unit_n[i], unit_u[i]) );
 	ofile.close();

@@ -68,18 +68,21 @@ def downsample_cut_write_uavsar(config):
 		remove_coseismic_model.remove_model_los(uav_textfile, config["adjust_EMC_uavsar"], adjusted_file);
 		uav_textfile = adjusted_file;  # get ready for the next step. 
 	
-	# adjusted_file = uav_textfile.split(".txt")[0]+"_cos_corrected.txt";  # new file
+	# A quick fix if you're skipping the EMC correction for speed. 
+	# uav_textfile = uav_textfile.split(".txt")[0]+"_cos_corrected.txt";  # new file
 	# ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_cos_corrected_ramp_removed.txt";  # no-ramps file
 
 	# Now we remove a ramp. 
 	if "remove_uavsar_ramp" in config.keys():
 		ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_ramp_removed.txt";  # no-ramps file
-		remove_insar_ramp.remove_ramp(adjusted_file, ramp_adjusted_file);
+		remove_insar_ramp.remove_ramp(uav_textfile, ramp_adjusted_file);
 
 	return;
 
 
 def add_reference_pixel_los_to_end(uav_textfile,reference_ll):
+	# This is called before EMC correction, as we need the reference for applying the correction. 
+	# We usually remove it later. 
 	ofile=open(uav_textfile,'a');
 	ofile.write("%f %f 0.0000 0.01 -1 -1 -1" % (reference_ll[0], reference_ll[1]) );
 	ofile.close();
