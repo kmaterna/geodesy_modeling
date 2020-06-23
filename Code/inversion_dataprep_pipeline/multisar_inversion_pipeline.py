@@ -103,9 +103,13 @@ def write_gps_displacements(config):
 	"""
 	For GPS, we only have to write the proper format text file, and sometimes we make other corrections. 
 	"""
-	print("Starting to extract GPS from %s to %s " % (config["starttime"], config["endtime"]) );
-	stations = downsample_gps_ts.read_station_ts(config);
-	displacement_objects = downsample_gps_ts.get_displacements_show_ts(config, stations);
+	starttime = dt.datetime.strptime(config["starttime"],"%Y-%m-%d");
+	endtime = dt.datetime.strptime(config["endtime"],"%Y-%m-%d");
+	prep_dir = config["prep_inputs_dir"];
+	gps_sigma = config['gps_sigma'];
+	print("Starting to extract GPS from %s to %s " % (starttime, endtime) );
+	stations = downsample_gps_ts.read_station_ts(config["gps_bbox"],config["gps_reference"]);
+	displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir);
 	multiSAR_input_functions.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]+config["gps_textfile"]);
 	
 	if "adjust_EMC_gps" in config.keys():

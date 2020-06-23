@@ -11,15 +11,15 @@ import gps_ts_functions
 
 Timeseries = collections.namedtuple("Timeseries",['name','coords','dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
-def read_station_ts(config):
+def read_station_ts(gps_bbox, gps_reference):
 	blacklist=[];
-	station_names,_,_ = stations_within_radius.get_stations_within_box(config["gps_bbox"]);
+	station_names,_,_ = stations_within_radius.get_stations_within_box(gps_bbox);
 	[dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist, "pbo","NA");
 	
 	# Now we are doing a bit of adjustments, like for coseismic offsets and base stations, etc.
 	ref_dataobjlist = [];
 	for one_object in dataobj_list:
-		if one_object.name==config["gps_reference"]:
+		if one_object.name==gps_reference:
 			reference_station = one_object;
 
 	for one_object in dataobj_list:
@@ -58,10 +58,8 @@ def subsample_in_time(station, starttime, endtime):
 
 	return E0, N0, U0, E1, N1, U1;
 
-def get_displacements_show_ts(config,stations):
+def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir):
 	# Get the values of TS at starttime and endtime
-	starttime = dt.datetime.strptime(config["starttime"],"%Y-%m-%d")
-	endtime = dt.datetime.strptime(config["endtime"],"%Y-%m-%d")
 	startlim = starttime - dt.timedelta(days=365);
 	endlim = endtime + dt.timedelta(days=365);
 	gps_displacements_object=[];
@@ -70,7 +68,7 @@ def get_displacements_show_ts(config,stations):
 		E0, N0, U0, E1, N1, U1 = subsample_in_time(station, starttime, endtime);
 		one_object = Timeseries(name=station.name, coords=station.coords, dtarray=[starttime, endtime], 
 			dN=[0, N1-N0], dE=[0, E1-E0], dU=[0,U1-U0],
-			Sn=[config["gps_sigma"],config["gps_sigma"]], Se=[config["gps_sigma"],config["gps_sigma"]], Su=[3*config["gps_sigma"],3*config["gps_sigma"]],
+			Sn=[gps_sigma,gps_sigma], Se=[gps_sigma,gps_sigma], Su=[3*gps_sigma,3*gps_sigma],
 			EQtimes=station.EQtimes);
 		gps_displacements_object.append(one_object);
 
@@ -90,7 +88,7 @@ def get_displacements_show_ts(config,stations):
 		axarr[2].plot(starttime, U0, '.', color='red',markersize=15);
 		axarr[2].plot(endtime, U1, '.', color='red',markersize=15);		
 		axarr[2].set_ylabel('Up (mm)');
-		plt.savefig(config["prep_inputs_dir"]+"gps_"+station.name+"_ts.png");
+		plt.savefig(prep_dir+"gps_"+station.name+"_ts.png");
 		plt.close();
 
 	return gps_displacements_object;
