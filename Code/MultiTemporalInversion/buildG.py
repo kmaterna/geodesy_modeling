@@ -8,6 +8,7 @@ import slippy.tikhonov
 import slippy.gbuild
 import scipy.optimize
 import scipy.linalg
+import slippy.io
 
 def reg_nnls(Gext,dext):
   return scipy.optimize.nnls(Gext,dext)[0]
@@ -30,7 +31,7 @@ def input_gps_file(filename):
 
   obs_disp_f = np.zeros((0,))
   obs_sigma_f = np.zeros((0,))
-  obs_pos_geo_f = np.zeros((0,3))  # going to contain gps and insar obs
+  obs_pos_geo_f = np.zeros((0,3))  
   obs_basis_f = np.zeros((0,3))
 
   gps_input = slippy.io.read_gps_data(filename);
@@ -56,6 +57,30 @@ def input_gps_file(filename):
 
   return [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ngps, Nleveling, leveling_sign];
 
+def input_insar_file(filename):
+  
+  obs_disp_f = np.zeros((0,))
+  obs_sigma_f = np.zeros((0,))
+  obs_pos_geo_f = np.zeros((0,3))  
+  obs_basis_f = np.zeros((0,3))
+
+  insar_input = slippy.io.read_insar_data(filename)    
+  Ninsar = len(insar_input[0])
+  Nleveling = 0  # change this if we're reading leveling 
+  leveling_sign = 1;
+  obs_insar_pos_geo = insar_input[0]
+  obs_insar_disp = insar_input[1]
+  obs_insar_sigma = insar_input[2]
+  obs_insar_basis = insar_input[3]
+
+  obs_disp_f = np.concatenate((obs_disp_f,obs_insar_disp),axis=0)
+  obs_sigma_f = np.concatenate((obs_sigma_f,obs_insar_sigma),axis=0)
+  obs_basis_f = np.concatenate((obs_basis_f,obs_insar_basis),axis=0)    
+  obs_pos_geo_f = np.concatenate((obs_pos_geo_f,obs_insar_pos_geo),axis=0)
+  
+  print("Reading %d insar data from %s " % ( len(insar_input[0]),filename) ) ; 
+
+  return [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar, Nleveling, leveling_sign]; 
 
 
 def beginning_calc(config):
@@ -152,9 +177,9 @@ def beginning_calc(config):
   total_spans = [];
   span_output_files = [];  
   for epoch in config["epochs"].keys():
-  	n_epochs = n_epochs+1;
-  	total_spans.append(config["epochs"][epoch]["name"]);
-  	span_output_files.append(config["output_dir"]+"span_"+config["epochs"][epoch]["name"]+"_slip.txt");
+    n_epochs = n_epochs+1;
+    total_spans.append(config["epochs"][epoch]["name"]);
+    span_output_files.append(config["output_dir"]+"span_"+config["epochs"][epoch]["name"]+"_slip.txt");
   n_model_params = np.shape(L)[0];  
   print("Finding fault model for %d epochs " % n_epochs);
   print("Number of model parameters per epoch: %d" % n_model_params );
@@ -164,37 +189,53 @@ def beginning_calc(config):
   sig_total = np.zeros((0,));
   G_total = np.zeros((0,n_epochs*n_model_params));
   G_nosmooth_total = np.zeros((0,n_epochs*n_model_params));
+  nums_obs = [];
+  pos_obs_list = []; 
+  pos_basis_list = [];
 
   # INITIAL DATA SCOPING: HOW MANY FILES WILL NEED TO BE READ?
   input_file_list = []; 
   spans_list = [];
   data_type_list = [];
   print("Available data indicated in json file: ")
-  for interval in config["gps_data"].keys():
-    gps_file = config["prep_inputs_dir"]+config["gps_data"][interval]["gps_textfile"];
-    this_data_spans = config["gps_data"][interval]["span"];
-    print(gps_file," spans ",this_data_spans);
-    input_file_list.append(gps_file);
-    spans_list.append(this_data_spans);
-    data_type_list.append('gps');
+  if "gps_data" in config.keys():
+    for interval in config["gps_data"].keys():
+      gps_file = config["prep_inputs_dir"]+config["gps_data"][interval]["gps_textfile"];
+      this_data_spans = config["gps_data"][interval]["span"];
+      print(gps_file," spans ",this_data_spans);
+      input_file_list.append(gps_file);
+      spans_list.append(this_data_spans);
+      data_type_list.append('gps');
 
-  for interval in config["uavsar_data"].keys():
-    uavsar_file = config["prep_inputs_dir"]+config["uavsar_data"][interval]["uav_textfile"];
-    this_data_spans = config["uavsar_data"][interval]["span"];
-    print(uavsar_file," spans ",this_data_spans);
-    input_file_list.append(uavsar_file);
-    spans_list.append(this_data_spans);
-    data_type_list.append('uavsar'); 
+  if "uavsar_data" in config.keys():
+    for interval in config["uavsar_data"].keys():
+      uavsar_file = config["prep_inputs_dir"]+config["uavsar_data"][interval]["uav_textfile"];
+      this_data_spans = config["uavsar_data"][interval]["span"];
+      print(uavsar_file," spans ",this_data_spans);
+      input_file_list.append(uavsar_file);
+      spans_list.append(this_data_spans);
+      data_type_list.append('uavsar'); 
 
-  for interval in config["leveling_data"].keys():
-    lev_file = config["prep_inputs_dir"]+config["leveling_data"][interval]["lev_outfile"];
-    this_data_spans = config["leveling_data"][interval]["span"];
-    print(lev_file," spans ",this_data_spans);
-    input_file_list.append(lev_file);
-    spans_list.append(this_data_spans);
-    data_type_list.append('leveling');
+  if "leveling_data" in config.keys():
+    for interval in config["leveling_data"].keys():
+      lev_file = config["prep_inputs_dir"]+config["leveling_data"][interval]["lev_outfile"];
+      this_data_spans = config["leveling_data"][interval]["span"];
+      print(lev_file," spans ",this_data_spans);
+      input_file_list.append(lev_file);
+      spans_list.append(this_data_spans);
+      data_type_list.append('leveling');
 
-  
+  if "tsx_data" in config.keys():
+    for interval in config["tsx_data"].keys():
+      tsx_file = config["prep_inputs_dir"]+config["tsx_data"][interval]["tsx_datafile"];
+      this_data_spans = config["tsx_data"][interval]["span"];
+      print(tsx_file," spans ",this_data_spans);
+      input_file_list.append(tsx_file);
+      spans_list.append(this_data_spans);
+      data_type_list.append('tsx');
+
+
+
   # START THE MAJOR INVERSION LOOP
   for filenum in range(len(input_file_list)):
 
@@ -202,14 +243,23 @@ def beginning_calc(config):
     filename = input_file_list[filenum];
     if data_type_list[filenum]=='gps':
       [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ngps, Nleveling, leveling_sign] = input_gps_file(filename);
-      this_data_spans = spans_list[filenum];
-      print("This data spans:", this_data_spans);
     elif data_type_list[filenum]=='uavsar':
-      print("SKIPPING UAVSAR_DATA"); continue;
-    elif data_type_list[filenum]=="leveling":
-      print("SKIPPING LEVELING DATA"); continue;
+      [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ngps, Nleveling, leveling_sign] = input_insar_file(filename);
+    elif data_type_list[filenum]=="leveling" or data_type_list[filenum]=='tsx':
+      [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar, Nleveling, leveling_sign] = input_insar_file(filename);
+      if 'B' in filename:
+        leveling_sign=-1*leveling_sign;  # feel free to adjust the non-negative inversion parameter here. 
+      Nleveling = Ninsar; 
     else:
+      print("ERROR! Unrecognized data type %s " % data_type_list[filenum]);
       continue;
+    
+    # Metadata collection about this input source
+    pos_obs_list.append(obs_pos_geo_f);  # for writing the outputs later
+    nums_obs.append(len(obs_disp_f));
+    pos_basis_list.append(obs_basis_f);
+    this_data_spans = spans_list[filenum];
+    print("This data spans:", this_data_spans);       
 
     # # Geodetic to Cartesian coordinates
     obs_pos_cart_f = plotting_library.geodetic_to_cartesian(obs_pos_geo_f,bm)  
@@ -261,6 +311,9 @@ def beginning_calc(config):
     G_nosmooth_total = np.concatenate((G_nosmooth_total, G_nosmoothing_obs));
 
 
+  plt.figure(figsize=(12,8), dpi=300);
+  plt.imshow(G_total,vmin=-0.02, vmax=0.02, aspect=1/3)
+  plt.savefig("image_of_G.png");
 
   # INVERT BIG-G
   #   ### estimate slip and compute predicted displacement
@@ -272,7 +325,7 @@ def beginning_calc(config):
   pred_disp_f = G_nosmooth_total.dot(slip_f)*sig_total; 
 
   total_cardinal_slip = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis);
-  disp_models = parse_disp_outputs(pred_disp_f, n_epochs);
+  disp_models = parse_disp_outputs(pred_disp_f, nums_obs);
 
   ### get slip patch data for outputs
   #####################################################################
@@ -297,22 +350,38 @@ def beginning_calc(config):
                               total_cardinal_slip[i],slip_output_file)
 
 
+  # OUTPUT EACH PREDICTED DISPLACEMENT FIELD
+  for filenum in range(len(input_file_list)):
 
-  # OUTPUT EACH PREDICTED DISPLACEMENTS
+    if data_type_list[filenum]=='gps':  # write GPS
+      Ngps = int(nums_obs[filenum]/3);
+      pred_disp_gps = disp_models[filenum];
+      gps_output_file = config["output_dir"]+"dispmodel_"+input_file_list[filenum].split('/')[-1]
+      pred_disp_gps = pred_disp_gps.reshape((Ngps,3))
+      slippy.io.write_gps_data(pos_obs_list[filenum][::3], 
+                           pred_disp_gps,0.0*pred_disp_gps,
+                           gps_output_file);
+      print("Writing file %s " % gps_output_file);
 
-  # slippy.io.write_gps_data(obs_gps_pos_geo, 
-  #                          pred_disp_gps,0.0*pred_disp_gps,
-  #                          gps_output_file)
+    elif data_type_list[filenum]=='uavsar':
+      Npts = nums_obs[filenum];
+      pred_disp_insar = disp_models[filenum];
+      insar_output_file = config["output_dir"]+"dispmodel_"+input_file_list[filenum].split('/')[-1]
+      slippy.io.write_insar_data(pos_obs_list[filenum],
+                             pred_disp_insar,0.0*pred_disp_insar,
+                             pos_basis_list[filenum], 
+                             insar_output_file)
+      print("Writing file %s " % insar_output_file );
 
-  # slippy.io.write_insar_data(obs_insar_pos_geo,
-  #                          pred_disp_insar,0.0*pred_disp_insar,
-  #                          obs_insar_basis, 
-  #                          insar_output_file)
-
-  # slippy.io.write_insar_data(obs_leveling_pos_geo,
-  #                          pred_disp_leveling,0.0*pred_disp_leveling,
-  #                          obs_leveling_basis, 
-  #                          leveling_output_file)
+    elif data_type_list[filenum]=='leveling' or data_type_list[filenum]=='tsx':
+      Npts = nums_obs[filenum];
+      pred_disp_leveling = disp_models[filenum];
+      leveling_output_file = config["output_dir"]+"dispmodel_"+input_file_list[filenum].split('/')[-1]
+      slippy.io.write_insar_data(pos_obs_list[filenum],
+                             pred_disp_leveling,0.0*pred_disp_leveling,
+                             pos_basis_list[filenum], 
+                             leveling_output_file)
+      print("Writing file %s " % leveling_output_file );
 
   return;
 
@@ -333,24 +402,19 @@ def parse_slip_outputs(slip_f,Ns_total, Ds, n_epochs, total_fault_slip_basis):
     slip = slip_terms_only.reshape((Ns_total,Ds))  # THIS ASSUMES ALL FAULTS HAVE THE SAME NUMBER OF BASIS VECTORS
     cardinal_slip = slippy.basis.cardinal_components(slip,total_fault_slip_basis)
     total_cardinal_slip.append(cardinal_slip);
+  
+    print("Leveling Offset = %f m " % (leveling_offset) );
+    if abs(leveling_offset)<0.0000001:
+      print("WARNING for Epoch %d: Leveling offset close to zero. Consider a negative offset in G." % (i) ) 
 
   return total_cardinal_slip;
 
-def parse_disp_outputs(pred_disp_f, n_epochs):
-  #   # split predicted displacements into insar and GPS component 
-  #   pred_disp_f_gps = pred_disp_f[:3*Ngps]
-  #   pred_disp_gps = pred_disp_f_gps.reshape((Ngps,3))
-  #   pred_disp_insar = pred_disp_f[3*Ngps:]  
-  #   pred_disp_leveling = pred_disp_f[-1:-1]; # no leveling; padding with nothing
-
-  #   # split predicted displacements into insar and GPS and Leveling components
-  #   pred_disp_f_gps = pred_disp_f[:3*Ngps]
-  #   pred_disp_gps = pred_disp_f_gps.reshape((Ngps,3))
-  #   pred_disp_insar = pred_disp_f[3*Ngps:3*Ngps+Ninsar]
-  #   pred_disp_leveling = pred_disp_f[3*Ngps+Ninsar:];
-  #   print("Leveling Offset = %f m " % (leveling_offset) );
-  #   if abs(leveling_offset)<0.0000001:
-  #     print("WARNING: Leveling offset close to zero. Consider a negative offset in G.")
-  #   	
-  return 0;
+def parse_disp_outputs(pred_disp_f, num_obs):
+  count=0;
+  disp_segments = [];
+  for i in range(len(num_obs)):
+  	disp_segment = pred_disp_f[count:count+num_obs[i]]
+  	disp_segments.append(disp_segment);
+  	count=count+num_obs[i];
+  return disp_segments;
 
