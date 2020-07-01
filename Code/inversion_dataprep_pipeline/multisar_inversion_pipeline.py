@@ -107,16 +107,22 @@ def write_gps_displacements(config):
 	endtime = dt.datetime.strptime(config["endtime"],"%Y-%m-%d");
 	prep_dir = config["prep_inputs_dir"];
 	gps_sigma = config['gps_sigma'];
+	if "adjust_EMC_gps" in config.keys():
+		adjust_coseismic = 1;	
+	else:
+		adjust_coseismic = 0;
 	print("Starting to extract GPS from %s to %s " % (starttime, endtime) );
-	stations = downsample_gps_ts.read_station_ts(config["gps_bbox"],config["gps_reference"]);
+	stations = downsample_gps_ts.read_station_ts(config["gps_bbox"],config["gps_reference"], remove_coseismic=adjust_coseismic);
 	displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir);
 	multiSAR_input_functions.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]+config["gps_textfile"]);
-	
-	if "adjust_EMC_gps" in config.keys():
-		print("Adjusting GPS for EMC gradients");
-		# Manually collect the modeled gps points here. 
-		remove_coseismic_model.remove_model_gps(config["prep_inputs_dir"]+config["gps_textfile"], config["adjust_EMC_gps"]);	
+
+	# if adjust_coseismic: # Here is an option for removing EMC by an elastic model. Takes a while. 
+	# 	print("Adjusting GPS for EMC gradients");
+	# 	# Manually collect the modeled gps points here. 
+	# 	remove_coseismic_model.remove_model_gps(config["prep_inputs_dir"]+config["gps_textfile"], config["adjust_EMC_gps"]);	
 	return;
+
+
 
 def write_s1_tre_displacements(config):
 	"""

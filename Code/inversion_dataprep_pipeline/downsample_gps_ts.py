@@ -9,32 +9,48 @@ import stations_within_radius
 import gps_input_pipeline
 import gps_ts_functions
 import gps_seasonal_removals
+import gps_postseismic_remove
+import offsets
 
 Timeseries = collections.namedtuple("Timeseries",['name','coords','dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
-def read_station_ts(gps_bbox, gps_reference):
+def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
 	blacklist=[];
 	station_names,_,_ = stations_within_radius.get_stations_within_box(gps_bbox);
 	[dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist, "pbo","NA");
-	
+
 	# Now we are doing a bit of adjustments, for seasonal corrections and base station.
+	cleaned_objects = [];
+	for i in range(len(dataobj_list)):
+		one_object = dataobj_list[i];
+		newobj = gps_seasonal_removals.make_detrended_ts(one_object, seasonals_remove=1, seasonals_type="nldas", remove_trend=0);
 
-	noseasons_objlist = [];  # Removing seasonals by NLDAS
-	for one_object in dataobj_list:
-		noseasons_object = gps_seasonal_removals.make_detrended_ts(one_object, 1, "nldas", remove_trend=0);
-		noseasons_objlist.append(noseasons_object);
+		# if remove_coseismic:
+			# newobj=offsets.remove_offsets(newobj, offsetobj_list[i]);
+			# newobj=offsets.remove_offsets(newobj, eqobj_list[i]);
+		
+		newobj=gps_ts_functions.remove_outliers(newobj, 20);  # 20mm outlier definition			
+		
+		# Here we detrend using pre-2010 velocities, assuming tectonic strain accumulation won't contribute to geothermal field deformation. 
+		# Remove the postseismic by the Hines model
+		endtime=dt.datetime.strptime("2010-04-01","%Y-%m-%d");		
+		[east_slope, north_slope, vert_slope, east_std, north_std, vert_std] = gps_ts_functions.get_slope(newobj, endtime=endtime, missing_fraction=0.2);
+		east_params=[east_slope,0,0,0,0];
+		north_params=[north_slope,0,0,0,0];
+		vert_params=[vert_slope,0,0,0,0];
+		data_dir = "../../../../Mendocino_Geodesy/GPS_POS_DATA/"
+		newobj=gps_postseismic_remove.remove_by_model(newobj,data_dir);  # This will actually remove the coseismic offset if within the window.
+		newobj = gps_ts_functions.detrend_data_by_value(newobj,east_params,north_params,vert_params);	
+		cleaned_objects.append(newobj)
 
+	# Subtracting the reference GPS station. 
 	ref_dataobjlist = [];
-	for one_object in noseasons_objlist:
-		if one_object.name==gps_reference:
-			reference_station = one_object;
-
-	for one_object in noseasons_objlist:
+	reference_station = [x for x in cleaned_objects if x.name == gps_reference][0];
+	for one_object in cleaned_objects:
 		refobj = gps_ts_functions.get_referenced_data(one_object, reference_station);
 		ref_dataobjlist.append(refobj);
 
 	return ref_dataobjlist;
-	# return dataobj_list;
 
 def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir):
 	# Get the values of TS at starttime and endtime
