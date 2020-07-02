@@ -6,7 +6,7 @@ import numpy as np
 import sys
 
 
-def remove_ramp(insar_textfile, ramp_removed_file, data_segments = []):
+def remove_ramp(insar_textfile, ramp_removed_file, ref_coord=[]):
 	[lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(insar_textfile, unpack=True, skiprows=1);
 	# Here we will solve the least squares problem for the equation of a plane, and then remove it. 
 	# Then write out the data again. 
@@ -27,6 +27,11 @@ def remove_ramp(insar_textfile, ramp_removed_file, data_segments = []):
 	for i in range(len(lon_meas)):
 		ramp_solution = model[0]*lon_meas[i]+model[1]*lat_meas[i]+model[2];
 		new_disp.append(disp[i] - ramp_solution);
+
+	# Re-reference if necessary
+	if ref_coord != []:
+		ref_plane = model[0]*ref_coord[0] + model[1]*ref_coord[1] + model[2];
+		new_disp = [x - ref_plane for x in new_disp];
 
 	ofile=open(ramp_removed_file,'w');
 	print("Writing ramp-removed data into file %s " % ramp_removed_file);

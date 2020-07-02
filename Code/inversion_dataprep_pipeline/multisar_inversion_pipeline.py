@@ -75,7 +75,7 @@ def downsample_cut_write_uavsar(config):
 	# Now we remove a ramp. 
 	if "remove_uavsar_ramp" in config.keys():
 		ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_ramp_removed.txt";  # no-ramps file
-		remove_insar_ramp.remove_ramp(uav_textfile, ramp_adjusted_file);
+		remove_insar_ramp.remove_ramp(uav_textfile, ramp_adjusted_file, ref_coord=config['reference_ll']);
 
 	return;
 
