@@ -226,44 +226,9 @@ def compute_rel_to_datum_nov_2009(data):
 	referenced_object = LevData(name=data.name, lon=data.lon, lat = data.lat, dtarray=referenced_dates, leveling=arrays_of_ref_leveling);
 	return referenced_object; 
 
-# TSX INPUT FUNCTIONS
-def inputs_tsx(filename):
-	# Reading data from TSX TRE data. 
-	print("Reading in %s" % filename);
-	wb = xlrd.open_workbook(filename);
 
-	# Vertical velocities
-	sheet = wb.sheet_by_index(2);
-	numcols = sheet.ncols;
-	numrows = sheet.nrows; 
-	data = [[sheet.cell_value(r,c) for c in range(numcols)] for r in range(numrows)];
-	length, width = np.shape(data);
-	zvel = [data[i][0] for i in range(1,length)];
-	zvel_std = [data[i][1] for i in range(1,length)];
-	lat = [data[i][2] for i in range(1,length)];
-	lon = [data[i][3] for i in range(1,length)];
-
-	# East velocities
-	sheet = wb.sheet_by_index(3);
-	numcols = sheet.ncols;
-	numrows = sheet.nrows; 
-	data = [[sheet.cell_value(r,c) for c in range(numcols)] for r in range(numrows)];
-	length, width = np.shape(data);
-	evel = [data[i][0] for i in range(1,length)];
-	evel_std = [data[i][1] for i in range(1,length)];
-
-	starttime=dt.datetime.strptime("2012-09-01","%Y-%m-%d");
-	endtime=dt.datetime.strptime("2013-09-01","%Y-%m-%d");  # Hard coded for this experiment. 
-
-	# Packaging it up
-	myTSX = TREData(lon=lon, lat=lat, vvel=zvel, vvel_std=zvel_std, evel=evel, evel_std=evel_std, 
-		starttime=starttime, endtime=endtime);
-
-	return myTSX;
-
-
-# S1 INPUT FUNCTIONS
-def inputs_S1(filename):
+# INPUT FUNCTIONS FOR S1 AND TSX FROM TRE
+def inputs_TRE(filename):
 	# Reading data from SNT1 TRE data. 
 	print("Reading in %s" % filename);
 	wb = xlrd.open_workbook(filename);
@@ -288,6 +253,9 @@ def inputs_S1(filename):
 	evel = [data[i][0] for i in range(1,length)];
 	evel_std = [data[i][1] for i in range(1,length)];
 
+	if "TSX" in filename:
+		starttime=dt.datetime.strptime("2012-09-01","%Y-%m-%d");
+		endtime=dt.datetime.strptime("2013-09-01","%Y-%m-%d");  # Hard coded for this experiment. 
 	if "SNT1" in filename:
 		starttime=dt.datetime.strptime("2014-04-01","%Y-%m-%d");
 		endtime=dt.datetime.strptime("2018-04-01","%Y-%m-%d");  # Hard coded for this experiment. 
@@ -296,10 +264,10 @@ def inputs_S1(filename):
 		endtime=dt.datetime.strptime("2019-08-01","%Y-%m-%d");  # Hard coded for this experiment. 
 
 	# Packaging it up
-	myS1 = TREData(lon=lon, lat=lat, vvel=zvel, vvel_std=zvel_std, evel=evel, evel_std=evel_std, 
+	myTREData = TREData(lon=lon, lat=lat, vvel=zvel, vvel_std=zvel_std, evel=evel, evel_std=evel_std, 
 		starttime=starttime, endtime=endtime);
 
-	return myS1;
+	return myTREData;
 
 
 
@@ -344,29 +312,22 @@ def write_gps_invertible_format(gps_object_list, filename):
 	return;
 
 
-def write_tre_invertible_format(TRE_obj, bbox, unc_min, filename):
-	# This function uses vertical displacements from TRE to make an insar file that can be inverted.
-	# Useful for TSX and S1 from the TRE datasets 
+def write_insar_invertible_format(InSAR_obj, unc_min, filename):
+	# This function uses InSAR displacements to make an insar file that can be inverted.
 	print("Writing InSAR displacements into file %s " % filename);
-
-	# Divide by the number of years of observation
-	tdelta = TRE_obj.endtime-TRE_obj.starttime;
-	tre_interval_years = tdelta.days / 365.24;  # the number of years spanned by the TRE velocity. 
-
 	ofile=open(filename,'w');
-	ofile.write("# Vertical Displacements from TRE: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" );
-	for i in range(len(TRE_obj.lon)):
-		if TRE_obj.lon[i]>=bbox[0] and TRE_obj.lon[i]<=bbox[1]:
-			if TRE_obj.lat[i]>=bbox[2] and TRE_obj.lat[i]<=bbox[3]:
-				if np.isnan(TRE_obj.vvel[i]):
-					continue;
-				else:
-					std = TRE_obj.vvel_std[i] * 0.001;  # in m
-					if std < unc_min:
-						std = unc_min;
-					ofile.write('%f %f ' % (TRE_obj.lon[i], TRE_obj.lat[i]) );
-					ofile.write('%f %f ' % (0.001*TRE_obj.vvel[i]*tre_interval_years , std) );
-					ofile.write('0 0 1\n');
-					# Writing in meters
+	ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitN \n" );
+	for i in range(len(InSAR_obj.lon)):
+		if np.isnan(InSAR_obj.LOS[i]):
+			continue;
+		else:
+			std = InSAR_obj.LOS_unc[i] * 0.001;  # in m
+			if std < unc_min:
+				std = unc_min;
+			ofile.write('%f %f ' % (InSAR_obj.lon[i], InSAR_obj.lat[i]) );
+			ofile.write('%f %f ' % (0.001*InSAR_obj.LOS[i] , std) );
+			ofile.write('%f %f %f\n' % (InSAR_obj.lkv_E[i], InSAR_obj.lkv_N[i], InSAR_obj.lkv_U[i]) );
+			# Writing in meters
 	ofile.close();
 	return; 
+

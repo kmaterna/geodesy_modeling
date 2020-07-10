@@ -101,16 +101,20 @@ def downsample_cut_write_uavsar_multiple(config):
 
 def write_tsx_tre_displacements_multiple(config):
 	for interval_dict_key in config["tsx_data"]:
-		new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in Leveling
+		new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in TSX
 		print("Starting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]) );
-		TRE_TSX = multiSAR_input_functions.inputs_tsx(new_interval_dict["tsx_filename"]);
+		TRE_TSX = multiSAR_input_functions.inputs_TRE(new_interval_dict["tsx_filename"]);
+		# Things like:
+		# bounding box
+		# downsampling
+		# Convert to displacements
 		multiSAR_input_functions.write_tre_invertible_format(TRE_TSX, new_interval_dict["tsx_bbox"], new_interval_dict["tsx_unc"], config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
 	return;
 
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
-	downsample_cut_write_uavsar_multiple(config);
-	write_leveling_displacements_multiple(config);
-	write_gps_displacements_multiple(config);
+	# downsample_cut_write_uavsar_multiple(config);
+	# write_leveling_displacements_multiple(config);
+	# write_gps_displacements_multiple(config);
 	write_tsx_tre_displacements_multiple(config);
 	# write_s1_tre_displacements(config);

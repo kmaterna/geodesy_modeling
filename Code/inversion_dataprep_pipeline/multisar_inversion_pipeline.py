@@ -15,6 +15,7 @@ import quadtree_downsample_kite
 import downsample_gps_ts
 import remove_coseismic_model
 import remove_insar_ramp
+import insar_LOS_tools
 
 def welcome_and_parse(argv):
 	print("Welcome to the multiSAR data input pipeline.")
@@ -133,7 +134,7 @@ def write_s1_tre_displacements(config):
 		print("No S1 in this inversion");
 		return;
 	print("Starting to extract S1 TRE-format from %s " % (config["s1_filename"]) );
-	TRE_S1 = multiSAR_input_functions.inputs_S1(config["s1_filename"]);
+	TRE_S1 = multiSAR_input_functions.inputs_TRE(config["s1_filename"]);
 	multiSAR_input_functions.write_tre_invertible_format(TRE_S1, config["s1_bbox"], config["s1_unc"], config["prep_inputs_dir"]+config["s1_datafile"]);
 	return;
 
@@ -146,7 +147,12 @@ def write_tsx_tre_displacements(config):
 		print("No TSX in this inversion");
 		return;	
 	print("Starting to extract TSX TRE-format from %s " % (config["tsx_filename"]) );
-	TRE_TSX = multiSAR_input_functions.inputs_tsx(config["tsx_filename"]);
+	TRE_TSX = multiSAR_input_functions.inputs_TRE(config["tsx_filename"]);
+	TRE_TSX = downsample_insar_uniform.uniform_downsampling()
+	# Other steps: 
+	# Convert to displacements
+	# Downsample
+	# Bounding Box
 	multiSAR_input_functions.write_tre_invertible_format(TRE_TSX, config["tsx_bbox"], config["tsx_unc"], config["prep_inputs_dir"]+config["tsx_datafile"]);	
 	return; 
 
