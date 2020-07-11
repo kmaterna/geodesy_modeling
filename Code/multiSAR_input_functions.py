@@ -19,6 +19,8 @@ UavsarData = collections.namedtuple("UavsarData",["dtarray","lon","lat","TS"]);
 LevData = collections.namedtuple("LevData",["name","lat","lon","dtarray", "leveling"]);
 TREData = collections.namedtuple("TREData",["lon","lat","vvel","vvel_std",
 	"evel","evel_std","starttime","endtime"]); # in mm/yr
+InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc',
+	'lkv_E','lkv_N','lkv_U','starttime','endtime']);  # A more generalized InSAR displacement format (in mm)
 Timeseries = collections.namedtuple("Timeseries",['name','coords',
 	'dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
@@ -314,6 +316,7 @@ def write_gps_invertible_format(gps_object_list, filename):
 
 def write_insar_invertible_format(InSAR_obj, unc_min, filename):
 	# This function uses InSAR displacements to make an insar file that can be inverted.
+	# Writes one header line and multiple data lines. 
 	print("Writing InSAR displacements into file %s " % filename);
 	ofile=open(filename,'w');
 	ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitN \n" );
@@ -325,9 +328,18 @@ def write_insar_invertible_format(InSAR_obj, unc_min, filename):
 			if std < unc_min:
 				std = unc_min;
 			ofile.write('%f %f ' % (InSAR_obj.lon[i], InSAR_obj.lat[i]) );
-			ofile.write('%f %f ' % (0.001*InSAR_obj.LOS[i] , std) );
+			ofile.write('%f %f ' % (0.001*InSAR_obj.LOS[i] , std) );  # in m
 			ofile.write('%f %f %f\n' % (InSAR_obj.lkv_E[i], InSAR_obj.lkv_N[i], InSAR_obj.lkv_U[i]) );
 			# Writing in meters
 	ofile.close();
 	return; 
+
+def plot_insar(txtfile, plotname):
+	[lon, lat, disp] = np.loadtxt(txtfile,unpack=True, skiprows=1, usecols=(0,1,2));
+	plt.figure(dpi=300,figsize=(8,8));
+	plt.scatter(lon, lat, c=disp, s=18,cmap='rainbow');
+	plt.colorbar();
+	plt.title("InSAR with %d Points " % len(disp) );
+	plt.savefig(plotname);
+	return;	
 

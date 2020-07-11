@@ -141,21 +141,19 @@ def write_s1_tre_displacements(config):
 def write_tsx_tre_displacements(config):
 	"""
 	For TSX, we read the format, and write the insar file 
-	Might want to downsample in the future?  That doesn't have to be so fancy as quadtree. 
+	In the mean time, we convert to displacement
+	We also downsample and impose bounding box
 	"""	
 	if "tsx_filename" not in config.keys():
 		print("No TSX in this inversion");
 		return;	
 	print("Starting to extract TSX TRE-format from %s " % (config["tsx_filename"]) );
 	TRE_TSX = multiSAR_input_functions.inputs_TRE(config["tsx_filename"]);
-	TRE_TSX = downsample_insar_uniform.uniform_downsampling()
-	# Other steps: 
-	# Convert to displacements
-	# Downsample
-	# Bounding Box
-	multiSAR_input_functions.write_tre_invertible_format(TRE_TSX, config["tsx_bbox"], config["tsx_unc"], config["prep_inputs_dir"]+config["tsx_datafile"]);	
+	Vert_InSAR, East_InSAR = insar_LOS_tools.TRE_to_InSAR_Obj(TRE_TSX);  # convert to displacements
+	Vert_InSAR = insar_LOS_tools.impose_InSAR_bounding_box(Vert_InSAR, config["tsx_bbox"]);
+	Vert_InSAR = insar_LOS_tools.uniform_downsampling(Vert_InSAR,config["tsx_downsample_interval"], config["tsx_averaging_window"]);  # uniform downsampling
+	multiSAR_input_functions.write_insar_invertible_format(Vert_InSAR, config["tsx_unc"], config["prep_inputs_dir"]+config["tsx_datafile"]);
 	return; 
-
 
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);

@@ -1,5 +1,6 @@
 # Some useful functions for comparing pixels in leveling with 
 # pixels in other things (i.e. uavsar, tsx, s1)
+# This file could also be called pixel utilities
 
 import numpy as np 
 import haversine
@@ -23,7 +24,7 @@ def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
 	else:
 		i_found = -1;
 		j_found = -1;  # error codes
-	return i_found, j_found;
+	return i_found, j_found, minimum_distance;
 
 def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
 	# Take a vector and find the location closest to the target location
@@ -37,7 +38,7 @@ def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
 		i_found = idx[0][0];
 	else:
 		i_found = -1;  # error codes
-	return i_found;	
+	return i_found, minimum_distance;	
 
 
 def find_leveling_in_vector(myLev, vector_data):
@@ -45,10 +46,19 @@ def find_leveling_in_vector(myLev, vector_data):
 	vector_index=[];
 	for bm in range(len(myLev.lat)):
 		name = myLev.name[bm].split()[0];
-		i_found = get_nearest_pixel_in_vector(vector_data.lon, vector_data.lat, myLev.lon[bm], myLev.lat[bm]);
+		i_found, mindist = get_nearest_pixel_in_vector(vector_data.lon, vector_data.lat, myLev.lon[bm], myLev.lat[bm]);
 		vector_index.append(i_found);
 	return vector_index;
 
 
+def get_average_within_box(lonlist, latlist, target_lon, target_lat, averaging_window, data):
+	# averaging window in degrees
+	# We search the averaging window in both directions. 
+	new_data = [];
+	for i in range(len(lonlist)):
+		if lonlist[i]>=target_lon-averaging_window and lonlist[i]<=target_lon+averaging_window:
+			if latlist[i]>=target_lat-averaging_window and latlist[i]<=target_lat+averaging_window:
+				new_data.append(data[i]);
+	return np.nanmean(new_data); 
 
 

@@ -7,19 +7,68 @@
 import numpy as np 
 import sys
 import collections
-
-InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
-
-
-
-def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window):
-	# InSAR Object is similar to the Hines format
-
-	return 0;
+import multiSAR_input_functions
+import multiSAR_utilities
 
 
+# InSAR Object is similar to the Hines format: 
+# InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
 
-def InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
+
+def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
+	print("Uniform downsampling: Starting with %d points " % (len(InSAR_obj.lon)) );
+
+	# Step 1: Create uniform downsampled arrays
+	x_array = np.arange(np.min(InSAR_obj.lon), np.max(InSAR_obj.lon), sampling_interval);
+	y_array = np.arange(np.min(InSAR_obj.lat), np.max(InSAR_obj.lat), sampling_interval);
+	[X, Y] = np.meshgrid(x_array, y_array);
+	new_obs_array = np.zeros(np.shape(X)); new_obs_unc = np.zeros(np.shape(X));
+	new_e = np.zeros(np.shape(X)); new_n = np.zeros(np.shape(X)); new_u = np.zeros(np.shape(X));
+	if len(x_array)*len(y_array)>len(InSAR_obj.lon):
+		# Defensive programming
+		print("ERROR!  Trying to uniformly downsample but the number of pixels actually increases.  Try again!");
+		return InSAR_obj;
+
+	# Step 2: Populate uniform arrays
+	for i in range(len(y_array)):
+		for j in range(len(x_array)):
+			if averaging_window==0:  # If we just want to find THE nearest pixel
+				idx, min_dist = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i]);
+				if min_dist < sampling_interval*110:  # rough degrees to km conversion
+					new_obs_array[i][j] = InSAR_obj.LOS[idx];
+					new_obs_unc[i][j] = InSAR_obj.LOS_unc[idx];
+					new_e[i][j] = InSAR_obj.lkv_E[idx];
+					new_n[i][j] = InSAR_obj.lkv_N[idx];
+					new_u[i][j] = InSAR_obj.lkv_U[idx];
+				else:  # the nearest pixel was too far away
+					new_obs_array[i][j] = np.nan;
+					new_obs_unc[i][j] = np.nan;
+					new_e[i][j] = np.nan;
+					new_n[i][j] = np.nan;
+					new_u[i][j] = np.nan;
+			else:  # If we want to average over a spatial window
+				new_obs_array[i][j] = multiSAR_utilities.get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i], averaging_window, InSAR_obj.LOS);
+				new_obs_unc[i][j] = multiSAR_utilities.get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i], averaging_window, InSAR_obj.LOS_unc);
+				new_e[i][j] = multiSAR_utilities.get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i], averaging_window, InSAR_obj.lkv_E);
+				new_n[i][j] = multiSAR_utilities.get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i], averaging_window, InSAR_obj.lkv_N);
+				new_u[i][j] = multiSAR_utilities.get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i], averaging_window, InSAR_obj.lkv_U);
+
+	ds_lon = np.reshape(X, (len(x_array)*len(y_array),));
+	ds_lat = np.reshape(Y, (len(x_array)*len(y_array),));
+	ds_LOS = np.reshape(new_obs_array, (len(x_array)*len(y_array),));
+	ds_LOS_unc = np.reshape(new_obs_unc, (len(x_array)*len(y_array),));
+	ds_lkv_e = np.reshape(new_e, (len(x_array)*len(y_array),));
+	ds_lkv_n = np.reshape(new_n, (len(x_array)*len(y_array),));
+	ds_lkv_u = np.reshape(new_u, (len(x_array)*len(y_array),));
+
+	ds_InSAR_obj = multiSAR_input_functions.InSAR_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=InSAR_obj.LOS_unc, 
+		lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u, starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+	print("Done with downsampling: Ending with %d points " % (len(ds_lon)) );
+	return ds_InSAR_obj;
+
+
+
+def impose_InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
 	# Impose a bounding box on some InSAR data
 	lon=[]; lat=[]; LOS=[]; LOS_unc=[]; unit_E=[]; unit_N=[]; unit_U=[];
 	for i in range(len(InSAR_obj.lon)):
@@ -35,10 +84,9 @@ def InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
 					unit_E.append(InSAR_obj.lkv_E[i]);
 					unit_N.append(InSAR_obj.lkv_N[i]);
 					unit_U.append(InSAR_obj.lkv_U[i]);
-	newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U, 
+	newInSAR_obj = multiSAR_input_functions.InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U, 
 		starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
 	return newInSAR_obj;
-
 
 
 def TRE_to_InSAR_Obj(TRE_obj):
@@ -46,14 +94,13 @@ def TRE_to_InSAR_Obj(TRE_obj):
 	# Return the Vert and East as separate objects
 	tdelta = TRE_obj.endtime-TRE_obj.starttime;
 	tre_interval_years = tdelta.days / 365.24;  # the number of years spanned by the TRE velocity. 
-	Vert_LOS = TRE_obj.vvel*tre_interval_years;
-	East_LOS = TRE_obj.evel*tre_interval_years;
+	Vert_LOS = [i*tre_interval_years for i in TRE_obj.vvel];
+	East_LOS = [i*tre_interval_years for i in TRE_obj.evel];
 	zeros = np.zeros(np.shape(TRE_obj.vvel));
 	ones = np.zeros(np.shape(TRE_obj.vvel));
-	Vert_obj = InSAR_Object(TRE_obj=lon, TRE_obj=lat, LOS=Vert_LOS, LOS_unc=TRE_obj.vvel_std, lkv_E=zeros, lkv_N=zeros, lkv_U=ones, 
-		starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
-	East_obj = InSAR_Object(TRE_obj=lon, TRE_obj=lat, LOS=East_LOS, LOS_unc=TRE_obj.evel_std, lkv_E=ones, lkv_N=zeros, lkv_U=zeros, 
-		starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
-	# Return two objects here
+	Vert_obj = multiSAR_input_functions.InSAR_Object(lon=TRE_obj.lon, lat=TRE_obj.lat, LOS=Vert_LOS, LOS_unc=TRE_obj.vvel_std, 
+		lkv_E=zeros, lkv_N=zeros, lkv_U=ones, starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
+	East_obj = multiSAR_input_functions.InSAR_Object(lon=TRE_obj.lon, lat=TRE_obj.lat, LOS=East_LOS, LOS_unc=TRE_obj.evel_std, 
+		lkv_E=ones, lkv_N=zeros, lkv_U=zeros, starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
 	return Vert_obj, East_obj;
 

@@ -10,6 +10,7 @@ import quadtree_downsample_kite
 import downsample_gps_ts
 import multiSAR_input_functions
 import remove_insar_ramp
+import insar_LOS_tools
 
 def welcome_and_parse(argv):
 	print("Welcome to the multiSAR data input pipeline.")
@@ -103,12 +104,14 @@ def write_tsx_tre_displacements_multiple(config):
 	for interval_dict_key in config["tsx_data"]:
 		new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in TSX
 		print("Starting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]) );
+	
 		TRE_TSX = multiSAR_input_functions.inputs_TRE(new_interval_dict["tsx_filename"]);
-		# Things like:
-		# bounding box
-		# downsampling
-		# Convert to displacements
-		multiSAR_input_functions.write_tre_invertible_format(TRE_TSX, new_interval_dict["tsx_bbox"], new_interval_dict["tsx_unc"], config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
+		Vert_InSAR, East_InSAR = insar_LOS_tools.TRE_to_InSAR_Obj(TRE_TSX);  # convert to displacements
+		Vert_InSAR = insar_LOS_tools.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["tsx_bbox"]);
+		Vert_InSAR = insar_LOS_tools.uniform_downsampling(Vert_InSAR,new_interval_dict["tsx_downsample_interval"], new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
+		
+		multiSAR_input_functions.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"], config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
+		multiSAR_input_functions.plot_insar(config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"], config["prep_inputs_dir"]+new_interval_dict["tsx_plot"]);
 	return;
 
 if __name__=="__main__":
