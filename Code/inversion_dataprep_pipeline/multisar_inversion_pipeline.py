@@ -115,6 +115,10 @@ def write_gps_displacements(config):
 	print("Starting to extract GPS from %s to %s " % (starttime, endtime) );
 	stations = downsample_gps_ts.read_station_ts(config["gps_bbox"],config["gps_reference"], remove_coseismic=adjust_coseismic);
 	displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir);
+	
+	if "gps_add_offset_mm" in config.keys():  # an option to add a constant (in enu) to the GNSS offsets
+		displacement_objects = downsample_gps_ts.add_gps_constant_offset(displacement_objects, config["gps_add_offset_mm"]);
+
 	multiSAR_input_functions.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]+config["gps_textfile"]);
 
 	# if adjust_coseismic: # Here is an option for removing EMC by an elastic model. Takes a while. 

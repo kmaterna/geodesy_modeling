@@ -88,6 +88,22 @@ def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir)
 
 	return gps_displacements_object;
 
+def add_gps_constant_offset(displacement_object, enu_constant_offset):
+	# In case your reference station undergoes some offset, you might want to put that back
+	# to all data because it's been referenced-out already. 
+	# Allows for more realistic GNSS inversions
+	# Offset and displacement obj in mm
+	new_gps_displacements_object=[];
+
+	for one_object in displacement_object:
+		dE = [i+enu_constant_offset[0] for i in one_object.dE];
+		dN = [i+enu_constant_offset[1] for i in one_object.dN];
+		dU = [i+enu_constant_offset[2] for i in one_object.dU];
+		object_after_offset = Timeseries(name=one_object.name, coords=one_object.coords, dtarray=one_object.dtarray, 
+			dN=dN, dE=dE, dU=dU, Sn=one_object.Sn, Se=one_object.Se, Su=one_object.Su, EQtimes=one_object.EQtimes);		
+		new_gps_displacements_object.append(object_after_offset);
+	return new_gps_displacements_object;
+
 
 def subsample_in_time(station, starttime, endtime):
 	# Take a station and give us the data points corresponding to the starttime and endtime

@@ -109,7 +109,7 @@ def write_tsx_tre_displacements_multiple(config):
 		Vert_InSAR, East_InSAR = insar_LOS_tools.TRE_to_InSAR_Obj(TRE_TSX);  # convert to displacements
 		Vert_InSAR = insar_LOS_tools.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["tsx_bbox"]);
 		Vert_InSAR = insar_LOS_tools.uniform_downsampling(Vert_InSAR,new_interval_dict["tsx_downsample_interval"], new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
-		
+
 		multiSAR_input_functions.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"], config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
 		multiSAR_input_functions.plot_insar(config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"], config["prep_inputs_dir"]+new_interval_dict["tsx_plot"]);
 	return;
