@@ -10,18 +10,14 @@ import buildG
 
 def welcome_and_parse(argv):
 	print("Welcome to the MULTITEMPORAL INVERSION.");
-	if len(argv)<3:
+	if len(argv)<2:
 		print("Error! Please provide the name of a config json. Exiting. "); sys.exit(0);
 	else:
-		fault_config = argv[1];
-		data_config = argv[2];
-	fault_config_file = open(fault_config,'r');
-	config1 = json.load(fault_config_file);
-	data_config_file = open(data_config,'r');
-	config2 = json.load(data_config_file);
-	returnval = {**config1, **config2};
-	return returnval;
-
+		config = argv[1];
+	config_file = open(config,'r');
+	config1 = json.load(config_file);
+	# returnval = {**config1, **config2};
+	return config1;
 
 
 if __name__=="__main__":
