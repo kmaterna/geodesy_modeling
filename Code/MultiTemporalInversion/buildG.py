@@ -185,6 +185,7 @@ def beginning_calc(config):
   # INITIALIZING THE LARGE MATRICIES
   d_total = np.zeros((0,));
   sig_total = np.zeros((0,));
+  weight_total = np.zeros((0,));
   G_total = np.zeros((0,n_epochs*n_model_params));
   G_nosmooth_total = np.zeros((0,n_epochs*n_model_params));
   nums_obs = [];
@@ -212,7 +213,7 @@ def beginning_calc(config):
     if config["data_files"][data_file]["type"]=="leveling":
       signs_list.append(config["data_files"][data_file]["sign"]);
     else:
-      signs_list.append(0.0);
+      signs_list.append(1.0);
 
 
   # START THE MAJOR INVERSION LOOP
@@ -224,10 +225,13 @@ def beginning_calc(config):
     filename = input_file_list[filenum];
     if data_type_list[filenum]=='gps':
       [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ngps] = input_gps_file(filename);
+      obs_weighting_f = (1/strengths_list[filenum]) * np.ones((Ngps*3,));
     elif data_type_list[filenum]=='insar':
       [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar] = input_insar_file(filename);
+      obs_weighting_f = (1/strengths_list[filenum])*np.ones((Ninsar,));
     elif data_type_list[filenum]=="leveling":
       [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar] = input_insar_file(filename);
+      obs_weighting_f = (1/strengths_list[filenum])*np.ones((Ninsar,));
       Nleveling = Ninsar; 
     else:
       print("ERROR! Unrecognized data type %s " % data_type_list[filenum]);
@@ -255,6 +259,8 @@ def beginning_calc(config):
 
     # ### weigh system matrix and data by the uncertainty
     # ###################################################################  
+    G /= obs_weighting_f[:,None]
+    obs_disp_f /= obs_weighting_f
     G /= obs_sigma_f[:,None]
     obs_disp_f /= obs_sigma_f  
     print("G:",np.shape(G));
@@ -285,7 +291,8 @@ def beginning_calc(config):
 
     # APPEND TO THE TOTAL MATRIX
     d_total = np.concatenate((d_total, d_ext));  # Building up the total data vector
-    sig_total = np.concatenate((sig_total, obs_sigma_f));
+    sig_total = np.concatenate((sig_total, obs_sigma_f));  # building up the total sigma vector
+    weight_total = np.concatenate((weight_total, obs_weighting_f));  # building up the total weighting vector
     G_total = np.concatenate((G_total, G_rowblock_obs));
     print("  Adding %d lines " % len(G_rowblock_obs) )
     G_nosmooth_total = np.concatenate((G_nosmooth_total, G_nosmoothing_obs));

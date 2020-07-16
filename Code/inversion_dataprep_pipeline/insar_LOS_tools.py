@@ -97,7 +97,7 @@ def TRE_to_InSAR_Obj(TRE_obj):
 	Vert_LOS = [i*tre_interval_years for i in TRE_obj.vvel];
 	East_LOS = [i*tre_interval_years for i in TRE_obj.evel];
 	zeros = np.zeros(np.shape(TRE_obj.vvel));
-	ones = np.zeros(np.shape(TRE_obj.vvel));
+	ones = np.ones(np.shape(TRE_obj.vvel));
 	Vert_obj = multiSAR_input_functions.InSAR_Object(lon=TRE_obj.lon, lat=TRE_obj.lat, LOS=Vert_LOS, LOS_unc=TRE_obj.vvel_std, 
 		lkv_E=zeros, lkv_N=zeros, lkv_U=ones, starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
 	East_obj = multiSAR_input_functions.InSAR_Object(lon=TRE_obj.lon, lat=TRE_obj.lat, LOS=East_LOS, LOS_unc=TRE_obj.evel_std, 
