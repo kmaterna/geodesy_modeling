@@ -114,6 +114,7 @@ def beginning_calc(config):
       obs_pos_geo_basemap = obs_gps_pos_geo[:,None,:].repeat(3,axis=1).reshape((Ngps*3,3))
       break;
   bm = plotting_library.create_default_basemap(obs_pos_geo_basemap[:,0],obs_pos_geo_basemap[:,1]) 
+  number_of_datasets = len(config["data_files"].keys());
 
   # # ###################################################################
   # ### discretize the fault segments
@@ -165,9 +166,8 @@ def beginning_calc(config):
     L *= fault["penalty"] 
     L_array.append(L)
     Ns_total = Ns_total+Ns
-  L_array.append([0]);  # for the leveling offset parameter we will be solving for. 
-  L = scipy.linalg.block_diag(*L_array)  # Make the block diagonal matrix for tikhonov regularization
 
+  L = scipy.linalg.block_diag(*L_array)  # Make the block diagonal matrix for tikhonov regularization
 
   # PARSE HOW MANY EPOCHS WE ARE USING
   # This will tell us how many epochs, model parameters total, and output files we need. 
@@ -180,14 +180,15 @@ def beginning_calc(config):
     span_output_files.append(config["output_dir"]+"span_"+config["epochs"][epoch]["name"]+"_slip.txt");
   n_model_params = np.shape(L)[0];  
   print("Finding fault model for %d epochs " % n_epochs);
-  print("Number of model parameters per epoch: %d" % n_model_params );
+  print("Number of fault model parameters per epoch: %d" % n_model_params );
+  print("Total number of model parameters: %d" % (n_model_params*n_epochs + number_of_datasets) );
 
   # INITIALIZING THE LARGE MATRICIES
   d_total = np.zeros((0,));
   sig_total = np.zeros((0,));
   weight_total = np.zeros((0,));
-  G_total = np.zeros((0,n_epochs*n_model_params));
-  G_nosmooth_total = np.zeros((0,n_epochs*n_model_params));
+  G_total = np.zeros((0,n_epochs*n_model_params));  # does not contain leveling offsets
+  G_nosmooth_total = np.zeros((0,n_epochs*n_model_params));  # for computing predicted displacements
   nums_obs = [];
   pos_obs_list = []; 
   pos_basis_list = [];
@@ -199,6 +200,7 @@ def beginning_calc(config):
   strengths_list = [];
   signs_list = [];
   output_file_list = [];
+  row_span_list = [];
   print("Available data indicated in json file: ")
 
   for data_file in config["data_files"].keys():
@@ -213,12 +215,11 @@ def beginning_calc(config):
     if config["data_files"][data_file]["type"]=="leveling":
       signs_list.append(config["data_files"][data_file]["sign"]);
     else:
-      signs_list.append(1.0);
+      signs_list.append(0.0);
 
 
   # START THE MAJOR INVERSION LOOP
   for filenum in range(len(input_file_list)):
-    Nleveling=0; # defaults
     leveling_sign=signs_list[filenum];
 
   	# INPUT STAGE
@@ -232,7 +233,6 @@ def beginning_calc(config):
     elif data_type_list[filenum]=="leveling":
       [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar] = input_insar_file(filename);
       obs_weighting_f = (1/strengths_list[filenum])*np.ones((Ninsar,));
-      Nleveling = Ninsar; 
     else:
       print("ERROR! Unrecognized data type %s " % data_type_list[filenum]);
       continue;
@@ -253,9 +253,7 @@ def beginning_calc(config):
                                           patches_f,
                                           obs_basis_f,
                                           slip_basis_f, 
-                                          leveling=True, 
-                                          Nleveling=Nleveling,
-                                          leveling_offset_sign=leveling_sign)
+                                          leveling=False)
 
     # ### weigh system matrix and data by the uncertainty
     # ###################################################################  
@@ -289,14 +287,38 @@ def beginning_calc(config):
         G_nosmoothing_obs[:,col_limits[0]:col_limits[1]] = G;
       count=count+1;
 
-    # APPEND TO THE TOTAL MATRIX
+    # APPEND TO G_TOTAL AND G_NOSMOOTH_TOTAL
     d_total = np.concatenate((d_total, d_ext));  # Building up the total data vector
     sig_total = np.concatenate((sig_total, obs_sigma_f));  # building up the total sigma vector
     weight_total = np.concatenate((weight_total, obs_weighting_f));  # building up the total weighting vector
+    top_row_data = len(G_total);         # Where in the matrix is this data? 
+    bottom_row_data = len(G_total)+len(G);    # Where in the matrix is this data? 
+    row_span_list.append([top_row_data, bottom_row_data]);
     G_total = np.concatenate((G_total, G_rowblock_obs));
     print("  Adding %d lines " % len(G_rowblock_obs) )
     G_nosmooth_total = np.concatenate((G_nosmooth_total, G_nosmoothing_obs));
 
+  # ADDING THE COLUMNS FOR LEVELING OFFSETS TO G_TOTAL MATRIX (Corresponding to the data lines only)
+  print("------\nBefore adding lines for leveling offsets, shape(G): ", np.shape(G_total));
+  numrows = np.shape(G_total)[0];
+  num_rows_nosmooth = np.shape(G_nosmooth_total)[0];
+  count = 0;
+  for filenum in range(len(input_file_list)):
+    leveling_sign=signs_list[filenum];  
+    newcol = np.zeros((numrows, 1));
+    for i in range(len(newcol)):
+      if i>=row_span_list[filenum][0] and i<row_span_list[filenum][1]:
+        newcol[i]=leveling_sign;
+    G_total = np.hstack((G_total, newcol));
+    print("Adding column for %s " % input_file_list[filenum])      
+
+    # ADDING THE COLUMNS TO G_NOSMOOTH_TOTAL
+    newcol_nosmooth = np.zeros((num_rows_nosmooth, 1)); 
+    for i in range(len(newcol_nosmooth)):
+      if i>=count and i< count+(row_span_list[filenum][1]-row_span_list[filenum][0]):
+        newcol_nosmooth[i] = leveling_sign;
+    count = count+(row_span_list[filenum][1]-row_span_list[filenum][0]);
+    G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
 
   plt.figure(figsize=(12,8), dpi=300);
   plt.imshow(G_total,vmin=-0.02, vmax=0.02, aspect=1/3)
@@ -305,15 +327,25 @@ def beginning_calc(config):
   # INVERT BIG-G
   #   ### estimate slip and compute predicted displacement
   #   #####################################################################  
-  slip_f = reg_nnls(G_total,d_total)
+  slip_f = reg_nnls(G_total,d_total)  # the model
   print("G_total:", np.shape(G_total));
   print("slip_f:",np.shape(slip_f))
-  print("G_nosmoothing_total:",np.shape(G_nosmooth_total));
-  pred_disp_f = G_nosmooth_total.dot(slip_f)*sig_total; 
+  print("G_nosmooth_total:",np.shape(G_nosmooth_total));
+  print(np.shape(G_nosmooth_total.dot(slip_f)))
+  print(np.shape(sig_total))
+  print(np.shape(weight_total));
+  pred_disp_f = G_nosmooth_total.dot(slip_f)*sig_total*weight_total; 
 
-  total_cardinal_slip = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis);
+  total_cardinal_slip, leveling_offsets = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, number_of_datasets);
   disp_models = parse_disp_outputs(pred_disp_f, nums_obs);
 
+  # Defensive programming (Reporting errors)
+  for i in range(len(leveling_offsets)):
+    print("Leveling Offset %d = %f m " % (i, leveling_offsets[i]) );
+    if abs(leveling_offsets[i])<0.0000001 and signs_list[i] != 0:
+      print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." % (input_file_list[i]) ) ;
+
+  sys.exit(0);
   ### get slip patch data for outputs
   #####################################################################
   patches_pos_cart =[i.patch_to_user([0.5,1.0,0.0]) for i in patches]
@@ -370,28 +402,24 @@ def beginning_calc(config):
   return;
 
 
-def parse_slip_outputs(slip_f,Ns_total, Ds, n_epochs, total_fault_slip_basis):
+def parse_slip_outputs(slip_f,Ns_total, Ds, n_epochs, total_fault_slip_basis, number_of_datasets):
   print("Parsing slip outputs from %d epochs " % (n_epochs) );
   count = 0;
   total_cardinal_slip = [];
   for i in range(n_epochs):
-    n_params = int(len(slip_f)/n_epochs);
+    n_params = int((len(slip_f)-number_of_datasets)/n_epochs);  # num fault params; ex: 200
     start = count;
     finish = count+n_params;
     slip_during_epoch = slip_f[start:finish];
     count = count + n_params; 
   
-    slip_terms_only = slip_during_epoch[0:-1];  # LEVELING: Will ignore the last model parameter, which is the leveling offset
-    leveling_offset = slip_during_epoch[-1];
-    slip = slip_terms_only.reshape((Ns_total,Ds))  # THIS ASSUMES ALL FAULTS HAVE THE SAME NUMBER OF BASIS VECTORS
+    slip = slip_during_epoch.reshape((Ns_total,Ds))  # THIS ASSUMES ALL FAULTS HAVE THE SAME NUMBER OF BASIS VECTORS
     cardinal_slip = slippy.basis.cardinal_components(slip,total_fault_slip_basis)
     total_cardinal_slip.append(cardinal_slip);
-  
-    print("Leveling Offset = %f m " % (leveling_offset) );
-    if abs(leveling_offset)<0.0000001:
-      print("WARNING for Epoch %d: Leveling offset close to zero. Consider a negative offset in G." % (i) ) 
 
-  return total_cardinal_slip;
+  leveling_offsets = slip_f[-number_of_datasets:];
+
+  return total_cardinal_slip, leveling_offsets;
 
 def parse_disp_outputs(pred_disp_f, num_obs):
   count=0;
