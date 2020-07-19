@@ -6,6 +6,7 @@
 import numpy as np 
 import sys
 import json
+import subprocess
 import buildG
 
 def welcome_and_parse(argv):
@@ -16,6 +17,7 @@ def welcome_and_parse(argv):
 		config = argv[1];
 	config_file = open(config,'r');
 	config1 = json.load(config_file);
+	subprocess.call(['cp',config,config1['output_dir']]);  # save json for record-keeping
 	# returnval = {**config1, **config2};
 	return config1;
 

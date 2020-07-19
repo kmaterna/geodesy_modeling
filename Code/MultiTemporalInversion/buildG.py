@@ -177,7 +177,7 @@ def beginning_calc(config):
   for epoch in config["epochs"].keys():
     n_epochs = n_epochs+1;
     total_spans.append(config["epochs"][epoch]["name"]);
-    span_output_files.append(config["output_dir"]+"span_"+config["epochs"][epoch]["name"]+"_slip.txt");
+    span_output_files.append(config["epochs"][epoch]["slip_output_file"]);
   n_model_params = np.shape(L)[0];  
   print("Finding fault model for %d epochs " % n_epochs);
   print("Number of fault model parameters per epoch: %d" % n_model_params );
@@ -341,11 +341,11 @@ def beginning_calc(config):
 
   # Defensive programming (Reporting errors)
   for i in range(len(leveling_offsets)):
-    print("Leveling Offset %d = %f m " % (i, leveling_offsets[i]) );
-    if abs(leveling_offsets[i])<0.0000001 and signs_list[i] != 0:
-      print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." % (input_file_list[i]) ) ;
+    if signs_list[i] != 0:
+      print("Leveling Offset for %s = %f m " % (input_file_list[i], leveling_offsets[i]) );
+      if abs(leveling_offsets[i])<0.0000001:
+        print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." % (input_file_list[i]) ) ;
 
-  sys.exit(0);
   ### get slip patch data for outputs
   #####################################################################
   patches_pos_cart =[i.patch_to_user([0.5,1.0,0.0]) for i in patches]
@@ -367,6 +367,7 @@ def beginning_calc(config):
                               patches_strike,patches_dip,
                               patches_length,patches_width,
                               total_cardinal_slip[i],slip_output_file)
+    print("Writing file %s " % slip_output_file);
 
 
   # OUTPUT EACH PREDICTED DISPLACEMENT FIELD
