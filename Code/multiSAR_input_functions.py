@@ -339,7 +339,7 @@ def plot_insar(txtfile, plotname):
 	print("Plotting insar in file %s " % plotname);
 	[lon, lat, disp] = np.loadtxt(txtfile,unpack=True, skiprows=1, usecols=(0,1,2));
 	plt.figure(dpi=300,figsize=(8,8));
-	plt.scatter(lon, lat, c=disp, s=18,cmap='rainbow');
+	plt.scatter(lon, lat, c=disp, s=18, cmap='rainbow');
 	plt.colorbar();
 	plt.title("InSAR with %d Points " % len(disp) );
 	plt.savefig(plotname);

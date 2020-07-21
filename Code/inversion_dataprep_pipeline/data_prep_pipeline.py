@@ -95,34 +95,43 @@ def downsample_cut_write_uavsar_multiple(config):
 		data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree
 		if new_interval_dict["flip_uavsar_los"]:
 			data = -1*data;  # away from satellite = negative motion
-
-		# Setup Downsampling: rdrfile, xmlfile, datafile
 		uavsar_unw_file = config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"];
-		geojson_file = config["prep_inputs_dir"]+new_interval_dict["geojson_file"];
-		uav_plotfile = config["prep_inputs_dir"]+new_interval_dict["uav_plotfile"];
-		uav_textfile = config["prep_inputs_dir"]+new_interval_dict["uav_textfile"];
-		subprocess.call(['cp',new_interval_dict["rdrfile"],config["prep_inputs_dir"]],shell=False);
-		subprocess.call(['cp',new_interval_dict["uav_datafile0"]+'.xml',uavsar_unw_file+".xml"],shell=False);
-		data.tofile(uavsar_unw_file) # write data bytes out
+		data.tofile(uavsar_unw_file); # write data bytes out		
 
-		# Downsample, bbox, and Print
-		quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file, 
-			new_interval_dict["epsilon"], new_interval_dict["nan_allowed"], new_interval_dict["tile_size_min"], new_interval_dict["tile_size_max"]);
-		quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile, bbox=new_interval_dict["uavsar_bbox"], std_min=new_interval_dict["uavsar_std_min"]);
+		# Quadtree downsampling by Kite
+		uav_textfile = drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 		
+		# Remove a coseismic model for the EMC event
 		if "adjust_EMC_uavsar" in new_interval_dict.keys():
 			uav_textfile = remove_insar_emc_by_model(uav_textfile, config["reference_ll"], new_interval_dict["adjust_EMC_uavsar"]);
 
 		# Now we remove a ramp. 
 		if "remove_uavsar_ramp" in new_interval_dict.keys():
-			ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_ramp_removed.txt";  # no-ramps file
-			remove_insar_ramp.remove_ramp(uav_textfile, ramp_adjusted_file,ref_coord=config['reference_ll']);
-			uav_textfile = ramp_adjusted_file; 
+			if new_interval_dict["remove_uavsar_ramp"]==1:
+				multiSAR_input_functions.plot_insar(uav_textfile, config["prep_inputs_dir"]+new_interval_dict["uav_ending_plot"]+"_beforerampremov.png");
+				ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_ramp_removed.txt";  # no-ramps file
+				remove_insar_ramp.remove_ramp(uav_textfile, ramp_adjusted_file,ref_coord=config['reference_ll']);
+				uav_textfile = ramp_adjusted_file; 
 
 		# Now we make a plot
 		multiSAR_input_functions.plot_insar(uav_textfile, config["prep_inputs_dir"]+new_interval_dict["uav_ending_plot"]);
 
 	return;
+
+def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
+	# Setup Downsampling: rdrfile, xmlfile, datafile
+	uavsar_unw_file = inputs_dir+interval_dictionary["uavsar_unw_file"];
+	geojson_file = inputs_dir+interval_dictionary["geojson_file"];
+	uav_plotfile = inputs_dir+interval_dictionary["uav_plotfile"];
+	uav_textfile = inputs_dir+interval_dictionary["uav_textfile"];
+	subprocess.call(['cp',interval_dictionary["rdrfile"],inputs_dir],shell=False);
+	subprocess.call(['cp',interval_dictionary["uav_datafile0"]+'.xml',uavsar_unw_file+".xml"],shell=False);
+	
+	# Downsample, bbox, and Print
+	quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file, 
+		interval_dictionary["epsilon"], interval_dictionary["nan_allowed"], interval_dictionary["tile_size_min"], interval_dictionary["tile_size_max"]);
+	quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile, bbox=interval_dictionary["uavsar_bbox"], std_min=interval_dictionary["uavsar_std_min"]);
+	return uav_textfile;
 
 
 def remove_insar_emc_by_model(insar_textfile, reference_ll, predicted_file):
