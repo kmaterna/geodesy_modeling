@@ -25,9 +25,10 @@ def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
 		one_object = dataobj_list[i];
 		newobj = gps_seasonal_removals.make_detrended_ts(one_object, seasonals_remove=1, seasonals_type="nldas", remove_trend=0);
 
-		# if remove_coseismic:
-			# newobj=offsets.remove_offsets(newobj, offsetobj_list[i]);
-			# newobj=offsets.remove_offsets(newobj, eqobj_list[i]);
+		if remove_coseismic:
+			print("Removing coseismic offsets");
+			newobj=offsets.remove_offsets(newobj, offsetobj_list[i]);
+			newobj=offsets.remove_offsets(newobj, eqobj_list[i]);
 		
 		newobj=gps_ts_functions.remove_outliers(newobj, 20);  # 20mm outlier definition			
 		
