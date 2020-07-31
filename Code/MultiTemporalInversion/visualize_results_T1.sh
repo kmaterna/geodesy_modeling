@@ -13,7 +13,7 @@ gmt set MAP_FRAME_TYPE plain
 gmt set FORMAT_GEO_MAP D
 
 gmt makecpt -T-10/10/0.5 -Cpolar -D > mycpt.cpt
-gmt makecpt -T-50/50/1 -Cjet -D > los.cpt
+gmt makecpt -T-24/24/1 -Cjet -D > los.cpt
 gmt makecpt -T-.15/.15/0.001 -D -Cwysiwyg > slip.cpt
 
 # Get files

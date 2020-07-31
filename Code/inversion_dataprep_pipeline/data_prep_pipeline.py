@@ -205,7 +205,7 @@ def write_s1_tre_displacements_multiple(config):
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
 	downsample_cut_write_uavsar_multiple(config);
-	# write_leveling_displacements_multiple(config);
-	# write_gps_displacements_multiple(config);
-	# write_tsx_tre_displacements_multiple(config);
-	# write_s1_tre_displacements_multiple(config);  # not really written yet
+	write_leveling_displacements_multiple(config);
+	write_gps_displacements_multiple(config);
+	write_tsx_tre_displacements_multiple(config);
+	write_s1_tre_displacements_multiple(config);  # not really written yet
