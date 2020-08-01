@@ -60,6 +60,7 @@ def inputs_uavsar_unw_geo(filename):
 	# For the unw format produced by isce (one minor change from that format)
 	# (BIL scheme assumed)
 	# There must be a matching xml in this directory
+	# EVENTUALLY COULD CONSIDER FOLDING THIS FUNCTION BACK INTO ISCE_READ_WRITE
 	# --------------------
 
 	# Parse xml in a slightly manual fashion, looking for length and width
