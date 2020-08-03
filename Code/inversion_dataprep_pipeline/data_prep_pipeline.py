@@ -15,6 +15,7 @@ import downsample_gps_ts
 import multiSAR_input_functions
 import remove_insar_ramp
 import insar_LOS_tools
+import isce_read_write
 
 def welcome_and_parse(argv):
 	print("Welcome to the multiSAR data input pipeline.")
@@ -90,14 +91,22 @@ def downsample_cut_write_uavsar_multiple(config):
 
 		# Prepping UAVSAR: Input and Compute
 		print("\nStarting to prepare UAVSAR data");
-		scene0 = multiSAR_input_functions.inputs_uavsar_unw_geo(new_interval_dict["uav_datafile0"]);
-		scene1 = multiSAR_input_functions.inputs_uavsar_unw_geo(new_interval_dict["uav_datafile1"]);
-		data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree
-		if new_interval_dict["flip_uavsar_los"]:
-			data = -1*data;  # away from satellite = negative motion
-		uavsar_unw_file = config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"];
-		data.tofile(uavsar_unw_file); # write data bytes out		
+		if 'uav_datafile0' in new_interval_dict.keys():
+			scene0 = isce_read_write.read_scalar_data(new_interval_dict["uav_datafile0"],band=2);
+			scene1 = isce_read_write.read_scalar_data(new_interval_dict["uav_datafile1"],band=2);
+			data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree			
+		elif 'uav_dispfile' in new_interval_dict.keys():
+			data = isce_read_write.read_scalar_data(new_interval_dict["uav_dispfile"],band=2);
 
+		if new_interval_dict["flip_uavsar_los"] == 1:
+			data = -1*data;  # away from satellite = negative motion
+			print("Multiplying UAVSAR by -1 for LOS motion sign convention. ");
+		
+		# Write the final .unw.geo file (not the metadata)
+		uavsar_unw_file = config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"];
+		data = data-np.nanmean(data);  # PLACEHOLDER FOR REASONABLE REFERENCE VALUE
+		isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file); # write data bytes out		
+		
 		# Quadtree downsampling by Kite
 		uav_textfile = drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 		
@@ -125,7 +134,7 @@ def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
 	uav_plotfile = inputs_dir+interval_dictionary["uav_plotfile"];
 	uav_textfile = inputs_dir+interval_dictionary["uav_textfile"];
 	subprocess.call(['cp',interval_dictionary["rdrfile"],inputs_dir],shell=False);
-	subprocess.call(['cp',interval_dictionary["uav_datafile0"]+'.xml',uavsar_unw_file+".xml"],shell=False);
+	subprocess.call(['cp',interval_dictionary["uav_dispfile"]+".xml",inputs_dir+interval_dictionary["uavsar_unw_file"]+".xml"]);
 	
 	# Downsample, bbox, and Print
 	quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file, 
@@ -205,7 +214,7 @@ def write_s1_tre_displacements_multiple(config):
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
 	downsample_cut_write_uavsar_multiple(config);
-	write_leveling_displacements_multiple(config);
-	write_gps_displacements_multiple(config);
-	write_tsx_tre_displacements_multiple(config);
-	write_s1_tre_displacements_multiple(config);  # not really written yet
+	# write_leveling_displacements_multiple(config);
+	# write_gps_displacements_multiple(config);
+	# write_tsx_tre_displacements_multiple(config);
+	# write_s1_tre_displacements_multiple(config);  # not really written yet

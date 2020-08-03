@@ -55,41 +55,6 @@ def inputs_uavsar(filename):
 	myUAVSAR = UavsarData(dtarray=dtarray, lon=lon, lat=lat, TS=zdata);
 	return myUAVSAR;
 
-# UAVSAR INPUT FUNCTION FOR ISCE FORMAT
-def inputs_uavsar_unw_geo(filename):
-	# For the unw format produced by isce (one minor change from that format)
-	# (BIL scheme assumed)
-	# There must be a matching xml in this directory
-	# EVENTUALLY COULD CONSIDER FOLDING THIS FUNCTION BACK INTO ISCE_READ_WRITE
-	# --------------------
-
-	# Parse xml in a slightly manual fashion, looking for length and width
-	xml_file = filename+".xml";
-	tree = ET.parse(xml_file);
-	root = tree.getroot();  # open xml file
-	for element in root:  # we can index through the root
-		if element.attrib['name']=="coordinate1":
-			for subE in element:
-				if len(subE)>0:
-					if subE.attrib['name']=='size':
-						ncols = int(subE[0].text);
-		if element.attrib['name']=="coordinate2":
-			for subE in element:
-				if len(subE)>0:
-					if subE.attrib['name']=='size':
-						nrows = int(subE[0].text);
-
-	# Open the binary file
-	f = open(filename,'rb');
-	final_shape=(nrows,ncols*2);  # unw has two bands with BIL scheme
-	num_data = final_shape[0]*final_shape[1];
-	rawnum = f.read();
-	floats = np.array(struct.unpack('f'*num_data, rawnum))
-	data = floats.reshape(final_shape);	
-	f.close();
-	return data;
-
-
 
 # LEVELING INPUT FUNCTIONS
 def inputs_leveling(data_filename, errors_filename):
