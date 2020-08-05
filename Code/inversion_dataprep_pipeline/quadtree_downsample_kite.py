@@ -39,6 +39,6 @@ def geojson_to_outputs(geojsonfile, plotfile, textfile, bbox=[-180, 180, -90, 90
 	# It also writes a text file for inversion.
 	# The functions here live in the Utility_functions repository
 	pixel_list = geojson2txt.read_geojson(geojsonfile);
-	geojson2txt.plot_downsampled_InSAR(pixel_list,plotfile, vmin=-100, vmax=100);
+	geojson2txt.plot_downsampled_InSAR(pixel_list,plotfile, vmin=-120, vmax=20);
 	geojson2txt.pixels_to_txt(pixel_list, textfile, bbox, std_min);  # can take a bbox optionally
 	return;

@@ -35,6 +35,7 @@ def wei_catalog_total_moment(filename):
 		Mo = moment_calculations.moment_from_mw(MyCat.mag[i]);
 		print("Adding Mw %f " % MyCat.mag[i]);
 		M_total = M_total + Mo;
+	# M_total = M_total + moment_calculations.moment_from_mw(5.6);  # This is the moment that could be added to match the 2012 geodetic moment
 	print("Total moment: %f N-m" % M_total);
 	Mw_total = moment_calculations.mw_from_moment(M_total);
 	print("Total moment is %f N-m, corresponding to a Mw %f" % (M_total, Mw_total) );

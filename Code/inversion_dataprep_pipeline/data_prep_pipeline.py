@@ -94,9 +94,11 @@ def downsample_cut_write_uavsar_multiple(config):
 		if 'uav_datafile0' in new_interval_dict.keys():
 			scene0 = isce_read_write.read_scalar_data(new_interval_dict["uav_datafile0"],band=2);
 			scene1 = isce_read_write.read_scalar_data(new_interval_dict["uav_datafile1"],band=2);
-			data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree			
+			data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree
+			subprocess.call(['cp',new_interval_dict["uav_datafile0"]+".xml",config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"]+".xml"])
 		elif 'uav_dispfile' in new_interval_dict.keys():
 			data = isce_read_write.read_scalar_data(new_interval_dict["uav_dispfile"],band=2);
+			subprocess.call(['cp',new_interval_dict["uav_dispfile"]+".xml",config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"]+".xml"]);
 
 		if new_interval_dict["flip_uavsar_los"] == 1:
 			data = -1*data;  # away from satellite = negative motion
@@ -104,8 +106,8 @@ def downsample_cut_write_uavsar_multiple(config):
 		
 		# Write the final .unw.geo file (not the metadata)
 		uavsar_unw_file = config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"];
-		data = data-np.nanmean(data);  # PLACEHOLDER FOR REASONABLE REFERENCE VALUE
-		isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file); # write data bytes out		
+		# data = data-np.nanmean(data);  # PLACEHOLDER FOR REASONABLE REFERENCE VALUE
+		isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file); # write data bytes out.
 		
 		# Quadtree downsampling by Kite
 		uav_textfile = drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
@@ -133,8 +135,9 @@ def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
 	geojson_file = inputs_dir+interval_dictionary["geojson_file"];
 	uav_plotfile = inputs_dir+interval_dictionary["uav_plotfile"];
 	uav_textfile = inputs_dir+interval_dictionary["uav_textfile"];
+	print("Copying %s into directory %s" % (interval_dictionary['rdrfile'],inputs_dir) );		
 	subprocess.call(['cp',interval_dictionary["rdrfile"],inputs_dir],shell=False);
-	subprocess.call(['cp',interval_dictionary["uav_dispfile"]+".xml",inputs_dir+interval_dictionary["uavsar_unw_file"]+".xml"]);
+
 	
 	# Downsample, bbox, and Print
 	quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file, 
