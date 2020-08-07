@@ -78,6 +78,7 @@ def read_well_masses(filename):
 		mass = [data[j][i] for j in range(3,numrows)];
 		OneWell = Wells(api=api, lon=None, lat=None, masspermonth=mass, dtarray=dtarray, welltype=injection_type);
 		wellArray.append(OneWell);
+	print("Read masspermonth from %d wells " % (len(wellArray)/2) );
 	return wellArray;
 
 def combine_masses_wells(InjectionWells, ProductionWells, MassWells):
@@ -86,25 +87,60 @@ def combine_masses_wells(InjectionWells, ProductionWells, MassWells):
 	new_injection_wells = []; 
 	new_production_wells = [];
 	for well in InjectionWells:
+		found_well_mass = 0;
 		for sample_well in MassWells:
 			if sample_well.api == well.api:
 				if sample_well.welltype=="inject":
+					found_well_mass=1
 					temp = Wells(api=well.api, lon=well.lon, lat=well.lat, dtarray=sample_well.dtarray, 
 						masspermonth=sample_well.masspermonth, welltype=sample_well.welltype);
 					new_injection_wells.append(temp);
+		if found_well_mass==0 and well.lat>32.8 and well.lat<33.1:
+			print("Error! Could not find mass information for Brawley injection well %d " % well.api);
+	print("Found lon/lat/mass information for %d injection wells" % (len(new_injection_wells)) );
+	
 	for well in ProductionWells:
+		found_well_mass=0;
 		for sample_well in MassWells:
 			if sample_well.api == well.api:
 				if sample_well.welltype=="product":
+					found_well_mass=1
 					temp = Wells(api=well.api, lon=well.lon, lat=well.lat, dtarray=sample_well.dtarray, 
 						masspermonth=sample_well.masspermonth, welltype=sample_well.welltype);
 					new_production_wells.append(temp);
+		if found_well_mass==0 and well.lat>32.8 and well.lat<33.1:
+			print("Error! Could not find mass information for Brawley production well %d " % well.api);
+	print("Found lon/lat/mass information for %d production wells" % (len(new_production_wells)) );	
+
+	# Identify missing wells (no lat/lon information)
+	missing_production=0; 
+	missing_injection =0;
+	api_lonlat = [x.api for x in InjectionWells];
+	for sample_well in MassWells:
+		if sample_well.welltype=='inject' and sample_well.api not in api_lonlat:
+			temp = get_total_production(sample_well.dtarray, sample_well.masspermonth);
+			if temp > 0.0001:
+				print("Error! Brawley Injection Well %s not found in lat/lon database" % (sample_well.api) );
+				print("  Accounting for %f injection " % get_total_production(sample_well.dtarray, sample_well.masspermonth));
+				missing_injection = missing_injection+temp;
+	api_lonlat = [x.api for x in ProductionWells];
+	for sample_well in MassWells:
+		if sample_well.welltype=='product' and sample_well.api not in api_lonlat:
+			temp = get_total_production(sample_well.dtarray, sample_well.masspermonth);
+			if temp > 0.0001: 
+				print("Error! Brawley Production Well %s not found in lat/lon database" % (sample_well.api) );
+				print("  Accounting for %f production " % get_total_production(sample_well.dtarray, sample_well.masspermonth));
+				missing_production = missing_production+temp;
+
+	print("Missing Injection is %f 1e6" % (missing_injection/1e6));
+	print("Missing Production is %f 1e6" % (missing_production/1e6));
 
 	return new_injection_wells, new_production_wells;
 
+
 def get_total_production(dtarray, masspermonth, 
 	starttime=dt.datetime.strptime("20090101","%Y%m%d"), 
-	endtime=dt.datetime.strptime("20190101","%Y%m%d")):
+	endtime=dt.datetime.strptime("20200101","%Y%m%d")):
 	sum_production = 0;
 	for i in range(len(dtarray)):
 		if dtarray[i]>=starttime and dtarray[i]<=endtime:
@@ -136,21 +172,25 @@ def map_well_locations(InjWells, ProWells, field_boundaries_lon, field_boundarie
 	
 	manywell_production=0;
 	manywell_injection=0;
-	for well in ProWells: # production wells
-		total_production = get_total_production(well.dtarray, well.masspermonth);
-		total_production = total_production/1e6;
-		fig.plot(x=well.lon, y=well.lat, G=[total_production], S='i0.1i',W='thin,black',C="mycpt.cpt");
-		manywell_production=manywell_production+total_production;
 	for well in InjWells:
 		total_production = get_total_production(well.dtarray, well.masspermonth);
 		total_production = total_production/1e6;
-		# fig.plot(x=well.lon, y=well.lat, S='i0.1i',G='royalblue2',W='thin,black');
-		fig.plot(x=well.lon, y=well.lat, G=[total_production], S='t0.1i',W='thin,black',C="mycpt.cpt");
+		if total_production > 0.000:
+			# fig.plot(x=well.lon, y=well.lat, S='i0.1i',G='royalblue2',W='thin,black');
+			fig.plot(x=well.lon, y=well.lat, G=[total_production], S='i0.1i',W='thin,black',C="mycpt.cpt");
 		manywell_injection=manywell_injection+total_production;
+	for well in ProWells: # production wells
+		total_production = get_total_production(well.dtarray, well.masspermonth);
+		total_production = total_production/1e6;
+		if total_production > 0.000:
+			fig.plot(x=well.lon, y=well.lat, G=[total_production], S='t0.1i',W='thin,black',C="mycpt.cpt");
+		manywell_production=manywell_production+total_production;
 	fig.colorbar(D="jBr+w2.2i/0.1i+o1.5c/1.0c+h",C="mycpt.cpt",I="0.8",G="0/20.0",B=["x"+str(4),"y+L\"Vol\""]); 
 	fig.savefig('well_locations.png')
 
 	print("manywell_injection: %f x 1e6" % manywell_injection);
 	print("manywell_production: %f x 1e6" % manywell_production);
+	print("From excel, would expect total injection to be 117");
+	print("From excel, would expect total production to be 130");
 	return;
 
