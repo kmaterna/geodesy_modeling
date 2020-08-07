@@ -15,27 +15,29 @@ Wells = collections.namedtuple('Wells',['api','lon','lat','masspermonth','dtarra
 def driver(file_injection, file_production, file_mass, fields_file):
 	InjectionWells = read_excel_wells(file_injection);
 	ProductionWells = read_excel_wells(file_production);
-	field_boundaries_lon, field_boundaries_lat = read_field_boundaries(fields_file);
+	field_boundaries_lon, field_boundaries_lat = read_gmt_multisegment(fields_file,',');
 	MassWells = read_well_masses(file_mass);
 	InjectionWells, ProductionWells = combine_masses_wells(InjectionWells, ProductionWells, MassWells);
 	map_well_locations(InjectionWells, ProductionWells, field_boundaries_lon, field_boundaries_lat);
 	return;
 
-def read_field_boundaries(fields_file):
+def read_gmt_multisegment(fields_file, split_delimiter=' '):
+	print("reading gmt multisegment file %s" % fields_file);
 	ifile=open(fields_file);
 	lon_collection=[];
 	lat_collection=[];
 	lon_temp=[];
 	lat_temp=[];
 	for line in ifile:
-		if line.split()[0]=='>>':
-			lon_collection.append(lon_temp);
-			lat_collection.append(lat_temp);
+		if line.split()[0]=='>>' or line.split()[0]=='>':
+			if lon_temp !=[]:
+				lon_collection.append(lon_temp);
+				lat_collection.append(lat_temp);
 			lon_temp=[];
 			lat_temp=[];
 			continue;
 		else:
-			temp=line.split(',');
+			temp=line.split(split_delimiter);
 			lon_temp.append(float(temp[0]));
 			lat_temp.append(float(temp[1]));
 	lon_collection.append(lon_temp);
@@ -95,8 +97,8 @@ def combine_masses_wells(InjectionWells, ProductionWells, MassWells):
 					temp = Wells(api=well.api, lon=well.lon, lat=well.lat, dtarray=sample_well.dtarray, 
 						masspermonth=sample_well.masspermonth, welltype=sample_well.welltype);
 					new_injection_wells.append(temp);
-		if found_well_mass==0 and well.lat>32.8 and well.lat<33.1:
-			print("Error! Could not find mass information for Brawley injection well %d " % well.api);
+		if found_well_mass==0 and well.lat>32.8 and well.lat<33.1 and well.lon<-115.4 and well.lon>-115.7:
+			print("Error! Could not find mass information for Brawley injection well %d at %f, %f " % (well.api,well.lon, well.lat) );
 	print("Found lon/lat/mass information for %d injection wells" % (len(new_injection_wells)) );
 	
 	for well in ProductionWells:
@@ -108,8 +110,8 @@ def combine_masses_wells(InjectionWells, ProductionWells, MassWells):
 					temp = Wells(api=well.api, lon=well.lon, lat=well.lat, dtarray=sample_well.dtarray, 
 						masspermonth=sample_well.masspermonth, welltype=sample_well.welltype);
 					new_production_wells.append(temp);
-		if found_well_mass==0 and well.lat>32.8 and well.lat<33.1:
-			print("Error! Could not find mass information for Brawley production well %d " % well.api);
+		if found_well_mass==0 and well.lat>32.8 and well.lat<33.1 and well.lon<-115.4 and well.lon>-115.7:
+			print("Error! Could not find mass information for Brawley production well %d at %f, %f " % (well.api, well.lon, well.lat) );
 	print("Found lon/lat/mass information for %d production wells" % (len(new_production_wells)) );	
 
 	# Identify missing wells (no lat/lon information)
@@ -155,6 +157,8 @@ def map_well_locations(InjWells, ProWells, field_boundaries_lon, field_boundarie
 
 	rupture_lon, rupture_lat = np.loadtxt('Data/M4p9_surface_rupture.txt',unpack=True);
 	eq_lon, eq_lat = np.loadtxt('../QTM_exploring/Brawley_QTM.txt',unpack=True,usecols=(1,2));
+	fault_lon, fault_lat = read_gmt_multisegment('Data/SwarmFault1.txt_gmt');
+	n_fault_lon, n_fault_lat = read_gmt_multisegment('Data/Wei_normalfault.txt_gmt');
 
 	region = [-115.64, -115.42, 32.95, 33.08];  # close-ish
 	# region = [-116.0, -114.3, 32.3, 33.5];  # big range
@@ -165,8 +169,12 @@ def map_well_locations(InjWells, ProWells, field_boundaries_lon, field_boundarie
 	fig.coast(shorelines="1.0p,black",region=region,projection=proj,N=[1,2],L="g-115.45/33.07+c1.5+w5",B="0.1")
 	for i in range(len(field_boundaries_lat)):
 		fig.plot(x=field_boundaries_lon[i], y=field_boundaries_lat[i], W='thick,red');
-	fig.plot(x=rupture_lon, y=rupture_lat, W='thick,black')
-	fig.plot(x=eq_lon, y=eq_lat, S='c0.9p',G='gray');
+	for i in range(len(fault_lat)):     # strike slip fault
+		fig.plot(x=fault_lon[i], y=fault_lat[i], W='thin,gainsboro');
+	for i in range(len(n_fault_lat)):   # normal fault
+		fig.plot(x=n_fault_lon[i], y=n_fault_lat[i], W='thin,gainsboro');
+	fig.plot(x=rupture_lon, y=rupture_lat, W='thick,black')  # M4.7 surface rupture 
+	fig.plot(x=eq_lon, y=eq_lat, S='c0.9p',G='darkgray');  # QTM seismicity
 
 	pygmt.makecpt(C="hot",T="0/20.0/0.1",I=True,H="mycpt.cpt");
 	
@@ -177,15 +185,17 @@ def map_well_locations(InjWells, ProWells, field_boundaries_lon, field_boundarie
 		total_production = total_production/1e6;
 		if total_production > 0.000:
 			# fig.plot(x=well.lon, y=well.lat, S='i0.1i',G='royalblue2',W='thin,black');
-			fig.plot(x=well.lon, y=well.lat, G=[total_production], S='i0.1i',W='thin,black',C="mycpt.cpt");
+			fig.plot(x=well.lon, y=well.lat, G=[total_production], S='i0.13i',W='thin,black',C="mycpt.cpt");
 		manywell_injection=manywell_injection+total_production;
 	for well in ProWells: # production wells
 		total_production = get_total_production(well.dtarray, well.masspermonth);
 		total_production = total_production/1e6;
 		if total_production > 0.000:
-			fig.plot(x=well.lon, y=well.lat, G=[total_production], S='t0.1i',W='thin,black',C="mycpt.cpt");
+			fig.plot(x=well.lon, y=well.lat, G=[total_production], S='t0.13i',W='thin,black',C="mycpt.cpt");
 		manywell_production=manywell_production+total_production;
-	fig.colorbar(D="jBr+w2.2i/0.1i+o1.5c/1.0c+h",C="mycpt.cpt",I="0.8",G="0/20.0",B=["x"+str(4),"y+L\"Vol\""]); 
+	
+	fig.legend(region=region, projection=proj,spec="legendfile.txt",D="jBL+o0.2c",F="+gantiquewhite+pthick,black");
+	fig.colorbar(D="jBr+w2.2i/0.1i+o1.2c/1.0c+h",C="mycpt.cpt",I="0.8",G="0/20.0",B=["x"+str(4),"y+L\"Vol\""]); 
 	fig.savefig('well_locations.png')
 
 	print("manywell_injection: %f x 1e6" % manywell_injection);
