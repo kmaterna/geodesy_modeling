@@ -106,7 +106,8 @@ def downsample_cut_write_uavsar_multiple(config):
 		
 		# Write the final .unw.geo file (not the metadata)
 		uavsar_unw_file = config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"];
-		# data = data-np.nanmean(data);  # PLACEHOLDER FOR REASONABLE REFERENCE VALUE
+		# if 'uav_dispfile' in new_interval_dict.keys():
+			# data = data-np.nanmean(data);  # PLACEHOLDER FOR REASONABLE REFERENCE VALUE
 		isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file); # write data bytes out.
 		
 		# Quadtree downsampling by Kite
