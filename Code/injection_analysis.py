@@ -1,6 +1,8 @@
 # August 2020
 # Python scripts to analyze injection at specific wells
-# The sum of injected fluid is 2x higher than extracted fluid in 2009-2019.  Might want to check that out. 
+# This script creates a pygmt map of injection wells color coded by amount of injection and production
+# It also prints out the mismatch between reporting systems: some wells are missing lat/lon information, 
+# and some wells are missing volume information 
 
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -8,6 +10,7 @@ import collections
 import datetime as dt
 import xlrd
 import pygmt
+import multiSAR_input_functions
 
 Wells = collections.namedtuple('Wells',['api','lon','lat','masspermonth','dtarray','welltype']);
 
@@ -15,34 +18,10 @@ Wells = collections.namedtuple('Wells',['api','lon','lat','masspermonth','dtarra
 def driver(file_injection, file_production, file_mass, fields_file):
 	InjectionWells = read_excel_wells(file_injection);
 	ProductionWells = read_excel_wells(file_production);
-	field_boundaries_lon, field_boundaries_lat = read_gmt_multisegment(fields_file,',');
 	MassWells = read_well_masses(file_mass);
 	InjectionWells, ProductionWells = combine_masses_wells(InjectionWells, ProductionWells, MassWells);
-	map_well_locations(InjectionWells, ProductionWells, field_boundaries_lon, field_boundaries_lat);
+	map_well_locations(InjectionWells, ProductionWells, fields_file);
 	return;
-
-def read_gmt_multisegment(fields_file, split_delimiter=' '):
-	print("reading gmt multisegment file %s" % fields_file);
-	ifile=open(fields_file);
-	lon_collection=[];
-	lat_collection=[];
-	lon_temp=[];
-	lat_temp=[];
-	for line in ifile:
-		if line.split()[0]=='>>' or line.split()[0]=='>':
-			if lon_temp !=[]:
-				lon_collection.append(lon_temp);
-				lat_collection.append(lat_temp);
-			lon_temp=[];
-			lat_temp=[];
-			continue;
-		else:
-			temp=line.split(split_delimiter);
-			lon_temp.append(float(temp[0]));
-			lat_temp.append(float(temp[1]));
-	lon_collection.append(lon_temp);
-	lat_collection.append(lat_temp);
-	return lon_collection, lat_collection;
 
 def read_excel_wells(filename):
 	print("Reading in %s" % filename);
@@ -143,6 +122,7 @@ def combine_masses_wells(InjectionWells, ProductionWells, MassWells):
 def get_total_production(dtarray, masspermonth, 
 	starttime=dt.datetime.strptime("20090101","%Y%m%d"), 
 	endtime=dt.datetime.strptime("20200101","%Y%m%d")):
+	# Integrate the well total from startdate to enddate
 	sum_production = 0;
 	for i in range(len(dtarray)):
 		if dtarray[i]>=starttime and dtarray[i]<=endtime:
@@ -153,12 +133,14 @@ def get_total_production(dtarray, masspermonth,
 	return sum_production;
 
 
-def map_well_locations(InjWells, ProWells, field_boundaries_lon, field_boundaries_lat):
+def map_well_locations(InjWells, ProWells, fields_file):
+	# Makes a pygmt overview map of the wells at NBGF
 
 	rupture_lon, rupture_lat = np.loadtxt('Data/M4p9_surface_rupture.txt',unpack=True);
-	eq_lon, eq_lat = np.loadtxt('../QTM_exploring/Brawley_QTM.txt',unpack=True,usecols=(1,2));
-	fault_lon, fault_lat = read_gmt_multisegment('Data/SwarmFault1.txt_gmt');
-	n_fault_lon, n_fault_lat = read_gmt_multisegment('Data/Wei_normalfault.txt_gmt');
+	eq_lon, eq_lat = np.loadtxt('../QTM_exploring/Brawley_QTM_shallower8.txt',unpack=True,usecols=(1,2));
+	fault_lon, fault_lat = multiSAR_input_functions.read_gmt_multisegment_latlon('Data/SwarmFault1.txt_gmt');
+	n_fault_lon, n_fault_lat = multiSAR_input_functions.read_gmt_multisegment_latlon('Data/Wei_normalfault.txt_gmt');
+	field_boundaries_lon, field_boundaries_lat = multiSAR_input_functions.read_gmt_multisegment_latlon(fields_file,',');
 
 	region = [-115.64, -115.42, 32.95, 33.08];  # close-ish
 	# region = [-116.0, -114.3, 32.3, 33.5];  # big range
