@@ -13,6 +13,7 @@ import multiSAR_utilities
 
 # InSAR Object is similar to the Hines format: 
 # InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
+# where LOS is in mm
 
 
 def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
@@ -89,18 +90,5 @@ def impose_InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
 	return newInSAR_obj;
 
 
-def TRE_to_InSAR_Obj(TRE_obj):
-	# Divide by the number of years of observation
-	# Return the Vert and East as separate objects
-	tdelta = TRE_obj.endtime-TRE_obj.starttime;
-	tre_interval_years = tdelta.days / 365.24;  # the number of years spanned by the TRE velocity. 
-	Vert_LOS = [i*tre_interval_years for i in TRE_obj.vvel];
-	East_LOS = [i*tre_interval_years for i in TRE_obj.evel];
-	zeros = np.zeros(np.shape(TRE_obj.vvel));
-	ones = np.ones(np.shape(TRE_obj.vvel));
-	Vert_obj = multiSAR_input_functions.InSAR_Object(lon=TRE_obj.lon, lat=TRE_obj.lat, LOS=Vert_LOS, LOS_unc=TRE_obj.vvel_std, 
-		lkv_E=zeros, lkv_N=zeros, lkv_U=ones, starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
-	East_obj = multiSAR_input_functions.InSAR_Object(lon=TRE_obj.lon, lat=TRE_obj.lat, LOS=East_LOS, LOS_unc=TRE_obj.evel_std, 
-		lkv_E=ones, lkv_N=zeros, lkv_U=zeros, starttime=TRE_obj.starttime, endtime=TRE_obj.endtime);
-	return Vert_obj, East_obj;
+
 

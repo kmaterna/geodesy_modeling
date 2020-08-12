@@ -189,8 +189,7 @@ def write_tsx_tre_displacements_multiple(config):
 			new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in TSX
 			print("\nStarting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]) );
 		
-			TRE_TSX = multiSAR_input_functions.inputs_TRE(new_interval_dict["tsx_filename"]);  # contains the start and end times inside the object
-			Vert_InSAR, East_InSAR = insar_LOS_tools.TRE_to_InSAR_Obj(TRE_TSX);  # convert to displacements
+			Vert_InSAR, East_InSAR = multiSAR_input_functions.inputs_TRE(new_interval_dict["tsx_filename"]);  # contains the start and end times inside the object
 			Vert_InSAR = insar_LOS_tools.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["tsx_bbox"]);  # bounding box vertical
 			Vert_InSAR = insar_LOS_tools.uniform_downsampling(Vert_InSAR,new_interval_dict["tsx_downsample_interval"], new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
 
@@ -210,8 +209,8 @@ def write_s1_tre_displacements_multiple(config):
 		for interval_dict_key in config["s1_data"]:
 			new_interval_dict = config["s1_data"][interval_dict_key];  # for each interval in TSX
 			print("\nStarting to extract S1 TRE-format from %s " % (new_interval_dict["s1_filename"]) );
-			TRE_S1 = multiSAR_input_functions.inputs_TRE(new_interval_dict["s1_filename"]);
-			multiSAR_input_functions.write_tre_invertible_format(TRE_S1, new_interval_dict["s1_bbox"], new_interval_dict["s1_unc"], config["prep_inputs_dir"]+new_interval_dict["s1_datafile"]);
+			Vert_InSAR, East_InSAR = multiSAR_input_functions.inputs_TRE(new_interval_dict["s1_filename"]);
+			multiSAR_input_functions.write_tre_invertible_format(Vert_InSAR, new_interval_dict["s1_bbox"], new_interval_dict["s1_unc"], config["prep_inputs_dir"]+new_interval_dict["s1_datafile"]);
 	return;
 
 
