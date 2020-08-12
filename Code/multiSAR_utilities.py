@@ -61,4 +61,3 @@ def get_average_within_box(lonlist, latlist, target_lon, target_lat, averaging_w
 				new_data.append(data[i]);
 	return np.nanmean(new_data); 
 
-

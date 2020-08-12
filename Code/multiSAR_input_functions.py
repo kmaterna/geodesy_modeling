@@ -296,11 +296,11 @@ def inputs_cornell_ou_velocities_hdf5(filename):
 	disps5, dates5 = quick_convert_one_timeslice_to_disp(rate[:,:,4],dates[4]);
 
 	# Returning the standard InSAR format of displacements in mm, etc. 
-	InSAR_1 = InSAR_Object(lon=lon, lat=lat, LOS=disps1, LOS_unc='', lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates1[0], endtime=dates1[1]);
-	InSAR_2 = InSAR_Object(lon=lon, lat=lat, LOS=disps2, LOS_unc='', lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates2[0], endtime=dates2[1]);
-	InSAR_3 = InSAR_Object(lon=lon, lat=lat, LOS=disps3, LOS_unc='', lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates3[0], endtime=dates3[1]);
-	InSAR_4 = InSAR_Object(lon=lon, lat=lat, LOS=disps4, LOS_unc='', lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates4[0], endtime=dates4[1]);
-	InSAR_5 = InSAR_Object(lon=lon, lat=lat, LOS=disps5, LOS_unc='', lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates5[0], endtime=dates5[1]);
+	InSAR_1 = InSAR_Object(lon=lon, lat=lat, LOS=disps1, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates1[0], endtime=dates1[1]);
+	InSAR_2 = InSAR_Object(lon=lon, lat=lat, LOS=disps2, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates2[0], endtime=dates2[1]);
+	InSAR_3 = InSAR_Object(lon=lon, lat=lat, LOS=disps3, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates3[0], endtime=dates3[1]);
+	InSAR_4 = InSAR_Object(lon=lon, lat=lat, LOS=disps4, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates4[0], endtime=dates4[1]);
+	InSAR_5 = InSAR_Object(lon=lon, lat=lat, LOS=disps5, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates5[0], endtime=dates5[1]);
 
 	return InSAR_1, InSAR_2, InSAR_3, InSAR_4, InSAR_5;
 

@@ -9,37 +9,36 @@ import matplotlib.pyplot as plt
 import collections
 import datetime as dt
 import xlrd
+import csv
 import pygmt
 import multiSAR_input_functions
 
 Wells = collections.namedtuple('Wells',['api','lon','lat','masspermonth','dtarray','welltype']);
 
 
-def driver(file_injection, file_production, file_mass, fields_file):
-	InjectionWells = read_excel_wells(file_injection,welltype="inject");
-	ProductionWells = read_excel_wells(file_production,welltype="product");
-	WellsLatLon = InjectionWells+ProductionWells;
-	MassWells = read_well_masses(file_mass);
+def driver(mass_file, ll_file):
+	WellsLatLon = read_doggr_csv_wells(ll_file);
+	MassWells = read_well_masses(mass_file);
 	TotalWells = combine_masses_wells(WellsLatLon, MassWells);
-	map_well_locations(TotalWells, fields_file);
+	map_well_locations(TotalWells);  # reads extra files for annotations as well
 	return;
 
-def read_excel_wells(filename, welltype=None):
-	# Making a list of wells
+def read_doggr_csv_wells(filename):
+	# Making a list of wells lat/lon from a second format of DOGGR data
+	# This will be ALL OF CALIFORNIA
+	WellsLatLon = [];
 	print("Reading in %s" % filename);
-	wb = xlrd.open_workbook(filename);
-	sheet = wb.sheet_by_index(0);
-	names = sheet.col_values(0)[1:];
-	latitudes = sheet.col_values(1)[1:];
-	longitudes = sheet.col_values(2)[1:];
-	Well_collection = [];
-	for i in range(len(longitudes)):  # make a list of wells
-		New_Well = Wells(api=names[i], lon=longitudes[i], lat=latitudes[i], masspermonth=None, dtarray=None, welltype=welltype);
-		Well_collection.append(New_Well);
-	return Well_collection;
+	with open(filename) as csvfile:
+		next(csvfile);  # skip the header row
+		reader = csv.reader(csvfile);
+		for row in reader:
+			onewell = Wells(api=int(row[1]), lon=float(row[19]), lat=float(row[18]), masspermonth=None, dtarray=None, welltype=None);
+			WellsLatLon.append(onewell);
+	return WellsLatLon;
 
 def read_well_masses(filename):
 	# Make a bunch of well objects with name, months, and volumes
+	# This excel file is from Doggr/CEC-supplied data
 	print("Reading in %s" % filename);
 	wb = xlrd.open_workbook(filename);
 	sheet = wb.sheet_by_index(0);
@@ -112,14 +111,14 @@ def get_total_production(dtarray, masspermonth,
 	return sum_production;
 
 
-def map_well_locations(TotalWells, fields_file):
+def map_well_locations(TotalWells):
 	# Makes a pygmt overview map of the wells at NBGF
 
 	rupture_lon, rupture_lat = np.loadtxt('Data/M4p9_surface_rupture.txt',unpack=True);
 	eq_lon, eq_lat = np.loadtxt('../QTM_exploring/Brawley_QTM_shallower8.txt',unpack=True,usecols=(1,2));
 	fault_lon, fault_lat = multiSAR_input_functions.read_gmt_multisegment_latlon('Data/SwarmFault1.txt_gmt');
 	n_fault_lon, n_fault_lat = multiSAR_input_functions.read_gmt_multisegment_latlon('Data/Wei_normalfault.txt_gmt');
-	field_boundaries_lon, field_boundaries_lat = multiSAR_input_functions.read_gmt_multisegment_latlon(fields_file,',');
+	field_boundaries_lon, field_boundaries_lat = multiSAR_input_functions.read_gmt_multisegment_latlon('Data/Fields_Boundaries.txt',',');
 
 	region = [-115.64, -115.42, 32.95, 33.08];  # close-ish
 	# region = [-116.0, -114.3, 32.3, 33.5];  # big range

@@ -1,12 +1,10 @@
 # July 2020
-# Perform uniform downsampling on an InSAR dataset
+# Perform uniform downsampling on an InSAR_Obj
 # Impose Bounding Box
 # Convert between InSAR data formats
-# Remove a ramp empirically
 
 import numpy as np 
 import sys
-import collections
 import multiSAR_input_functions
 import multiSAR_utilities
 
@@ -91,4 +89,21 @@ def impose_InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
 
 
 
+def remove_nans(InSAR_Object):
+	# Remove Nans from some InSAR object
+	lon=[]; lat=[]; LOS=[]; LOS_unc=[]; unit_E=[]; unit_N=[]; unit_U=[];
+	for i in range(len(InSAR_obj.lon)):
+		if np.isnan(InSAR_obj.LOS[i]):
+			continue;
+		else:
+			lon.append(InSAR_obj.lon[i]);
+			lat.append(InSAR_obj.lat[i]);
+			LOS.append(InSAR_obj.LOS[i]);
+			LOS_unc.append(InSAR_obj.LOS_unc[i]);
+			unit_E.append(InSAR_obj.lkv_E[i]);
+			unit_N.append(InSAR_obj.lkv_N[i]);
+			unit_U.append(InSAR_obj.lkv_U[i]);
+	newInSAR_obj = multiSAR_input_functions.InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U, 
+		starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+	return newInSAR_obj;
 
