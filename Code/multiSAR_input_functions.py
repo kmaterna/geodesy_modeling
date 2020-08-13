@@ -1,9 +1,8 @@
 # A series of functions for io of various data types
 # Leveling
 # UAVSAR
-# TSX
-# S1
 # Envisat
+# The InSAR format is defined somewhere else
 
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -11,15 +10,12 @@ import datetime as dt
 import collections
 import xlrd
 import struct
-import h5py
 import netcdf_read_write
 
 
 # Collections
-UavsarData = collections.namedtuple("UavsarData",["dtarray","lon","lat","TS"]);
+UavsarData = collections.namedtuple("UavsarData",["dtarray","lon","lat","TS"]); 
 LevData = collections.namedtuple("LevData",["name","lat","lon","dtarray", "leveling"]);
-InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc',
-	'lkv_E','lkv_N','lkv_U','starttime','endtime']);  # A more generalized InSAR format (displacements in mm)
 Timeseries = collections.namedtuple("Timeseries",['name','coords',
 	'dtarray','dN', 'dE','dU','Sn','Se','Su','EQtimes']);  # in mm
 
@@ -62,10 +58,11 @@ def read_gmt_multisegment_latlon(fields_file, split_delimiter=' '):
 	return lon_collection, lat_collection;
 
 
-
 # UAVSAR INPUT FUNCTIONS FOR NETCDF FORMAT
 def inputs_uavsar(filename):
 	# Reads a TS file from my interferogram processing
+	# THIS IS AN OLD FUNCTION AND IS ONLY USED ONCE (leveling_vs_uavsar comparisons)
+	# It might be on the chopping block. 
 	print("Reading UAVSAR files in directory %s" % filename);
 	[tdata, xdata, ydata, zdata] = netcdf_read_write.read_3D_netcdf(filename+"TS.nc");
 	print("tdata:",tdata);
@@ -221,102 +218,6 @@ def compute_rel_to_datum_nov_2009(data):
 	return referenced_object; 
 
 
-# INPUT FUNCTIONS FOR S1 AND TSX FROM TRE
-def inputs_TRE(filename):
-	# Reading data from SNT1 TRE data. 
-	print("Reading in %s" % filename);
-	wb = xlrd.open_workbook(filename);
-
-	# Vertical velocities
-	sheet = wb.sheet_by_index(2);
-	numcols = sheet.ncols;
-	numrows = sheet.nrows; 
-	data = [[sheet.cell_value(r,c) for c in range(numcols)] for r in range(numrows)];
-	length, width = np.shape(data);
-	zvel = [data[i][0] for i in range(1,length)];
-	zvel_std = [data[i][1] for i in range(1,length)];
-	lat = [data[i][2] for i in range(1,length)];
-	lon = [data[i][3] for i in range(1,length)];
-
-	# East velocities
-	sheet = wb.sheet_by_index(3);
-	numcols = sheet.ncols;
-	numrows = sheet.nrows; 
-	data = [[sheet.cell_value(r,c) for c in range(numcols)] for r in range(numrows)];
-	length, width = np.shape(data);
-	evel = [data[i][0] for i in range(1,length)];
-	evel_std = [data[i][1] for i in range(1,length)];
-
-	if "TSX" in filename:
-		starttime=dt.datetime.strptime("2012-09-01","%Y-%m-%d");
-		endtime=dt.datetime.strptime("2013-09-01","%Y-%m-%d");  # Hard coded for this experiment. 
-	if "SNT1" in filename:
-		starttime=dt.datetime.strptime("2014-04-01","%Y-%m-%d");
-		endtime=dt.datetime.strptime("2018-04-01","%Y-%m-%d");  # Hard coded for this experiment. 
-	if "SNT2" in filename:
-		starttime=dt.datetime.strptime("2018-05-01","%Y-%m-%d");
-		endtime=dt.datetime.strptime("2019-08-01","%Y-%m-%d");  # Hard coded for this experiment. 
-
-	# Packaging it up
-	# Divide by the number of years of observation
-	# Return the Vert and East as separate objects
-	Vert_LOS = convert_rates_to_disps(zvel, starttime, endtime);
-	East_LOS = convert_rates_to_disps(evel, starttime, endtime);
-	zeros = np.zeros(np.shape(zvel));
-	ones = np.ones(np.shape(zvel));
-	Vert_obj = InSAR_Object(lon=lon, lat=lat, LOS=Vert_LOS, LOS_unc=zvel_std, 
-		lkv_E=zeros, lkv_N=zeros, lkv_U=ones, starttime=starttime, endtime=endtime);
-	East_obj = InSAR_Object(lon=lon, lat=lat, LOS=East_LOS, LOS_unc=evel_std, 
-		lkv_E=ones, lkv_N=zeros, lkv_U=zeros, starttime=starttime, endtime=endtime);
-	
-	return Vert_obj, East_obj;
-
-
-def inputs_cornell_ou_velocities_hdf5(filename):
-	# This is for one track at a time.  
-	# In this case, the hdf5 file contains 5 velocity measurements for each pixel, one at each time interval. 
-	# We will split them up into 5 InSAR objects
-	f = h5py.File(filename,'r');  # reads the hdf5 into a dictionary f
-
-	# Unpacking
-	dates = np.array(f.get('dates'));
-	lat = np.array(f.get('lat'));
-	lon = np.array(f.get('lon'));
-	rate = np.array(f.get('rate'));
-	rstd = np.array(f.get('rstd'));
-
-	num_data = np.shape(lon)[0]*np.shape(lon)[1];
-	lon=np.reshape(lon, (num_data,));
-	lat=np.reshape(lat, (num_data,));
-
-	disps1, dates1 = quick_convert_one_timeslice_to_disp(rate[:,:,0],dates[0]);
-	disps2, dates2 = quick_convert_one_timeslice_to_disp(rate[:,:,1],dates[1]);
-	disps3, dates3 = quick_convert_one_timeslice_to_disp(rate[:,:,2],dates[2]);
-	disps4, dates4 = quick_convert_one_timeslice_to_disp(rate[:,:,3],dates[3]);
-	disps5, dates5 = quick_convert_one_timeslice_to_disp(rate[:,:,4],dates[4]);
-
-	# Returning the standard InSAR format of displacements in mm, etc. 
-	InSAR_1 = InSAR_Object(lon=lon, lat=lat, LOS=disps1, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates1[0], endtime=dates1[1]);
-	InSAR_2 = InSAR_Object(lon=lon, lat=lat, LOS=disps2, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates2[0], endtime=dates2[1]);
-	InSAR_3 = InSAR_Object(lon=lon, lat=lat, LOS=disps3, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates3[0], endtime=dates3[1]);
-	InSAR_4 = InSAR_Object(lon=lon, lat=lat, LOS=disps4, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates4[0], endtime=dates4[1]);
-	InSAR_5 = InSAR_Object(lon=lon, lat=lat, LOS=disps5, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates5[0], endtime=dates5[1]);
-
-	return InSAR_1, InSAR_2, InSAR_3, InSAR_4, InSAR_5;
-
-def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
-	numdata = np.shape(rateslice)[0]*np.shape(rateslice)[1];
-	ratevector = np.reshape(rateslice, (numdata,));
-	datevector = [dt.datetime.strptime(str(date_intformat[0]),"%Y%m%d"), dt.datetime.strptime(str(date_intformat[1]),"%Y%m%d")];
-	disps = convert_rates_to_disps(ratevector, datevector[0], datevector[1]);
-	return disps, datevector; 
-
-def convert_rates_to_disps(LOS_rates, starttime, endtime):
-	tdelta = endtime-starttime;
-	interval_years = tdelta.days / 365.24;  # the number of years spanned by the velocity. 	
-	Disps = [i*interval_years for i in LOS_rates];
-	return; 
-
 
 # -------------- WRITE FUNCTIONS ------------- # 
 
@@ -359,34 +260,4 @@ def write_gps_invertible_format(gps_object_list, filename):
 	ofile.close();
 	return;
 
-
-def write_insar_invertible_format(InSAR_obj, unc_min, filename):
-	# This function uses InSAR displacements to make an insar file that can be inverted.
-	# Writes one header line and multiple data lines. 
-	print("Writing InSAR displacements into file %s " % filename);
-	ofile=open(filename,'w');
-	ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitN \n" );
-	for i in range(len(InSAR_obj.lon)):
-		if np.isnan(InSAR_obj.LOS[i]):
-			continue;
-		else:
-			std = InSAR_obj.LOS_unc[i] * 0.001;  # in m
-			if std < unc_min:
-				std = unc_min;
-			ofile.write('%f %f ' % (InSAR_obj.lon[i], InSAR_obj.lat[i]) );
-			ofile.write('%f %f ' % (0.001*InSAR_obj.LOS[i] , std) );  # in m
-			ofile.write('%f %f %f\n' % (InSAR_obj.lkv_E[i], InSAR_obj.lkv_N[i], InSAR_obj.lkv_U[i]) );
-			# Writing in meters
-	ofile.close();
-	return; 
-
-def plot_insar(txtfile, plotname):
-	print("Plotting insar in file %s " % plotname);
-	[lon, lat, disp] = np.loadtxt(txtfile,unpack=True, skiprows=1, usecols=(0,1,2));
-	plt.figure(dpi=300,figsize=(8,8));
-	plt.scatter(lon, lat, c=disp, s=18, cmap='rainbow');
-	plt.colorbar();
-	plt.title("InSAR with %d Points " % len(disp) );
-	plt.savefig(plotname);
-	return;	
 

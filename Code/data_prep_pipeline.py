@@ -13,9 +13,12 @@ import datetime as dt
 import quadtree_downsample_kite
 import downsample_gps_ts
 import multiSAR_input_functions
-import remove_insar_ramp
-import insar_LOS_tools
 import isce_read_write
+
+import InSAR_Object.outputs
+import InSAR_Object.remove_ramp
+import InSAR_Object.inputs
+import InSAR_Object.utilities
 
 def welcome_and_parse(argv):
 	print("Welcome to the multiSAR data input pipeline.")
@@ -104,14 +107,13 @@ def downsample_cut_write_uavsar_multiple(config):
 			data = -1*data;  # away from satellite = negative motion
 			print("Multiplying UAVSAR by -1 for LOS motion sign convention. ");
 		
-		# Write the final .unw.geo file (not the metadata)
+		# Write the .unw.geo file (not the metadata)
 		uavsar_unw_file = config["prep_inputs_dir"]+new_interval_dict["uavsar_unw_file"];
-		# if 'uav_dispfile' in new_interval_dict.keys():
-			# data = data-np.nanmean(data);  # PLACEHOLDER FOR REASONABLE REFERENCE VALUE
 		isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file); # write data bytes out.
 		
 		# Quadtree downsampling by Kite
-		uav_textfile = drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
+		uav_textfile = config["prep_inputs_dir"]+new_interval_dict["uav_textfile"];
+		drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 		
 		# Remove a coseismic model for the EMC event
 		if "adjust_EMC_uavsar" in new_interval_dict.keys():
@@ -120,13 +122,13 @@ def downsample_cut_write_uavsar_multiple(config):
 		# Now we remove a ramp. 
 		if "remove_uavsar_ramp" in new_interval_dict.keys():
 			if new_interval_dict["remove_uavsar_ramp"]==1:
-				multiSAR_input_functions.plot_insar(uav_textfile, config["prep_inputs_dir"]+new_interval_dict["uav_ending_plot"]+"_beforerampremov.png");
+				InSAR_Object.outputs.plot_insar(uav_textfile, config["prep_inputs_dir"]+new_interval_dict["uav_ending_plot"]+"_beforerampremov.png");
 				ramp_adjusted_file = uav_textfile.split(".txt")[0]+"_ramp_removed.txt";  # no-ramps file
-				remove_insar_ramp.remove_ramp(uav_textfile, ramp_adjusted_file,ref_coord=config['reference_ll']);
+				InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, ramp_adjusted_file,ref_coord=config['reference_ll']);
 				uav_textfile = ramp_adjusted_file; 
 
 		# Now we make a plot
-		multiSAR_input_functions.plot_insar(uav_textfile, config["prep_inputs_dir"]+new_interval_dict["uav_ending_plot"]);
+		InSAR_Object.outputs.plot_insar(uav_textfile, config["prep_inputs_dir"]+new_interval_dict["uav_ending_plot"]);
 
 	return;
 
@@ -139,12 +141,11 @@ def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
 	print("Copying %s into directory %s" % (interval_dictionary['rdrfile'],inputs_dir) );		
 	subprocess.call(['cp',interval_dictionary["rdrfile"],inputs_dir],shell=False);
 
-	
 	# Downsample, bbox, and Print
 	quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file, 
 		interval_dictionary["epsilon"], interval_dictionary["nan_allowed"], interval_dictionary["tile_size_min"], interval_dictionary["tile_size_max"]);
 	quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile, bbox=interval_dictionary["uavsar_bbox"], std_min=interval_dictionary["uavsar_std_min"]);
-	return uav_textfile;
+	return;
 
 
 def remove_insar_emc_by_model(insar_textfile, reference_ll, predicted_file):
@@ -189,12 +190,12 @@ def write_tsx_tre_displacements_multiple(config):
 			new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in TSX
 			print("\nStarting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]) );
 		
-			Vert_InSAR, East_InSAR = multiSAR_input_functions.inputs_TRE(new_interval_dict["tsx_filename"]);  # contains the start and end times inside the object
-			Vert_InSAR = insar_LOS_tools.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["tsx_bbox"]);  # bounding box vertical
-			Vert_InSAR = insar_LOS_tools.uniform_downsampling(Vert_InSAR,new_interval_dict["tsx_downsample_interval"], new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
+			Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["tsx_filename"]);  # contains the start and end times inside the object
+			Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["tsx_bbox"]);  # bounding box vertical
+			Vert_InSAR = InSAR_Object.utilities.uniform_downsampling(Vert_InSAR,new_interval_dict["tsx_downsample_interval"], new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
 
-			multiSAR_input_functions.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"], config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
-			multiSAR_input_functions.plot_insar(config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"], config["prep_inputs_dir"]+new_interval_dict["tsx_plot"]);
+			InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"], config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
+			InSAR_Object.outputs.plot_insar(config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"], config["prep_inputs_dir"]+new_interval_dict["tsx_plot"]);
 
 	return;
 
@@ -209,8 +210,8 @@ def write_s1_tre_displacements_multiple(config):
 		for interval_dict_key in config["s1_data"]:
 			new_interval_dict = config["s1_data"][interval_dict_key];  # for each interval in TSX
 			print("\nStarting to extract S1 TRE-format from %s " % (new_interval_dict["s1_filename"]) );
-			Vert_InSAR, East_InSAR = multiSAR_input_functions.inputs_TRE(new_interval_dict["s1_filename"]);
-			multiSAR_input_functions.write_tre_invertible_format(Vert_InSAR, new_interval_dict["s1_bbox"], new_interval_dict["s1_unc"], config["prep_inputs_dir"]+new_interval_dict["s1_datafile"]);
+			Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["s1_filename"]);
+			InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["s1_bbox"], new_interval_dict["s1_unc"], config["prep_inputs_dir"]+new_interval_dict["s1_datafile"]);
 	return;
 
 
