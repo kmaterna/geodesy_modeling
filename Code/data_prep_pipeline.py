@@ -14,7 +14,6 @@ import quadtree_downsample_kite
 import downsample_gps_ts
 import multiSAR_input_functions
 import isce_read_write
-
 import InSAR_Object.outputs
 import InSAR_Object.remove_ramp
 import InSAR_Object.inputs
@@ -44,7 +43,7 @@ def get_starttime_endtime(epochs_dict, select_interval_dict):
 	endtime = max(end_time_candidates);
 	return starttime, endtime
 
-def write_gps_displacements_multiple(config):
+def write_gps_displacements(config):
 	"""
 	For GPS, we have to write the proper format text file, and sometimes we make other corrections. 
 	"""
@@ -72,7 +71,7 @@ def write_gps_displacements_multiple(config):
 		# 	remove_coseismic_model.remove_model_gps(config["prep_inputs_dir"]+config["gps_textfile"], config["adjust_EMC_gps"]);	
 	return;	
 
-def write_leveling_displacements_multiple(config):
+def write_leveling_displacements(config):
 	"""
 	For leveling, we only have to write the proper format text file. 
 	"""
@@ -85,7 +84,7 @@ def write_leveling_displacements_multiple(config):
 		multiSAR_input_functions.plot_leveling(config["prep_inputs_dir"]+new_interval_dict["lev_outfile"], config["prep_inputs_dir"]+new_interval_dict["lev_plot"]);
 	return;
 
-def downsample_cut_write_uavsar_multiple(config):
+def downsample_cut_write_uavsar(config):
 	"""
 	For UAVSAR, we quadtree downsample, multiply by -1, and chop. 
 	"""
@@ -176,7 +175,7 @@ def add_reference_pixel_los_to_end(uav_textfile,reference_ll):
 	ofile.close();
 	return;
 
-def write_tsx_tre_displacements_multiple(config):
+def write_tsx_tre_displacements(config):
 	"""
 	For TSX, we read the format, and write the insar file 
 	In the input stage, we convert to displacement
@@ -199,7 +198,7 @@ def write_tsx_tre_displacements_multiple(config):
 
 	return;
 
-def write_s1_tre_displacements_multiple(config):
+def write_s1_tre_displacements(config):
 	"""
 	For S1, we read the format, and write the insar file 
 	"""
@@ -217,8 +216,8 @@ def write_s1_tre_displacements_multiple(config):
 
 if __name__=="__main__":
 	config=welcome_and_parse(sys.argv);
-	downsample_cut_write_uavsar_multiple(config);
-	# write_leveling_displacements_multiple(config);
-	# write_gps_displacements_multiple(config);
-	# write_tsx_tre_displacements_multiple(config);
-	# write_s1_tre_displacements_multiple(config);  # not really written yet
+	downsample_cut_write_uavsar(config);
+	# write_leveling_displacements(config);
+	# write_gps_displacements(config);
+	# write_tsx_tre_displacements(config);
+	# write_s1_tre_displacements(config);  # not really written yet

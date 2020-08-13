@@ -5,6 +5,7 @@
 
 import numpy as np 
 import datetime as dt 
+import sys
 import xlrd
 import h5py
 from .class_model import InSAR_Object
@@ -69,10 +70,11 @@ def inputs_TRE(filename):
 
 
 # INPUT FUNCTION FOR CONTRIBUTED S1 DATASET
-def inputs_cornell_ou_velocities_hdf5(filename, slicenum=0):
+def inputs_cornell_ou_velocities_hdf5(filename, lkv_filename, slicenum=0):
 	# This is for one track at a time.  
 	# In this case, the hdf5 file contains 5 velocity measurements for each pixel, one at each time interval. 
 	# We will return whichever slicenum (0-4) is supplied
+	print("Reading %s " % filename);
 	f = h5py.File(filename,'r');  # reads the hdf5 into a dictionary f
 
 	# Unpacking
@@ -82,13 +84,23 @@ def inputs_cornell_ou_velocities_hdf5(filename, slicenum=0):
 	rate = np.array(f.get('rate'));
 	rstd = np.array(f.get('rstd'));
 
+	f2 = h5py.File(lkv_filename,'r');
+	los = f2.get('los')
+	lkv_E = los[0,:,:]
+	lkv_N = los[1,:,:]
+	lkv_U = los[2,:,:]
+
 	num_data = np.shape(lon)[0]*np.shape(lon)[1];
 	lon=np.reshape(lon, (num_data,));
 	lat=np.reshape(lat, (num_data,));
+	lkv_E=np.reshape(lkv_E, (num_data,));
+	lkv_N=np.reshape(lkv_N, (num_data,));
+	lkv_U=np.reshape(lkv_U, (num_data,));
+	unc = np.reshape(rstd[:,:,slicenum], (num_data,));
 	disps, dates = quick_convert_one_timeslice_to_disp(rate[:,:,slicenum],dates[slicenum]);
 
 	# Returning the standard InSAR format of displacements in mm, etc. 
-	InSAR_data = InSAR_Object(lon=lon, lat=lat, LOS=disps, LOS_unc=None, lkv_E=None, lkv_N=None, lkv_U=None, starttime=dates[0], endtime=dates[1]);
+	InSAR_data = InSAR_Object(lon=lon, lat=lat, LOS=disps, LOS_unc=unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=dates[0], endtime=dates[1]);
 	return InSAR_data;
 
 def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
