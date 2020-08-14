@@ -17,9 +17,7 @@
 # In 2009-2011, there is difference in where the subsidence happens and magnitude of subsidence
 # I think this might be related to unwrapping issues near the edge of the UAVSAR scene? 
 # It looks like there's localized subsidence between June 2014 and October 2014. 
-# There is a difference in the coverage of the 2012 Brawley Earthquakes- 
-# I wonder if that's related to horizontal motion captured in UAVSAR or not. 
-# Or some other quirk of the measurement techniques. 
+# There is a difference in the 2012 Brawley Earthquakes for track 26509
 
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -27,8 +25,6 @@ import matplotlib
 import matplotlib.cm as cm
 import datetime as dt 
 import sys
-import stacking_utilities
-import netcdf_read_write
 import multiSAR_utilities
 import multiSAR_input_functions
 
@@ -56,32 +52,17 @@ def find_leveling_in_uavsar(myLev, myUAVSAR):
 	ofile.close();
 	return;
 
-def read_paired_leveling_idx(input_file):
-	print("Reading %s for leveling index cache. " % input_file);
-	ifile=open(input_file,'r');
-	row=[]; col=[];
-	for line in ifile:
-		temp=line.split()
-		if temp[0]=="#":
-			continue;
-		row.append(int(temp[3]));
-		col.append(int(temp[4]));
-	return row, col;
-
 def avg_uavsar_disp(TS, slicenum, row, col):
 	# Average around a few pixels
 	width_pixels=10;
 	return np.nanmean(TS[slicenum, row-width_pixels:row+width_pixels, col-width_pixels:col+width_pixels]);
 
 
-
 def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, outdir):
 	filename = outdir+"/one_to_one_"+str(lev1)+str(lev2)+"_"+str(uav1)+str(uav2);
 
-	oto_lev=[];
-	oto_uavsar=[];
-	lon_plotting=[];
-	lat_plotting=[];
+	oto_lev, oto_uavsar = [],[];
+	lon_plotting, lat_plotting = [],[];
 
 	# With respect to the datum
 	UAVSAR_general_scene = np.subtract(myUAVSAR.TS[uav2,:,:], myUAVSAR.TS[uav1,:,:]);
@@ -103,8 +84,7 @@ def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, out
 				lon_plotting.append(myLev.lon[i]);
 				lat_plotting.append(myLev.lat[i]);
 
-	print(np.shape(oto_lev));
-	print(np.shape(oto_uavsar));
+	print("one-to-one: ",np.shape(oto_lev), np.shape(oto_uavsar));
 	vmin=-50;
 	vmax=50;
 
@@ -145,7 +125,6 @@ def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, out
 	axarr[1][1].plot(-115.613, 33.072,'v',markersize=10,color='black'); # WMCA
 
 
-
 	cbarax = fig.add_axes([0.75,0.35,0.2,0.3],visible=False);
 	color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
 	custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='RdYlBu_r');
@@ -173,69 +152,19 @@ def plot_pixel_ts(TS, dtarray, i, j,name, outdir):
 	plt.savefig(outdir+"/"+name+"_onepixel.png");
 	return;
 
-def plot_TS_redblue(TS_NC_file, xdates, TS_image_file, outdir, vmin=-50, vmax=200, 
-	aspect=1, incremental=False, gps_i=[], gps_j=[]):
-	# Make a nice time series plot. 
-	# With incremental displacement data. 
-	tdata, xdata, ydata, TS_array = netcdf_read_write.read_3D_netcdf(TS_NC_file);
-	num_rows_plots=3;
-	num_cols_plots=4;
-
-	# Combining the two shortest intervals into one. 
-	print(np.shape(TS_array));
-	selected = [0,1,2,3,4,5,6,7,8,9,10];
-	TS_array = TS_array[selected,:,:];
-	xdates = [xdates[i] for i in range(11) if i in selected];
-	print(np.shape(TS_array));
-
-	f, axarr = plt.subplots(num_rows_plots,num_cols_plots,figsize=(16,10),dpi=300);
-
-	for i in range(0,len(xdates)):
-		# Collect the data for each plot. 
-		if incremental:
-			data = np.subtract(TS_array[i,:,:],TS_array[i-1,:,:]);
-		if not incremental:
-			data = TS_array[i,:,:];
-		data=data.T;  # for making a nice map with west approximately to the left. 
-		data=np.fliplr(data); # for making a nice map with west approximately to the left. 
-
-		gps_j_flipped = gps_j;
-		gps_i_flipped = [np.shape(data)[1]-x for x in gps_i];
-		
-		# Plotting now
-		rownum, colnum = stacking_utilities.get_axarr_numbers(num_rows_plots,num_cols_plots,i);
-		if i==0 and incremental==True:
-			axarr[rownum][colnum].set_visible(False);
-			continue;
-		else:
-			axarr[rownum][colnum].imshow(data,aspect=aspect,cmap='RdYlBu_r',vmin=vmin,vmax=vmax);
-			titlestr = dt.datetime.strftime(xdates[i],"%Y-%m-%d");
-			axarr[rownum][colnum].plot(gps_i_flipped, gps_j_flipped,'v',markersize=6,color='black');
-			axarr[rownum][colnum].get_xaxis().set_visible(False);
-			axarr[rownum][colnum].set_title(titlestr,fontsize=20);
-
-	cbarax = f.add_axes([0.75,0.35,0.2,0.3],visible=False);
-	color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
-	custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='RdYlBu_r');
-	custom_cmap.set_array(np.arange(vmin, vmax));
-	cb = plt.colorbar(custom_cmap,aspect=12,fraction=0.2, orientation='vertical');
-	cb.set_label('Displacement (mm)', fontsize=18);
-	cb.ax.tick_params(labelsize=12);
-
-	plt.savefig(outdir+"/"+TS_image_file);
-	return;
-
 
 def get_list_of_pixels_from_pts(raster_lons, raster_lats, target_lons, target_lats):
 	# For UAVSAR, get a list of pixels that correspond to GPS. 
 	i_found=[];
 	j_found=[];
 	for i in range(len(target_lons)):
-		itemp, jtemp = multiSAR_utilities.get_nearest_pixel_in_raster(raster_lons, raster_lats, target_lons[i], target_lats[i]);
+		itemp, jtemp, dist = multiSAR_utilities.get_nearest_pixel_in_raster(raster_lons, raster_lats, target_lons[i], target_lats[i]);
 		if itemp != -1:
 			i_found.append(itemp);
 			j_found.append(jtemp);
 	return i_found, j_found;
+
+
 
 
 if __name__=="__main__":
@@ -246,7 +175,7 @@ if __name__=="__main__":
 	# INPUTS
 	myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0], file_dict["leveling"].split()[1]);
 	myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);
-	myUAVSAR = multiSAR_input_functions.inputs_uavsar(file_dict["uavsar"]);
+	myUAVSAR = multiSAR_input_functions.inputs_TS_grd(file_dict["uavsar_file"], file_dict["uavsar_lon"], file_dict["uavsar_lat"]);
 
 	# Stations P506, P495, WMDG, and WMCA and CRRS
 	gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];
@@ -254,14 +183,13 @@ if __name__=="__main__":
 	ipts, jpts = get_list_of_pixels_from_pts(myUAVSAR.lon, myUAVSAR.lat, gps_lons, gps_lats);
 	
 	# Plotting UAVSAR in a reasonable way
-	plot_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "increments.png", outdir,
-		vmin=-100, vmax=100, aspect=4, incremental=True, gps_i=ipts, gps_j=jpts);
-	plot_TS_redblue(file_dict["uavsar"]+"TS.nc", myUAVSAR.dtarray, "full_TS.png", outdir, 
-		vmin=-160, vmax=160, aspect=4, incremental=False, gps_i=ipts, gps_j=jpts);
+	selected = [0,1,2,3,4,5,6,7,8,9,10];  # allows you to combine intervals if necessary
+	multiSAR_input_functions.plot_grid_TS_redblue(myUAVSAR, outdir+"/increments.png", vmin=-100, vmax=100, aspect=4, incremental=True, gps_i=ipts, gps_j=jpts, selected=selected);
+	multiSAR_input_functions.plot_grid_TS_redblue(myUAVSAR, outdir+"/full_TS.png", vmin=-160, vmax=160, aspect=4, incremental=False, gps_i=ipts, gps_j=jpts, selected=selected);
 	
 	# Comparing UAVSAR with leveling.
 	# find_leveling_in_uavsar(myLev, myUAVSAR);  # only have to do the first time. 
-	row, col = read_paired_leveling_idx("leveling_index_cache.txt");
+	row, col = np.loadtxt("leveling_index_cache.txt",usecols=(3,4),skiprows=1,unpack=True, dtype={'names':('row','col'),'formats':(int, int)});
 	one_to_one_comparison(myLev, myUAVSAR, row, col, 0, 1, 1, 4, outdir);  # 2009 to 2011
 	one_to_one_comparison(myLev, myUAVSAR, row, col, 1, 2, 4, 6, outdir);  # 2011 to 2011
 	one_to_one_comparison(myLev, myUAVSAR, row, col, 2, 3, 6, 7, outdir);  # Brawley coseismic
@@ -278,7 +206,4 @@ if __name__=="__main__":
 	plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[3], jpts[3],"WMCA", outdir);
 	# i_REF, j_REF = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, -115.7, 33.0); # a guess, but close to reference point. 
 	# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, i_REF, j_REF,"REF");
-
-
-
 

@@ -17,7 +17,7 @@ import InSAR_Object.inputs
 
 def plot_TRE(tsxData,output_dir):
 	plt.figure(figsize=(10,10));
-	plt.scatter(tsxData.lon, tsxData.lat, c=tsxData.vvel, s=10);
+	plt.scatter(tsxData.lon, tsxData.lat, c=tsxData.LOS, s=10);
 	plt.colorbar();
 	plt.savefig(output_dir+"TRE_vvel.png");
 	return;
@@ -26,23 +26,19 @@ def plot_TRE(tsxData,output_dir):
 def one_to_one_comparison(myLev, treData, vector_index, lev1, lev2, sat, output_dir):
 	filename = output_dir+"one_to_one_"+str(lev1)+str(lev2);
 
-	oto_lev=[];
-	oto_tsx=[];
-	lon_plotting=[];
-	lat_plotting=[];
-	tdelta = treData.endtime-treData.starttime;
-	tre_interval = tdelta.days / 365.24;  # the number of years spanned by the TRE velocity. 
+	oto_lev, oto_tsx = [],[];
+	lon_plotting, lat_plotting = [],[];
 
-
+	# Get the one-to-one pixels
 	for i in range(len(myLev.lon)):
 		if vector_index[i]==np.nan:
 			continue;
 		else:
 			leveling_offset=1000*(myLev.leveling[i][lev2]-myLev.leveling[i][lev1]) # negative sign convention
-			tre_offset = treData.vvel[vector_index[i]] * tre_interval;
+			tre_offset = treData.LOS[vector_index[i]];
 			if ~np.isnan(leveling_offset) and ~np.isnan(tre_offset):
 				oto_lev.append(leveling_offset);
-				oto_tsx.append(tre_offset);  # This would typically be converted into a displacement by multiplying by years. 
+				oto_tsx.append(tre_offset); 
 				lon_plotting.append(myLev.lon[i]);
 				lat_plotting.append(myLev.lat[i]);
 
@@ -73,8 +69,7 @@ def one_to_one_comparison(myLev, treData, vector_index, lev1, lev2, sat, output_
 	axarr[0][1].set_ylim([-80,80])
 	axarr[0][1].grid(True)
 
-	tre_disps = [i*tre_interval for i in treData.vvel];
-	axarr[1][1].scatter(treData.lon, treData.lat, c=tre_disps, s=8,
+	axarr[1][1].scatter(treData.lon, treData.lat, c=treData.LOS, s=8,
 		marker='o',cmap='RdYlBu_r',vmin=vmin, vmax=vmax);
 	axarr[1][1].plot(myLev.lon, myLev.lat, '*',color='black');
 	axarr[1][1].plot(myLev.lon[0], myLev.lat[0], '*', color='red');
@@ -103,22 +98,22 @@ if __name__=="__main__":
 
 	#TSX experiment
 	output_dir = "TSX/"
-	tsxData = InSAR_Object.inputs.inputs_TRE(file_dict["tsx"]);
-	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, tsxData);
-	one_to_one_comparison(myLev, tsxData, vector_index, 3, 4, "TSX", output_dir);  # the 2012-2013 interval
-	plot_TRE(tsxData,output_dir);
+	VertTSXData, EastTSXData = InSAR_Object.inputs.inputs_TRE(file_dict["tsx"]);
+	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, VertTSXData);
+	one_to_one_comparison(myLev, VertTSXData, vector_index, 3, 4, "TSX", output_dir);  # the 2012-2013 interval
+	plot_TRE(VertTSXData,output_dir);
 
 	# S1 experiment
 	output_dir = "SNT1/"
-	s1Data = InSAR_Object.inputs.inputs_TRE(file_dict["snt1"]);
-	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, s1Data);
-	one_to_one_comparison(myLev, s1Data, vector_index, 5, 8, "S1", output_dir); # the 2014-2018 interval
-	plot_TRE(s1Data,output_dir);
+	VertS1Data, EastS1Data = InSAR_Object.inputs.inputs_TRE(file_dict["snt1"]);
+	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, VertS1Data);
+	one_to_one_comparison(myLev, VertS1Data, vector_index, 5, 8, "S1", output_dir); # the 2014-2018 interval
+	plot_TRE(VertS1Data,output_dir);
 
 	# S1 experiment
 	output_dir = "SNT2/"
-	s1Data = InSAR_Object.inputs.inputs_TRE(file_dict["snt2"]);
-	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, s1Data);
-	one_to_one_comparison(myLev, s1Data, vector_index, 8, 9, "S1", output_dir); # the 2014-2018 interval
-	plot_TRE(s1Data,output_dir);
+	VertS1Data, EastS1Data = InSAR_Object.inputs.inputs_TRE(file_dict["snt2"]);
+	vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, VertS1Data);
+	one_to_one_comparison(myLev, VertS1Data, vector_index, 8, 9, "S1", output_dir); # the 2014-2018 interval
+	plot_TRE(VertS1Data,output_dir);
 
