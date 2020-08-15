@@ -31,7 +31,7 @@ def impose_InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
 	return newInSAR_obj;
 
 
-def remove_nans(InSAR_Object):
+def remove_nans(InSAR_obj):
 	# Remove Nans from some InSAR object
 	lon=[]; lat=[]; LOS=[]; LOS_unc=[]; unit_E=[]; unit_N=[]; unit_U=[];
 	for i in range(len(InSAR_obj.lon)):
