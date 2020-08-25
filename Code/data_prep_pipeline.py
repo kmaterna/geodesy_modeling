@@ -116,7 +116,7 @@ def downsample_cut_write_uavsar(config):
             data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree
             subprocess.call(['cp', new_interval_dict["uav_datafile0"] + ".xml",
                              config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"] + ".xml"])
-        elif 'uav_dispfile' in new_interval_dict.keys():
+        elif 'uav_dispfile' in new_interval_dict.keys():   # using an individual interferogram
             data = isce_read_write.read_scalar_data(new_interval_dict["uav_dispfile"], band=2);
             subprocess.call(['cp', new_interval_dict["uav_dispfile"] + ".xml",
                              config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"] + ".xml"]);
@@ -130,7 +130,7 @@ def downsample_cut_write_uavsar(config):
         isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file);  # write data bytes out.
 
         # Quadtree downsampling by Kite
-        uav_textfile = config["prep_inputs_dir"] + new_interval_dict["uav_textfile"];
+        uav_textfile = config["prep_inputs_dir"] + new_interval_dict["uav_textfile"];   # .txt, invertible format
         drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 
         # Remove a coseismic model for the EMC event

@@ -8,6 +8,8 @@ import datetime as dt
 import sys
 import xlrd
 import h5py
+import isce_read_write
+import lkv_trig_math
 from .class_model import InSAR_Object
 
 
@@ -48,12 +50,15 @@ def inputs_TRE(filename):
     if "TSX" in filename:
         starttime = dt.datetime.strptime("2012-09-01", "%Y-%m-%d");
         endtime = dt.datetime.strptime("2013-09-01", "%Y-%m-%d");  # Hard coded for this experiment.
-    if "SNT1" in filename:
+    elif "SNT1" in filename:
         starttime = dt.datetime.strptime("2014-04-01", "%Y-%m-%d");
         endtime = dt.datetime.strptime("2018-04-01", "%Y-%m-%d");  # Hard coded for this experiment.
-    if "SNT2" in filename:
+    elif "SNT2" in filename:
         starttime = dt.datetime.strptime("2018-05-01", "%Y-%m-%d");
         endtime = dt.datetime.strptime("2019-08-01", "%Y-%m-%d");  # Hard coded for this experiment.
+    else:
+        print("Unrecognized TRE filename option! Cannot find start and end times.  Exiting...");
+        sys.exit(0);
 
     # Packaging it up
     # Divide by the number of years of observation
@@ -103,6 +108,28 @@ def inputs_cornell_ou_velocities_hdf5(filename, lkv_filename, slicenum=0):
     # Returning the standard InSAR format of displacements in mm, etc.
     InSAR_data = InSAR_Object(lon=lon, lat=lat, LOS=disps, LOS_unc=unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
                               starttime=dates[0], endtime=dates[1]);
+    return InSAR_data;
+
+
+def inputs_isce_unw_geo_losrdr(isce_unw_filename, los_filename, time_bounds=(None, None)):
+    # Function to read a geocoded unw file and associated rdr.los.geo, and
+    # extract an InSAR object.
+    # In the return value, each field is a vector.
+    xarray, yarray, data = isce_read_write.read_isce_unw_geo(isce_unw_filename);
+    incidence = isce_read_write.read_scalar_data(los_filename, band=1);
+    azimuth = isce_read_write.read_scalar_data(los_filename, band=2);
+    lkv_e, lkv_n, lkv_u = lkv_trig_math.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence);
+
+    [X, Y] = np.meshgrid(xarray, yarray);
+    num_data = np.shape(data)[0] * np.shape(data)[1];
+    lon = np.reshape(X, (num_data,));
+    lat = np.reshape(Y, (num_data,));
+    data = np.reshape(data, (num_data,));
+    lkv_e = np.reshape(lkv_e, (num_data,));
+    lkv_n = np.reshape(lkv_n, (num_data,));
+    lkv_u = np.reshape(lkv_u, (num_data,));
+    InSAR_data = InSAR_Object(lon=lon, lat=lat, LOS=data, LOS_unc=np.zeros(np.shape(data)),
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=time_bounds[0], endtime=time_bounds[1]);
     return InSAR_data;
 
 

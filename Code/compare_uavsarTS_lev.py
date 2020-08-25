@@ -179,7 +179,9 @@ def get_list_of_pixels_from_pts(raster_lons, raster_lats, target_lons, target_la
     return i_found, j_found;
 
 
-if __name__ == "__main__":
+def leveling_uavsar_ts_comparison_driver():
+    # If you want to use the UAVSAR time series format (e.g., a track processed in ISCE)
+    # Use this to compare with leveling
     # CONFIGURE
     file_dict = multiSAR_input_functions.get_file_dictionary("config_file.txt");
     outdir = "UAVSAR_Apr29";
@@ -221,5 +223,9 @@ if __name__ == "__main__":
     plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[1], jpts[1], "P495", outdir);
     plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[2], jpts[2], "WMDG", outdir);
     plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[3], jpts[3], "WMCA", outdir);
-# i_REF, j_REF = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, -115.7, 33.0); # a guess, but close to reference point.
-# plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, i_REF, j_REF,"REF");
+    return;
+
+
+
+if __name__ == "__main__":
+    leveling_uavsar_ts_comparison_driver();
