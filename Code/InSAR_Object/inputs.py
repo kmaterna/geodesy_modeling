@@ -13,10 +13,10 @@ import lkv_trig_math
 from .class_model import InSAR_Object
 
 
-# INPUT FUNCTION FOR REGULAR TEXT FILE:
+# INPUT FUNCTION FOR REGULAR INVERTIBLE TEXT FILE:
 def inputs_txt(insar_textfile):
     [lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(insar_textfile, unpack=True, skiprows=1);
-    InSAR_Obj = InSAR_Object(lon=lon_meas, lat=lat_meas, LOS=disp, LOS_unc=sig, lkv_E=unit_e, lkv_N=unit_n,
+    InSAR_Obj = InSAR_Object(lon=lon_meas, lat=lat_meas, LOS=disp*1000, LOS_unc=sig*1000, lkv_E=unit_e, lkv_N=unit_n,
                              lkv_U=unit_u, starttime=None, endtime=None);
     return InSAR_Obj;
 

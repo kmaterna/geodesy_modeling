@@ -13,11 +13,12 @@ gmt set MAP_FRAME_TYPE plain
 gmt set FORMAT_GEO_MAP D
 
 gmt makecpt -T-10/10/0.5 -Cpolar -D > mycpt.cpt
-gmt makecpt -T-24/24/1 -Cjet -D > los.cpt
+gmt makecpt -T-40/40/1 -Cjet -D > los.cpt
+# gmt makecpt -T-24/24/1 -Cjet -D > los.cpt
 gmt makecpt -T-.15/.15/0.001 -D -Cwysiwyg > slip.cpt
 
 # Get files
-files=`awk 'NR==4' "$1"`
+files=`awk 'NR==5' "$1"`
 ss_fault_file=`echo $files | awk '{print $1;}'`
 thrust_file=`echo $files | awk '{print $2;}'`
 
@@ -82,6 +83,26 @@ echo "-115.51 33.07 Leveling Residual" | gmt pstext -R$smallrange -J$projection 
 
 # UAVSAR
 files=`awk 'NR==3' "$1"`
+obs_insar_file=`echo $files | awk '{print $1;}'`
+model_insar_file=`echo $files | awk '{print $2;}'`
+label=`echo $files | awk '{print $3, $4, $5;}'`
+gmt pscoast -J$proj -R$range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-4.7i -Y-2.3i -Dh -K -O -P >> $output
+echo "-115.51 33.14 UAVSAR Data" | gmt pstext -R$range -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+gmt psxy $ss_fault_file -R$range -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
+awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.07 -Clos.cpt -R$range -J$proj -O -K >> $output
+gmt pscoast -J$proj -R$range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X2.35i -Dh -K -O -P >> $output
+echo "-115.52 33.14 UAVSAR Model" | gmt pstext -R$range -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+gmt psxy $ss_fault_file -R$range -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
+awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.07 -Clos.cpt -R$range -J$proj -O -K >> $output
+paste $obs_insar_file $model_insar_file | awk '{print $1, $2, $3*1000, $10*1000}'  > temp_insar.txt
+gmt pscoast -J$proj -R$range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X2.35i -Dh -K -O -P >> $output
+echo "-115.53 33.14 UAVSAR Residual" | gmt pstext -R$range -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+gmt psxy $ss_fault_file -R$range -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
+awk '{print $1, $2, $3-$4}' temp_insar.txt | gmt psxy -Sc0.07 -Clos.cpt -R$range -J$proj -O -K >> $output
+
+
+# UAVSAR
+files=`awk 'NR==4' "$1"`
 obs_insar_file=`echo $files | awk '{print $1;}'`
 model_insar_file=`echo $files | awk '{print $2;}'`
 label=`echo $files | awk '{print $3, $4, $5;}'`

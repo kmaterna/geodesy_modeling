@@ -101,56 +101,49 @@ def write_leveling_displacements(config):
     return;
 
 
-def downsample_cut_write_uavsar(config):
+def write_uavsar_displacements(config):
     """
     For UAVSAR, we quadtree downsample, multiply by -1, and chop.
     """
     for interval_dict_key in config["uavsar_data"]:
+        print("\nStarting to prepare UAVSAR data for %s" % interval_dict_key);
         new_interval_dict = config["uavsar_data"][interval_dict_key];  # for each interval in UAVSAR
 
-        # Prepping UAVSAR: Input and Compute
-        print("\nStarting to prepare UAVSAR data");
-        if 'uav_datafile0' in new_interval_dict.keys():
-            scene0 = isce_read_write.read_scalar_data(new_interval_dict["uav_datafile0"], band=2);
-            scene1 = isce_read_write.read_scalar_data(new_interval_dict["uav_datafile1"], band=2);
+        # Get uavsar data
+        if 'uav_sourcefile_begin' in new_interval_dict.keys():  # Using time series format
+            source_xml_name = new_interval_dict["uav_sourcefile_begin"]+".xml";
+            scene0 = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_begin"], band=2);
+            scene1 = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_end"], band=2);
             data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree
-            subprocess.call(['cp', new_interval_dict["uav_datafile0"] + ".xml",
-                             config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"] + ".xml"])
-        elif 'uav_dispfile' in new_interval_dict.keys():   # using an individual interferogram
-            data = isce_read_write.read_scalar_data(new_interval_dict["uav_dispfile"], band=2);
-            subprocess.call(['cp', new_interval_dict["uav_dispfile"] + ".xml",
-                             config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"] + ".xml"]);
+        else:   # using an individual interferogram format
+            source_xml_name = new_interval_dict["uav_sourcefile_unw_geo"]+".xml";
+            data = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_unw_geo"], band=2);
 
         if new_interval_dict["flip_uavsar_los"] == 1:
             data = -1 * data;  # away from satellite = negative motion
             print("Multiplying UAVSAR by -1 for LOS motion sign convention. ");
 
-        # Write the .unw.geo file (not the metadata)
-        uavsar_unw_file = config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"];
+        # Write the .unw.geo file and metadata
+        uavsar_unw_file = config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"];  # output file
+        subprocess.call(['cp', source_xml_name, uavsar_unw_file + ".xml"]);  # write the xml out
         isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file);  # write data bytes out.
 
         # Quadtree downsampling by Kite
         uav_textfile = config["prep_inputs_dir"] + new_interval_dict["uav_textfile"];   # .txt, invertible format
         drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 
-        # Remove a coseismic model for the EMC event
-        if "adjust_EMC_uavsar" in new_interval_dict.keys():
-            uav_textfile = remove_insar_emc_by_model(uav_textfile, config["reference_ll"],
-                                                     new_interval_dict["adjust_EMC_uavsar"]);
-
         # Now we remove a ramp.
         if "remove_uavsar_ramp" in new_interval_dict.keys():
             if new_interval_dict["remove_uavsar_ramp"] == 1:
-                InSAR_Object.outputs.plot_insar(uav_textfile, config["prep_inputs_dir"] + new_interval_dict[
-                    "uav_ending_plot"] + "_beforerampremov.png");
-                ramp_adjusted_file = uav_textfile.split(".txt")[0] + "_ramp_removed.txt";  # no-ramps file
-                InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, ramp_adjusted_file,
-                                                              ref_coord=config['reference_ll']);
-                uav_textfile = ramp_adjusted_file;
+                if new_interval_dict["remove_constant"] == 1:
+                    InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
+                                                                  ref_coord=config['reference_ll'], remove_constant=True);
+                else:
+                    InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
+                                                                  ref_coord=config['reference_ll']);
 
-            # Now we make a plot
+        # Now we make a plot
         InSAR_Object.outputs.plot_insar(uav_textfile, config["prep_inputs_dir"] + new_interval_dict["uav_ending_plot"]);
-
     return;
 
 
@@ -176,7 +169,9 @@ def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
 
 
 def remove_insar_emc_by_model(insar_textfile, reference_ll, predicted_file):
-    # BYPASSING THIS FOR TIME REASONS
+    # BYPASSING THIS
+    # FOR TIME REASONS
+    # AND BECAUSE IT DOESN'T CHANGE THE RESULT ON THE SCALE OF ONE GEOTHERMAL FIELD.
     # Run the EMC model on the uavsar_los.txt and get the results back into this directory.
     # Subtract the model LOS and write it out.
     # points_for_modeling_file = "Edit_for_EMC/EMC_coseismic/EMC_coseismic_model/Inputs/uavsar_los.txt";
@@ -219,14 +214,12 @@ def write_tsx_tre_displacements(config):
             new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in TSX
             print("\nStarting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]));
 
-            Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(
-                new_interval_dict["tsx_filename"]);  # contains the start and end times inside the object
+            Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["tsx_filename"]);
             Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box vertical
             Vert_InSAR = uniform_downsample.uniform_downsampling(Vert_InSAR,
-                                                                     new_interval_dict["tsx_downsample_interval"],
-                                                                     new_interval_dict[
-                                                                         "tsx_averaging_window"]);  # uniform downsampling
+                                                                 new_interval_dict["tsx_downsample_interval"],
+                                                                 new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
 
             InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
                                                                config["prep_inputs_dir"] + new_interval_dict[
@@ -250,14 +243,15 @@ def write_s1_tre_displacements(config):
             print("\nStarting to extract S1 TRE-format from %s " % (new_interval_dict["s1_filename"]));
             Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["s1_filename"]);
             Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["s1_bbox"]);  # bounding box vertical
-            InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["s1_unc"], config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
+            InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["s1_unc"],
+                                                               config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
     return;
 
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    downsample_cut_write_uavsar(config);
-    # write_leveling_displacements(config);
-    # write_gps_displacements(config);
-    # write_tsx_tre_displacements(config);
+    write_uavsar_displacements(config);
+    write_leveling_displacements(config);
+    write_gps_displacements(config);
+    write_tsx_tre_displacements(config);
     # write_s1_tre_displacements(config);  # not really written yet
