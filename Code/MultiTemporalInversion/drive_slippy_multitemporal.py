@@ -18,7 +18,6 @@ def welcome_and_parse(argv):
 	config_file = open(config, 'r');
 	config1 = json.load(config_file);
 	subprocess.call(['cp', config, config1['output_dir']]);  # save json for record-keeping
-	# returnval = {**config1, **config2};
 	return config1;
 
 

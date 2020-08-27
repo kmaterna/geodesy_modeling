@@ -59,12 +59,8 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
-        if "adjust_EMC_gps" in new_interval_dict.keys():
-            adjust_coseismic = 1;
-        else:
-            adjust_coseismic = 0;
         stations = downsample_gps_ts.read_station_ts(new_interval_dict["gps_bbox"], new_interval_dict["gps_reference"],
-                                                     remove_coseismic=adjust_coseismic);
+                                                     remove_coseismic=new_interval_dict["adjust_EMC_gps"]);
         displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
             displacement_objects = downsample_gps_ts.add_gps_constant_offset(displacement_objects,
@@ -72,11 +68,6 @@ def write_gps_displacements(config):
         multiSAR_input_functions.write_gps_invertible_format(displacement_objects,
                                                              config["prep_inputs_dir"] + new_interval_dict[
                                                                  "gps_textfile"]);
-    # SHOULD PLOT VECTOR MAP HERE.
-    # if adjust_coseismic: # Here is an option for removing EMC by an elastic model. Takes a while. (Doesn't really work)
-    # 	print("Adjusting GPS for EMC gradients");
-    # 	# Manually collect the modeled gps points here.
-    # 	remove_coseismic_model.remove_model_gps(config["prep_inputs_dir"]+config["gps_textfile"], config["adjust_EMC_gps"]);
     return;
 
 
@@ -132,15 +123,11 @@ def write_uavsar_displacements(config):
         uav_textfile = config["prep_inputs_dir"] + new_interval_dict["uav_textfile"];   # .txt, invertible format
         drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 
-        # Now we remove a ramp.
-        if "remove_uavsar_ramp" in new_interval_dict.keys():
-            if new_interval_dict["remove_uavsar_ramp"] == 1:
-                if new_interval_dict["remove_constant"] == 1:
-                    InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
-                                                                  ref_coord=config['reference_ll'], remove_constant=True);
-                else:
-                    InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
-                                                                  ref_coord=config['reference_ll']);
+        # Now we optionally remove a ramp.
+        if new_interval_dict["remove_ramp"] == 1:
+            InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
+                                                          ref_coord=config['reference_ll'],
+                                                          remove_constant=new_interval_dict["remove_constant"]);
 
         # Now we make a plot
         InSAR_Object.outputs.plot_insar(uav_textfile, config["prep_inputs_dir"] + new_interval_dict["uav_ending_plot"]);

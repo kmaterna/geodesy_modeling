@@ -169,13 +169,30 @@ if __name__ == "__main__":
     #                             s1_slice, output_dir + 'descending_');
     #
 
-    # Individual UAVSAR experiments, starting with 2011-2012
+    # # Individual UAVSAR experiments, starting with 2011-2012
+    # output_dir = "UAVSAR_intfs/"
+    # leveling_slice = [2, 3];
+    # bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"));
+    # drive_single_uavsar_intf_comparison(myLev, leveling_slice, bounds,
+    #                                     file_dict["uavsar_08508_2011_2012_unw"],
+    #                                     file_dict["uavsar_08508_2011_2012_los"], output_dir);
+
+    # Individual UAVSAR experiments, 2010-2011
     output_dir = "UAVSAR_intfs/"
-    leveling_slice = [2, 3];
-    bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"));
+    leveling_slice = [1, 2];
+    bounds = (dt.datetime.strptime("20101215", "%Y%m%d"), dt.datetime.strptime("20111110", "%Y%m%d"));
     drive_single_uavsar_intf_comparison(myLev, leveling_slice, bounds,
-                                        file_dict["uavsar_08508_2011_2012_unw"],
-                                        file_dict["uavsar_08508_2011_2012_los"], output_dir);
+                                        file_dict["uavsar_08508_2010_2011_unw"],
+                                        file_dict["uavsar_08508_2010_2011_los"], output_dir);
+
+    # # Individual UAVSAR experiments, 2009-2010
+    # output_dir = "UAVSAR_intfs/"
+    # leveling_slice = [0, 1];
+    # bounds = (dt.datetime.strptime("20091015", "%Y%m%d"), dt.datetime.strptime("20101215", "%Y%m%d"));
+    # drive_single_uavsar_intf_comparison(myLev, leveling_slice, bounds,
+    #                                     file_dict["uavsar_08508_2009_2010_unw"],
+    #                                     file_dict["uavsar_08508_2009_2010_los"], output_dir);
+
 
     # #TSX experiment
     # output_dir = "TSX/"
