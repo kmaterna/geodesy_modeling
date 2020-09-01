@@ -12,22 +12,25 @@ import gps_seasonal_removals
 import gps_postseismic_remove
 import offsets
 
+# Global variables
 Timeseries = collections.namedtuple("Timeseries", ['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su',
                                                    'EQtimes']);  # in mm
+gps_data_dir = "/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/GPS_POS_DATA/"
+gps_data_config_file = gps_data_dir + "config.txt"
 
 
 def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
     blacklist = [];
-    station_names, _, _ = stations_within_radius.get_stations_within_box(gps_bbox);
+    station_names, _, _ = stations_within_radius.get_stations_within_box(gps_data_config_file, gps_bbox);
     [dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist,
-                                                                                            "pbo", "NA");
+                                                                                            "pbo", "NA", gps_data_config_file);
 
     # Now we are doing a bit of adjustments, for seasonal corrections and base station.
     cleaned_objects = [];
     for i in range(len(dataobj_list)):
         one_object = dataobj_list[i];
         newobj = gps_seasonal_removals.make_detrended_ts(one_object, seasonals_remove=1, seasonals_type="nldas",
-                                                         remove_trend=0);
+                                                         data_config_file=gps_data_config_file, remove_trend=0);
 
         if remove_coseismic:
             print("Removing coseismic offsets");
@@ -46,9 +49,8 @@ def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
         east_params = [east_slope, 0, 0, 0, 0];
         north_params = [north_slope, 0, 0, 0, 0];
         vert_params = [vert_slope, 0, 0, 0, 0];
-        data_dir = "../../../../Mendocino_Geodesy/GPS_POS_DATA/"
-        newobj = gps_postseismic_remove.remove_by_model(newobj,
-                                                        data_dir);  # This will actually remove the coseismic offset if within the window.
+        newobj = gps_postseismic_remove.remove_by_model(newobj, gps_data_dir);
+        # This will actually remove the coseismic offset if within the window.
         newobj = gps_ts_functions.detrend_data_by_value(newobj, east_params, north_params, vert_params);
         cleaned_objects.append(newobj)
 

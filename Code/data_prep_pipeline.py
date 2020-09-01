@@ -125,9 +125,11 @@ def write_uavsar_displacements(config):
 
         # Now we optionally remove a ramp.
         if new_interval_dict["remove_ramp"] == 1:
-            InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
-                                                          ref_coord=config['reference_ll'],
-                                                          remove_constant=new_interval_dict["remove_constant"]);
+            InSAR_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile, ref_coord=config['reference_ll']);
+
+        # Now we optionally remove a constant
+        if new_interval_dict["remove_constant"] == 1:
+            InSAR_Object.remove_ramp.remove_constant_filewise(uav_textfile, uav_textfile);
 
         # Now we make a plot
         InSAR_Object.outputs.plot_insar(uav_textfile, config["prep_inputs_dir"] + new_interval_dict["uav_ending_plot"]);
