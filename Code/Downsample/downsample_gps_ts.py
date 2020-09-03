@@ -43,9 +43,8 @@ def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
         # assuming tectonic strain accumulation won't contribute to geothermal field deformation.
         # Remove the postseismic by the Hines model
         endtime = dt.datetime.strptime("2010-04-01", "%Y-%m-%d");
-        [east_slope, north_slope, vert_slope, east_std, north_std, vert_std] = gps_ts_functions.get_slope(newobj,
-                                                                                                          endtime=endtime,
-                                                                                                          missing_fraction=0.2);
+        [east_slope, north_slope, vert_slope, _, _, _] = gps_ts_functions.get_slope(newobj, endtime=endtime,
+                                                                                    missing_fraction=0.2);
         east_params = [east_slope, 0, 0, 0, 0];
         north_params = [north_slope, 0, 0, 0, 0];
         vert_params = [vert_slope, 0, 0, 0, 0];

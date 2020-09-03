@@ -192,7 +192,6 @@ def add_reference_pixel_los_to_end(uav_textfile, reference_ll):
 def write_tsx_tre_displacements(config):
     """
     For TSX, we read the format, and write the insar file
-    In the input stage, we convert to displacement
     We also downsample and impose bounding box
     """
     if "tsx_data" not in config.keys():
@@ -219,9 +218,10 @@ def write_tsx_tre_displacements(config):
     return;
 
 
-def write_s1_tre_displacements(config):
+def write_s1_displacements(config):
     """
     For S1, we read the format, and write the insar file
+    We also downsample and impose bounding box
     """
     if "s1_data" not in config.keys():
         print("\nNo S1 in this inversion");
@@ -229,11 +229,21 @@ def write_s1_tre_displacements(config):
     else:
         for interval_dict_key in config["s1_data"]:
             new_interval_dict = config["s1_data"][interval_dict_key];  # for each interval in TSX
-            print("\nStarting to extract S1 TRE-format from %s " % (new_interval_dict["s1_filename"]));
-            Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["s1_filename"]);
-            Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict["s1_bbox"]);  # bounding box vertical
-            InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["s1_unc"],
-                                                               config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
+            print("\nStarting to extract S1 Cornell/OU-format from %s " % (new_interval_dict["s1_filename"]));
+            InSAR_Data = InSAR_Object.inputs.inputs_cornell_ou_velocities_hdf5(new_interval_dict["s1_filename"],
+                                                                               new_interval_dict["s1_lkv_filename"],
+                                                                               new_interval_dict["s1_slicenum"]);
+            InSAR_Data = InSAR_Object.utilities.impose_InSAR_bounding_box(InSAR_Data, new_interval_dict["s1_bbox"]);
+            InSAR_Data = uniform_downsample.uniform_downsampling(InSAR_Data,
+                                                                 new_interval_dict["s1_downsample_interval"],
+                                                                 new_interval_dict["s1_averaging_window"]);  # uniform downsampling
+
+            InSAR_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
+                                                               config["prep_inputs_dir"] + new_interval_dict[
+                                                                   "s1_datafile"]);
+            InSAR_Object.outputs.plot_insar(config["prep_inputs_dir"] + new_interval_dict["s1_datafile"],
+                                            config["prep_inputs_dir"] + new_interval_dict["s1_plot"]);
+
     return;
 
 
@@ -243,4 +253,4 @@ if __name__ == "__main__":
     write_leveling_displacements(config);
     write_gps_displacements(config);
     write_tsx_tre_displacements(config);
-    # write_s1_tre_displacements(config);  # not really written yet
+    write_s1_displacements(config);

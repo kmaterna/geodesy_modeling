@@ -85,6 +85,7 @@ def inputs_cornell_ou_velocities_hdf5(filename, lkv_filename, slicenum=0):
 
     # Unpacking
     dates = np.array(f.get('dates'));
+    print(dates);
     lat = np.array(f.get('lat'));
     lon = np.array(f.get('lon'));
     rate = np.array(f.get('rate'));
