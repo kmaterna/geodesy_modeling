@@ -8,6 +8,7 @@ horiz_scale=100
 output="total_output.ps"
 files=`awk 'NR==21' "$1"`
 ss_fault_file=`echo $files | awk '{print $1;}'`
+field_file="../Mapping_Data/Fields_Boundaries.txt"
 
 gmt set MAP_FRAME_TYPE plain
 gmt set FORMAT_GEO_MAP D
@@ -25,6 +26,7 @@ awk '{print $1, $2, $5*1000}' $observed_gps_file | gmt psxy -Sh0.35 -Cmycpt.cpt 
 awk '{print $1, $2, $5*1000}' $predicted_gps_file | gmt psxy -Sh0.2 -Cmycpt.cpt -W0.1,red -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}'  $observed_gps_file | gmt psvelo -A+e+gblack+pthickest -Wblack -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}' $predicted_gps_file | gmt psvelo -A+e+gred+pthickest -Wred -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthin,indianred -O -K >> $output
 echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -37,6 +39,7 @@ awk '{print $1, $2, $5*1000}' $observed_gps_file | gmt psxy -Sh0.35 -Cmycpt.cpt 
 awk '{print $1, $2, $5*1000}' $predicted_gps_file | gmt psxy -Sh0.2 -Cmycpt.cpt -W0.1,red -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}'  $observed_gps_file | gmt psvelo -A+e+gblack+pthickest -Wblack -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}' $predicted_gps_file | gmt psvelo -A+e+gred+pthickest -Wred -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthin,indianred -O -K >> $output
 echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -49,6 +52,7 @@ awk '{print $1, $2, $5*1000}' $observed_gps_file | gmt psxy -Sh0.35 -Cmycpt.cpt 
 awk '{print $1, $2, $5*1000}' $predicted_gps_file | gmt psxy -Sh0.2 -Cmycpt.cpt -W0.1,red -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}'  $observed_gps_file | gmt psvelo -A+e+gblack+pthickest -Wblack -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}' $predicted_gps_file | gmt psvelo -A+e+gred+pthickest -Wred -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthin,indianred -O -K >> $output
 echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -61,6 +65,7 @@ awk '{print $1, $2, $5*1000}' $observed_gps_file | gmt psxy -Sh0.35 -Cmycpt.cpt 
 awk '{print $1, $2, $5*1000}' $predicted_gps_file | gmt psxy -Sh0.2 -Cmycpt.cpt -W0.1,red -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}'  $observed_gps_file | gmt psvelo -A+e+gblack+pthickest -Wblack -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}' $predicted_gps_file | gmt psvelo -A+e+gred+pthickest -Wred -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthin,indianred -O -K >> $output
 echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -73,6 +78,7 @@ awk '{print $1, $2, $5*1000}' $observed_gps_file | gmt psxy -Sh0.35 -Cmycpt.cpt 
 awk '{print $1, $2, $5*1000}' $predicted_gps_file | gmt psxy -Sh0.2 -Cmycpt.cpt -W0.1,red -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}'  $observed_gps_file | gmt psvelo -A+e+gblack+pthickest -Wblack -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}' $predicted_gps_file | gmt psvelo -A+e+gred+pthickest -Wred -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthin,indianred -O -K >> $output
 echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -85,6 +91,7 @@ awk '{print $1, $2, $5*1000}' $observed_gps_file | gmt psxy -Sh0.35 -Cmycpt.cpt 
 awk '{print $1, $2, $5*1000}' $predicted_gps_file | gmt psxy -Sh0.2 -Cmycpt.cpt -W0.1,red -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}'  $observed_gps_file | gmt psvelo -A+e+gblack+pthickest -Wblack -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
 awk '{print $1, $2, $3, $4, $6, $7, 0}' $predicted_gps_file | gmt psvelo -A+e+gred+pthickest -Wred -Se$horiz_scale/0.68/10 -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthin,indianred -O -K >> $output
 echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -97,11 +104,12 @@ model_insar_file=`echo $files | awk '{print $2;}'`
 gmt pscoast -J$proj -R$smallrange -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.8i -Y8.25i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.06 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.06 -Clos.cpt -R -J$proj -O -K >> $output
 echo "-115.565 33.075 A / TSX" | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
-
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 
 
 #LEVELING
@@ -111,9 +119,11 @@ model_insar_file=`echo $files | awk '{print $2;}'`
 gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-1.3i -Y-1.65i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 echo '-115.57 33.07 A / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -123,9 +133,11 @@ model_insar_file=`echo $files | awk '{print $2;}'`
 gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-1.3i -Y-1.65i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 echo '-115.565 33.07 BC / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -135,9 +147,11 @@ model_insar_file=`echo $files | awk '{print $2;}'`
 gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-1.3i -Y-1.65i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 echo '-115.57 33.07 D / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -147,9 +161,11 @@ model_insar_file=`echo $files | awk '{print $2;}'`
 gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-1.3i -Y-1.65i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 echo '-115.57 33.07 E / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
@@ -159,9 +175,11 @@ model_insar_file=`echo $files | awk '{print $2;}'`
 gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-1.3i -Y-1.65i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
+gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
 echo '-115.57 33.07 F / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 gmt psscale -Clos.cpt -Dx-0.5c/-0.5c+w5c/0.25c+jTC+h -Bxaf -By+l"mm" -K -O >> $output

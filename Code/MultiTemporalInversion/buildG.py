@@ -318,7 +318,7 @@ def beginning_calc(config):
         G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
 
     plt.figure(figsize=(12, 8), dpi=300);
-    plt.imshow(G_total, vmin=-0.02, vmax=0.02, aspect=1 / 3)
+    plt.imshow(G_total, vmin=-0.02, vmax=0.02, aspect=1/10)
     plt.savefig("image_of_G.png");
 
     # INVERT BIG-G
