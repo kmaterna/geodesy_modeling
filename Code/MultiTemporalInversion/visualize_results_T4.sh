@@ -2,7 +2,7 @@
 
 ifile=$1
 proj="M1.2i"
-leveling_range="-115.60/-115.49/32.97/33.08"
+leveling_range="-115.60/-115.49/32.975/33.07"
 gps_range="-115.7/-115.3867/32.8556/33.159"
 horiz_scale=100
 output="total_output.ps"
@@ -97,19 +97,21 @@ echo $label | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $ou
 
 
 # TSX
-smallrange="-115.61/-115.47/32.96/33.09"
+smallrange="-115.61/-115.47/32.96/33.08"
 files=`awk 'NR==7' "$1"`
 obs_insar_file=`echo $files | awk '{print $1;}'`
 model_insar_file=`echo $files | awk '{print $2;}'`
-gmt pscoast -J$proj -R$smallrange -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.8i -Y8.25i -Dh -K -O -P >> $output
+gmt pscoast -J$proj -R$smallrange -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.6i -Y8.25i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.06 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo "-115.54 33.092 Data" | gmt pstext -R -J$projection -F+f18p,Helvetica-bold -N -K -O >> $output
+echo "-115.565 33.065 A / TSX" | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.06 -Clos.cpt -R -J$proj -O -K >> $output
-echo "-115.565 33.075 A / TSX" | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo "-115.54 33.092 Model" | gmt pstext -R -J$projection -F+f18p,Helvetica-bold -N -K -O >> $output
 
 
 #LEVELING
@@ -120,11 +122,12 @@ gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo '-115.57 33.06 A / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
-echo '-115.57 33.07 A / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+
 
 
 files=`awk 'NR==9' "$1"`
@@ -134,25 +137,29 @@ gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo '-115.565 33.06 BC / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
-echo '-115.565 33.07 BC / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+
+gmt psscale -Clos.cpt -Dx-0.5c/-0.5c+w5c/0.25c+jTC+h -Bxaf -By+l"mm" -K -O >> $output
 
 
 files=`awk 'NR==10' "$1"`
 obs_insar_file=`echo $files | awk '{print $1;}'`
 model_insar_file=`echo $files | awk '{print $2;}'`
-gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-1.3i -Y-1.65i -Dh -K -O -P >> $output
+gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.5i -Y3.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo '-115.57 33.06 D / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+echo "-115.55 33.08 Data" | gmt pstext -R -J$projection -F+f18p,Helvetica-bold -N -K -O >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
-echo '-115.57 33.07 D / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
+echo "-115.55 33.08 Model" | gmt pstext -R -J$projection -F+f18p,Helvetica-bold -N -K -O >> $output
 
 
 files=`awk 'NR==11' "$1"`
@@ -162,11 +169,11 @@ gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo '-115.57 33.06 E / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
-echo '-115.57 33.07 E / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 
 files=`awk 'NR==12' "$1"`
@@ -176,11 +183,11 @@ gmt pscoast -J$proj -R$leveling_range -Gwhite -Slightgray -N1 -Wthin,black -B0.2
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
+echo '-115.57 33.06 F / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt pscoast -J$proj -R -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X1.3i -Dh -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $model_insar_file | gmt psxy -Sc0.16 -Clos.cpt -R -J$proj -O -K >> $output
 gmt psxy $field_file -R -J$proj -Wthinnest,indianred -O -K >> $output
-echo '-115.57 33.07 F / Lev' | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 
 gmt psscale -Clos.cpt -Dx-0.5c/-0.5c+w5c/0.25c+jTC+h -Bxaf -By+l"mm" -K -O >> $output
 
