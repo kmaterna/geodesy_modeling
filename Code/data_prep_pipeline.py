@@ -157,38 +157,6 @@ def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
     return;
 
 
-def remove_insar_emc_by_model(insar_textfile, reference_ll, predicted_file):
-    # BYPASSING THIS
-    # FOR TIME REASONS
-    # AND BECAUSE IT DOESN'T CHANGE THE RESULT ON THE SCALE OF ONE GEOTHERMAL FIELD.
-    # Run the EMC model on the uavsar_los.txt and get the results back into this directory.
-    # Subtract the model LOS and write it out.
-    # points_for_modeling_file = "Edit_for_EMC/EMC_coseismic/EMC_coseismic_model/Inputs/uavsar_los.txt";
-    # model_output_points = "Edit_for_EMC/EMC_coseismic/EMC_coseismic_model/Outputs/EMC/ll_disps.txt";
-    # subprocess.call(["cp",insar_textfile,points_for_modeling_file],shell=False);
-    # add_reference_pixel_los_to_end(points_for_modeling_file, reference_ll); # Adding the reference pixel for easy subtracting
-    # os.chdir("Edit_for_EMC/EMC_coseismic/EMC_coseismic_model");
-    # subprocess.call(["python","/Users/kmaterna/Documents/B_Research/Github_Tools/Elastic_stresses_py/Code/elastic_stresses_driver.py","config.txt"],shell=False);
-    # os.chdir("../../../");
-    # subprocess.call(["cp",model_output_points,predicted_file],shell=False);
-    # adjusted_file = uav_textfile.split(".txt")[0]+"_cos_corrected.txt";  # new file
-    # remove_coseismic_model.remove_model_los(uav_textfile, predicted_file, adjusted_file);
-    # insar_textfile = adjusted_file;  # get ready for the next step.
-
-    # A quick fix if you're skipping the EMC correction for speed.
-    insar_textfile = insar_textfile.split(".txt")[0] + "_cos_corrected.txt";  # new file
-    return insar_textfile;
-
-
-def add_reference_pixel_los_to_end(uav_textfile, reference_ll):
-    # This is called before EMC correction, as we need the reference for applying the correction.
-    # We usually remove it later.
-    ofile = open(uav_textfile, 'a');
-    ofile.write("%f %f 0.0000 0.01 -1 -1 -1" % (reference_ll[0], reference_ll[1]));
-    ofile.close();
-    return;
-
-
 def write_tsx_tre_displacements(config):
     """
     For TSX, we read the format, and write the insar file

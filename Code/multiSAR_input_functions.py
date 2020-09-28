@@ -10,7 +10,6 @@ import matplotlib.cm as cm
 import datetime as dt
 import collections
 import xlrd
-import struct
 import netcdf_read_write
 import stacking_utilities
 
@@ -31,32 +30,6 @@ def get_file_dictionary(config_filename):
         this_dict[data_type] = total_data_files;
     ifile.close();
     return this_dict;
-
-
-# GENERALIZED GMT MULTISEGMENT FILE READER IN PYTHON
-def read_gmt_multisegment_latlon(fields_file, split_delimiter=' '):
-    # Returns a list of several lists, each one with a single segment
-    print("reading gmt multisegment file %s" % fields_file);
-    ifile = open(fields_file);
-    lon_collection = [];
-    lat_collection = [];
-    lon_temp = [];
-    lat_temp = [];
-    for line in ifile:
-        if line.split()[0] == '>>' or line.split()[0] == '>':
-            if lon_temp != []:
-                lon_collection.append(lon_temp);
-                lat_collection.append(lat_temp);
-            lon_temp = [];
-            lat_temp = [];
-            continue;
-        else:
-            temp = line.split(split_delimiter);
-            lon_temp.append(float(temp[0]));
-            lat_temp.append(float(temp[1]));
-    lon_collection.append(lon_temp);
-    lat_collection.append(lat_temp);
-    return lon_collection, lat_collection;
 
 
 # UAVSAR INPUT FUNCTIONS FOR NETCDF FORMAT
@@ -165,7 +138,7 @@ def get_datetimes(timestrings):
             mmm = temp2[0];
             year = temp2[1];
             dtarray.append(dt.datetime.strptime(year + "-" + mmm + "-01",
-                                                "%Y-%b-%d"));  # issue here, but not too bad. Fix at work.
+                                                "%Y-%b-%d"));  # issue here, but not too bad.
         else:  # For the special cases
             if "NOLTE 2008" in timestrings[i]:
                 dtarray.append(dt.datetime.strptime("2008-Nov-01", "%Y-%b-%d"));
