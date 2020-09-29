@@ -24,14 +24,11 @@ def input_slippy_patches(slip_file):
     return patches, slip, bm;
 
 
-def plot_3d_patches(patches, slip, bm):
+def plot_3d_patches(patches, slip, bm, qtm_filename):
     # The function that makes a 3D plot for exploring.
     polys = []
     for p in patches:
-        vert = p.patch_to_user([[0.0, 0.0, 0.0],
-                                [1.0, 0.0, 0.0],
-                                [1.0, 1.0, 0.0],
-                                [0.0, 1.0, 0.0]])
+        vert = p.get_3d_polygon();
         polys += [vert];  # get the 3D vertex positions in meters
 
     # Create a 3D patch collection
@@ -40,7 +37,6 @@ def plot_3d_patches(patches, slip, bm):
     pc.set_array(total_slip)
 
     # Get some earthquakes into the right coordinate system
-    qtm_filename = "../../Misc_Geophysics_Exps/QTM_exploring/Steps/T3_depth_0_12_32.9_33.1_20111120_20120930/Brawley_QTM.txt";
     catalog = qtm_tools.read_simple_catalog_txt(qtm_filename);
     eq_pos_geo = [];
     for i in range(len(catalog.lon)):
@@ -50,7 +46,10 @@ def plot_3d_patches(patches, slip, bm):
     fig = plt.figure(dpi=200);
     ax = fig.add_subplot(111, projection='3d')
     ax.add_collection(pc)
-    ax.plot(eq_pos_cart[:,0], eq_pos_cart[:,1], eq_pos_cart[:,2], marker='.', markersize=2, color='black', linewidth=0);
+    # for i in range(len(catalog.lon)):
+    #     if catalog.Mag[i]>1.0:
+    #         ax.plot([eq_pos_cart[i,0]], [eq_pos_cart[i,1]], [eq_pos_cart[i,2]], marker='.', markersize=catalog.Mag[i]*catalog.Mag[i]/2, color='black');
+    ax.plot(eq_pos_cart[:,0], eq_pos_cart[:,1], eq_pos_cart[:,2], marker='.', markersize=2, color='black', linewidth=0);  # every event at once.
     ax.set_xlim([-5000, 5000])
     ax.set_ylim([-5000, 5000])
     ax.set_zlim([-8000, 0])
@@ -67,5 +66,6 @@ def plot_3d_patches(patches, slip, bm):
 
 if __name__ == "__main__":
     slip_output_file = sys.argv[1];
+    qtm_filename = sys.argv[2];
     patches, slip, bm = input_slippy_patches(slip_output_file);
-    plot_3d_patches(patches, slip, bm);
+    plot_3d_patches(patches, slip, bm, qtm_filename);

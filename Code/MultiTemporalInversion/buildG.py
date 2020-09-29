@@ -83,7 +83,7 @@ def input_insar_file(filename):
 def beginning_calc(config):
     # Read Faults into a list of faults (each fault being a dict)
     fault_list = [];
-    for key in config["faults"].keys():
+    for i, key in enumerate(config["faults"].keys()):
         basis = []
         for b in ['basis1', 'basis2', 'basis3']:
             basis_i = config["faults"][key].pop(b, None)
@@ -99,7 +99,8 @@ def beginning_calc(config):
             "Nlength": config["faults"][key]["Nlength"],
             "Nwidth": config["faults"][key]["Nwidth"],
             "penalty": config["faults"][key]["penalty"],
-            "slip_basis": basis};
+            "slip_basis": basis,
+            "name":i};
         fault_list.append(fault_segment)
         alpha = config['alpha']
 
@@ -125,6 +126,7 @@ def beginning_calc(config):
     patches_f = [];
     L_array = [];
     Ns_total = 0;
+    fault_names_array = [];
 
     # # Fault processing
     for fault in fault_list:
@@ -152,6 +154,9 @@ def beginning_calc(config):
         patches = np.concatenate((patches, single_fault_patches), axis=0)
         patches_f = np.concatenate((patches_f, single_fault_patches_f), axis=0)
         slip_basis_f = np.concatenate((slip_basis_f, single_fault_silp_basis_f), axis=0);
+        name_for_patch = np.array([fault["name"]]);
+        names_for_patch = name_for_patch.repeat(Ns);
+        fault_names_array=np.concatenate((fault_names_array, names_for_patch), axis=0);        
 
         ### build regularization matrix
         L = np.zeros((0, Ns * Ds))
@@ -363,7 +368,7 @@ def beginning_calc(config):
         slippy.io.write_slip_data(patches_pos_geo,
                                   patches_strike, patches_dip,
                                   patches_length, patches_width,
-                                  total_cardinal_slip[i], slip_output_file)
+                                  total_cardinal_slip[i], fault_names_array, slip_output_file)
         print("Writing file %s " % slip_output_file);
 
     # OUTPUT EACH PREDICTED DISPLACEMENT FIELD
