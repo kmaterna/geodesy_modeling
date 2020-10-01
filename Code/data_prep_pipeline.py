@@ -53,6 +53,9 @@ def write_gps_displacements(config):
     """
     # For each interval in gps:
     prep_dir = config["prep_inputs_dir"];
+    if "gps_data" not in config.keys():
+        print("\nNo GPS in this inversion");
+        return;
     for interval_dict_key in config["gps_data"]:
         new_interval_dict = config["gps_data"][interval_dict_key];  # for each interval in GPS
         gps_sigma = new_interval_dict["gps_sigma"];
@@ -60,7 +63,7 @@ def write_gps_displacements(config):
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
         stations = downsample_gps_ts.read_station_ts(new_interval_dict["gps_bbox"], new_interval_dict["gps_reference"],
-                                                     remove_coseismic=new_interval_dict["adjust_EMC_gps"]);
+                                                     remove_coseismic=new_interval_dict["remove_coseismic"]);
         displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
             displacement_objects = downsample_gps_ts.add_gps_constant_offset(displacement_objects,
@@ -75,6 +78,9 @@ def write_leveling_displacements(config):
     """
     For leveling, we only have to write the proper format text file.
     """
+    if "leveling_data" not in config.keys():
+        print("\nNo Leveling in this inversion");
+        return;
     for interval_dict_key in config["leveling_data"]:
         new_interval_dict = config["leveling_data"][interval_dict_key];  # for each interval in Leveling
         print("\nPreparing leveling for file %s" % new_interval_dict["lev_outfile"])
@@ -96,6 +102,9 @@ def write_uavsar_displacements(config):
     """
     For UAVSAR, we quadtree downsample, multiply by -1, and chop.
     """
+    if "uavsar_data" not in config.keys():
+        print("\nNo UAVSAR in this inversion");
+        return;
     for interval_dict_key in config["uavsar_data"]:
         print("\nStarting to prepare UAVSAR data for %s" % interval_dict_key);
         new_interval_dict = config["uavsar_data"][interval_dict_key];  # for each interval in UAVSAR

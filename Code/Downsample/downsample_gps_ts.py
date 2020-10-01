@@ -21,18 +21,31 @@ gps_data_config_file = gps_data_dir + "config.txt"
 
 def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
     blacklist = [];
-    station_names, _, _ = stations_within_radius.get_stations_within_box(gps_data_config_file, gps_bbox);
+    network = 'pbo'
+    station_names, _, _ = stations_within_radius.get_stations_within_box(gps_data_config_file, coord_box=gps_bbox, network=network);
+    print(station_names);
     [dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist,
-                                                                                            "pbo", "NA", gps_data_config_file);
+                                                                                            network, "NA", gps_data_config_file);
+    # Importing BRAW
+    [myData, offset_obj, eq_obj] = gps_input_pipeline.get_station_data("BRAW", "unr", gps_data_config_file, refframe="NA")
+    myData = gps_ts_functions.impose_time_limits(myData, dt.datetime.strptime("20080505","%Y%m%d"), dt.datetime.strptime("20200101","%Y%m%d"));
+    dataobj_list.append(myData);
+    offsetobj_list.append(offset_obj);
+    eqobj_list.append(eq_obj);
 
     # Now we are doing a bit of adjustments, for seasonal corrections and base station.
     cleaned_objects = [];
     for i in range(len(dataobj_list)):
         one_object = dataobj_list[i];
-        newobj = gps_seasonal_removals.make_detrended_ts(one_object, seasonals_remove=1, seasonals_type="nldas",
-                                                         data_config_file=gps_data_config_file, remove_trend=0);
+        newobj = offsets.remove_offsets(one_object, offsetobj_list[i]);  # will remove antenna offsets from everything
 
-        newobj = offsets.remove_offsets(newobj, offsetobj_list[i]);  # will remove antenna offsets from everything
+        if newobj.name == 'BRAW':
+            newobj = gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=1, seasonals_type="lssq",
+                                                             data_config_file=gps_data_config_file, remove_trend=0);
+        else:
+            newobj = gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=1, seasonals_type="nldas",
+                                                             data_config_file=gps_data_config_file, remove_trend=0);
+
         if remove_coseismic:
             print("Removing coseismic offsets");
             newobj = offsets.remove_offsets(newobj, eqobj_list[i]);

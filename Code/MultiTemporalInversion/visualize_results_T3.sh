@@ -123,7 +123,7 @@ files=`awk 'NR==4' "$1"`
 obs_insar_file=`echo $files | awk '{print $1;}'`
 model_insar_file=`echo $files | awk '{print $2;}'`
 label=`echo $files | awk '{print $3, $4, $5;}'`
-gmt pscoast -J$proj -R$southrange -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-4.7i -Y-2.2i -Dh -K -O -P >> $output
+gmt pscoast -J$proj -R$southrange -Gwhite -Slightgray -N1 -Wthin,black -B0.2wesn -X-4.7i -Y-2.3i -Dh -K -O -P >> $output
 # echo "-115.53 33.08 UAVSAR Data" | gmt pstext -R -J$projection -F+f12p,Helvetica-bold -K -O -P >> $output
 gmt psxy $ss_fault_file -R -J$proj -Wthinnest,gray -L -K -O >> $output # Putting the faults on there for kicks
 awk '{print $1, $2, $3*1000}' $obs_insar_file | gmt psxy -Sc0.12 -Clos.cpt -R -J$proj -O -K >> $output
