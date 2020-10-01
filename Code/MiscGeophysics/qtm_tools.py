@@ -129,6 +129,17 @@ def mapping_plot(MyCat, boundary_file, outdir):
 	plt.savefig(outdir+"/QTM_events.png");
 	return;
 
+def make_lollipop_plot(MyCat):
+	plt.figure(dpi=300, figsize=(10,7));
+	for i in range(len(MyCat.dtarray)):
+		plt.plot(MyCat.dtarray[i], MyCat.Mag[i], marker='o', markersize=10, linewidth=0,color='black');
+		plt.plot([MyCat.dtarray[i], MyCat.dtarray[i]],[0,MyCat.Mag[i]], color='black',linewidth=1);
+	plt.ylabel('Magnitude',fontsize=20);
+	plt.xlabel('Time',fontsize=20);
+	plt.gca().tick_params(axis='both', which='major', labelsize=16)
+	plt.ylim([2.5, 5.0])
+	plt.savefig('lollipop.png');
+	return;
 
 def add_Brawley_timeseries_annotations(ax):
 	# For Brawley
