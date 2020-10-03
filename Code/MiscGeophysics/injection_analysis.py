@@ -10,7 +10,6 @@ import collections
 import datetime as dt
 import xlrd
 import csv
-import pygmt
 import general_python_io_functions as readers
 
 Wells = collections.namedtuple('Wells', ['api', 'lon', 'lat', 'masspermonth', 'dtarray', 'welltype']);
@@ -22,6 +21,21 @@ def driver(mass_file, ll_file):
 	TotalWells = combine_masses_wells(WellsLatLon, MassWells);
 	map_well_locations(TotalWells);  # reads extra files for annotations as well
 	return;
+
+def read_nbgf_injection_totals(filename):
+	# Reading a text file with injection and production totals for the NBGF
+	ifile = open(filename,'r');
+	dtarray = [];
+	injection = [];
+	production = [];
+	for line in ifile:
+		temp = line.split();
+		if temp[0] == "#":
+			continue;
+		dtarray.append(dt.datetime.strptime(temp[0]+' '+temp[1], "%Y %m"));
+		injection.append(float(temp[3].replace(",", ""))/1000);
+		production.append(float(temp[2].replace(",", ""))/1000);
+	return dtarray, injection, production;
 
 
 def read_doggr_csv_wells(filename):
@@ -116,6 +130,7 @@ def get_total_production(dtarray, masspermonth,
 
 def map_well_locations(TotalWells):
 	# Makes a pygmt overview map of the wells at NBGF
+	import pygmt
 
 	rupture_lon, rupture_lat = np.loadtxt('Data/M4p9_surface_rupture.txt', unpack=True);
 	eq_lon, eq_lat = np.loadtxt('../QTM_exploring/Brawley_QTM_shallower8.txt', unpack=True, usecols=(1, 2));
