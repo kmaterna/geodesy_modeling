@@ -17,12 +17,12 @@ range="-115.62/-115.46/32.97/33.08"
 proj="M2.7i"
 output=$outdir/$title"_ABCDEF.ps"
 field_file="../Mapping_Data/Fields_Boundaries.txt"
-seismicity_T4A="../../Misc_Geophysics_Exps/QTM_exploring/Steps/depth_0_12_32.9_33.1_20120930_20130915/Brawley_QTM.txt"
-seismicity_T4B="../../Misc_Geophysics_Exps/QTM_exploring/Steps/depth_0_12_32.9_33.1_20130915_20140610/Brawley_QTM.txt"
-seismicity_T4C="../../Misc_Geophysics_Exps/QTM_exploring/Steps/depth_0_12_32.9_33.1_20140610_20141015/Brawley_QTM.txt"
-seismicity_T4D="../../Misc_Geophysics_Exps/QTM_exploring/Steps/depth_0_12_32.9_33.1_20141015_20151130/Brawley_QTM.txt"
-seismicity_T4E="../../Misc_Geophysics_Exps/QTM_exploring/Steps/depth_0_12_32.9_33.1_20151130_20161030/Brawley_QTM.txt"
-seismicity_T4F="../../Misc_Geophysics_Exps/QTM_exploring/Steps/depth_0_12_32.9_33.1_20161030_20171101/Brawley_QTM.txt"
+seismicity_T4A="../../Misc_Geophysics_Exps/QTM_exploring/Steps/T4A_depth_0_12_32.9_33.1_20120930_20130915/Brawley_QTM.txt"
+seismicity_T4B="../../Misc_Geophysics_Exps/QTM_exploring/Steps/T4B_depth_0_12_32.9_33.1_20130915_20140610/Brawley_QTM.txt"
+seismicity_T4C="../../Misc_Geophysics_Exps/QTM_exploring/Steps/T4C_depth_0_12_32.9_33.1_20140610_20141015/Brawley_QTM.txt"
+seismicity_T4D="../../Misc_Geophysics_Exps/QTM_exploring/Steps/T4D_depth_0_12_32.9_33.1_20141015_20151130/Brawley_QTM.txt"
+seismicity_T4E="../../Misc_Geophysics_Exps/QTM_exploring/Steps/T4E_depth_0_12_32.9_33.1_20151130_20161030/Brawley_QTM.txt"
+seismicity_T4F="../../Misc_Geophysics_Exps/QTM_exploring/Steps/T4F_depth_0_12_32.9_33.1_20161030_20171101/Brawley_QTM.txt"
 
 gmt makecpt -T$scale_low/$scale_high/$scale_int -Cpolar -D > mycpt.cpt
 gmt makecpt -T0/12/0.1 -Cjet > depth.cpt
