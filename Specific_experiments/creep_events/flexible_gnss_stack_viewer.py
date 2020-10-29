@@ -5,43 +5,21 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 import datetime as dt
-import collections
 import gps_input_pipeline
 import gps_seasonal_removals
 import offsets
 import gps_ts_functions
 import gps_postseismic_remove
 
-Experiment = collections.namedtuple('Experiment',['station_codes','starttime','endtime','labeltime','outdir']);
+
 data_config_file = "../../../../Mendocino_Geodesy/GPS_POS_DATA/config.txt"
 
-# Experiment parameters for controlling the plots
-imperial_2015_station_codes = {'P744':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_nldas','unr_NA_lssq','nmt_NA_lssq'), 
-                               'P498':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_nldas','unr_NA_lssq','nmt_NA_lssq')};
-shf_2017_station_codes      = {'P503':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_lssq','unr_NA_lssq','cwu_NA_nldas')};
-imperial_2006_station_codes = {'IVCO':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_lssq','unr_NA_lssq','cwu_NA_nldas')};
-imperial_2004_station_codes = {'IVCO':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_lssq','unr_NA_lssq','cwu_NA_nldas')};
-imperial_2010_station_codes = {'P498':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_nldas','unr_NA_lssq','nmt_NA_lssq'),
-                               'P744':('cwu_NA_lssq','nmt_NA_lssq','pbo_NA_lssq','unr_NA_lssq','cwu_NA_nldas')};
-
-IF_2015_Expt = Experiment(station_codes=imperial_2015_station_codes, starttime='20170303', endtime='20180401', 
-               labeltime='20160606', outdir='IF_2015/');
-SHF_2017_Expt = Experiment(station_codes=shf_2017_station_codes, starttime='20090508', endtime='20121101', 
-                labeltime='20060606', outdir='SHF_2017/');
-IF_2006_Expt = Experiment(station_codes=imperial_2006_station_codes, starttime='20060601', endtime='20060606', 
-                labeltime='20060606', outdir='IF_2006/');
-IF_2004_Expt = Experiment(station_codes=imperial_2004_station_codes, starttime='20040101', endtime='20050101', 
-                labeltime='20050606', outdir='IF_2004/');
-IF_2010_Expt = Experiment(station_codes=imperial_2010_station_codes, starttime='20090101', endtime='20201001',
-                labeltime='20100606', outdir='IF_2010/');
-
-def driver():
-    myExp = IF_2010_Expt;
+def driver(myExp):
     Data_objlist, offset_objlist, eq_objlist, seasonals_list = inputs(myExp);
-    cleaned_objects = compute(Data_objlist, offset_objlist, eq_objlist, seasonals_list);
-    outputs(cleaned_objects, offset_objlist, eq_objlist, myExp);
+    cleaned_objects, start_end_values = compute(Data_objlist, offset_objlist, eq_objlist, seasonals_list, myExp);
+    # outputs(cleaned_objects, offset_objlist, eq_objlist, myExp);
+    outputs_singlepanel(cleaned_objects, offset_objlist, eq_objlist, start_end_values, myExp);
     return;
-
 
 def unpack_stations_and_options(myExp):
     stations, networks, refframes, seasonal_types = [], [], [], [];
@@ -54,7 +32,6 @@ def unpack_stations_and_options(myExp):
             seasonal_types.append(seasonal_type);
     return [stations, networks, refframes, seasonal_types];
 
-
 def inputs(datasources):
     Data_objlist, offset_objlist, eq_objlist, seasonals_list = [], [], [], [];
     [stations, networks, refframes, seasonal_types] = unpack_stations_and_options(datasources);
@@ -66,11 +43,11 @@ def inputs(datasources):
         eq_objlist.append(eq_obj);
     return Data_objlist, offset_objlist, eq_objlist, seasonal_types;
 
-
-def compute(Data_objlist, offset_objlist, eq_objlist, seasonals_list):
+def compute(Data_objlist, offset_objlist, eq_objlist, seasonals_list, ExpParams):
     # Preferred method: remove offsets/earthquakes, remove PS, remove_seasonals, get slope, detrend.
 
     cleaned_objects = []; 
+    start_end_values = [];
     for i in range(len(Data_objlist)):
         newobj = Data_objlist[i];
         newobj = offsets.remove_offsets(newobj, offset_objlist[i]);
@@ -89,8 +66,17 @@ def compute(Data_objlist, offset_objlist, eq_objlist, seasonals_list):
         newobj = gps_ts_functions.detrend_data_by_value(newobj, east_params, north_params, vert_params);
         cleaned_objects.append(newobj);
 
-    return cleaned_objects;
+        # Get the average values
+        starttime = dt.datetime.strptime(ExpParams.close_starttime[0],"%Y%m%d");
+        endtime = dt.datetime.strptime(ExpParams.close_starttime[1],"%Y%m%d");
+        east_val_start, north_val_start, up_val_start = gps_ts_functions.get_means(newobj, starttime, endtime);
+        starttime = dt.datetime.strptime(ExpParams.close_endtime[0],"%Y%m%d");
+        endtime = dt.datetime.strptime(ExpParams.close_endtime[1],"%Y%m%d");
+        east_val_end, north_val_end, up_val_end = gps_ts_functions.get_means(newobj, starttime, endtime);
+        means_package = [east_val_start, north_val_start, up_val_start, east_val_end, north_val_end, up_val_end];
+        start_end_values.append(means_package);
 
+    return cleaned_objects, start_end_values;
 
 def get_colors(station):
     if station == 'P498':
@@ -150,6 +136,106 @@ def outputs(Data_objlist2, offset_objlist, eq_objlist, myExp):
     # plt.gca().grid(True);
     # plt.savefig("Up.png");
     # plt.close();
+    return;
+
+
+def outputs_singlepanel(Data_objlist, offset_objlist, eq_objlist, start_end_values, myExp):
+    fig, axarr = plt.subplots(2,3,figsize=(15, 10), dpi=300);
+    [stations, networks, refframes, seasonal_types] = unpack_stations_and_options(myExp);
+    for i in range(len(Data_objlist)):
+        offset=i*12; 
+        color = get_colors(Data_objlist[i].name); 
+        axarr[0][0].plot(Data_objlist[i].dtarray, offset+Data_objlist[i].dE, linewidth=0, marker='.', color=color);
+        axarr[1][0].plot(Data_objlist[i].dtarray, offset+Data_objlist[i].dE, linewidth=0, marker='.', color=color);
+        text_string = stations[i]+'/'+networks[i]+'/'+seasonal_types[i];
+        axarr[0][0].text(dt.datetime.strptime(myExp.labeltime,'%Y%m%d'), offset+3, text_string, color='black',fontsize=12);
+        if i==0:
+            axarr[1][0].plot([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), 
+                dt.datetime.strptime(myExp.close_starttime[-1],'%Y%m%d')],[offset+start_end_values[0][0], offset+start_end_values[0][0]],'-k');
+            axarr[1][0].plot([dt.datetime.strptime(myExp.close_endtime[0],'%Y%m%d'), 
+                dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')],[offset+start_end_values[0][3], offset+start_end_values[0][3]],'-k');
+
+    avg_east_offset = [x[3]-x[0] for x in start_end_values];
+    avg_east_offset = np.nanmean(avg_east_offset);
+
+    [top, bottom] = axarr[0][0].get_ylim();
+    axarr[0][0].plot([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d')],[top, bottom],'--k');
+    axarr[0][0].plot([dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d'), dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')],[top, bottom],'--k');
+    axarr[0][0].set_xlim([dt.datetime.strptime(myExp.starttime,'%Y%m%d'), dt.datetime.strptime(myExp.endtime,'%Y%m%d')]);
+    axarr[0][0].set_title('East Residuals: Avg %.3fmm' % (avg_east_offset) );
+    axarr[0][0].set_ylabel('Position (mm)');
+    axarr[0][0].tick_params(axis='x', rotation=40);
+    axarr[0][0].grid(True);
+
+    axarr[1][0].set_xlim([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), 
+        dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')]);
+    axarr[1][0].set_ylabel('Position (mm)');
+    axarr[1][0].grid(True);
+    axarr[1][0].tick_params(axis='x', rotation=40);
+
+
+
+    for i in range(len(Data_objlist)):
+        offset=i*12; 
+        color = get_colors(Data_objlist[i].name); 
+        axarr[0][1].plot(Data_objlist[i].dtarray, offset+Data_objlist[i].dN, linewidth=0, marker='.', color=color);
+        axarr[1][1].plot(Data_objlist[i].dtarray, offset+Data_objlist[i].dN, linewidth=0, marker='.', color=color);
+        if i==0:
+            axarr[1][1].plot([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), 
+                dt.datetime.strptime(myExp.close_starttime[-1],'%Y%m%d')],[offset+start_end_values[0][1], offset+start_end_values[0][1]],'-k');
+            axarr[1][1].plot([dt.datetime.strptime(myExp.close_endtime[0],'%Y%m%d'), 
+                dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')],[offset+start_end_values[0][4], offset+start_end_values[0][4]],'-k');        
+
+    avg_north_offset = [x[4]-x[1] for x in start_end_values];
+    avg_north_offset = np.nanmean(avg_north_offset);
+
+    [top, bottom] = axarr[0][1].get_ylim();
+    axarr[0][1].plot([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d')],[top, bottom],'--k');
+    axarr[0][1].plot([dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d'), dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')],[top, bottom],'--k');
+    axarr[0][1].set_xlim([dt.datetime.strptime(myExp.starttime,'%Y%m%d'), dt.datetime.strptime(myExp.endtime,'%Y%m%d')]);
+    axarr[0][1].set_title('North Residuals: Avg %.3fmm' % (avg_north_offset) );
+    axarr[0][1].set_ylabel('Position (mm)');
+    axarr[0][1].tick_params(axis='x', rotation=40);
+    axarr[0][1].grid(True);
+
+    axarr[1][1].set_xlim([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), 
+        dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')]);
+    axarr[1][1].set_ylabel('Position (mm)');
+    axarr[1][1].grid(True);
+    axarr[1][1].tick_params(axis='x', rotation=40);
+
+
+    for i in range(len(Data_objlist)):
+        offset=i*30; 
+        color = get_colors(Data_objlist[i].name); 
+        axarr[0][2].plot(Data_objlist[i].dtarray, offset+Data_objlist[i].dU, linewidth=0, marker='.', color=color);
+        axarr[1][2].plot(Data_objlist[i].dtarray, offset+Data_objlist[i].dU, linewidth=0, marker='.', color=color);
+        if i==0:
+            axarr[1][2].plot([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), 
+                dt.datetime.strptime(myExp.close_starttime[-1],'%Y%m%d')],[offset+start_end_values[0][2], offset+start_end_values[0][2]],'-k');
+            axarr[1][2].plot([dt.datetime.strptime(myExp.close_endtime[0],'%Y%m%d'), 
+                dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')],[offset+start_end_values[0][5], offset+start_end_values[0][5]],'-k');        
+
+    avg_vert_offset = [x[5]-x[2] for x in start_end_values];
+    avg_vert_offset = np.nanmean(avg_vert_offset);
+
+    [top, bottom] = axarr[0][2].get_ylim();
+    axarr[0][2].plot([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d')],[top, bottom],'--k');
+    axarr[0][2].plot([dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d'), dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')],[top, bottom],'--k');
+    axarr[0][2].set_xlim([dt.datetime.strptime(myExp.starttime,'%Y%m%d'), dt.datetime.strptime(myExp.endtime,'%Y%m%d')]);
+    axarr[0][2].set_title('Vertical Residuals: Avg %.3fmm' % (avg_vert_offset) );
+    axarr[0][2].set_ylabel('Position (mm)');
+    axarr[0][2].tick_params(axis='x', rotation=40);
+    axarr[0][2].grid(True);
+
+    axarr[1][2].set_xlim([dt.datetime.strptime(myExp.close_starttime[0],'%Y%m%d'), 
+        dt.datetime.strptime(myExp.close_endtime[-1],'%Y%m%d')]);
+    axarr[1][2].set_ylabel('Position (mm)');
+    axarr[1][2].grid(True);
+    axarr[1][2].tick_params(axis='x', rotation=40);
+
+    fig.savefig(myExp.outdir+'singlepanel.png');
+
     return;
 
 if __name__=="__main__":
