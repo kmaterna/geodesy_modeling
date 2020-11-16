@@ -1,5 +1,7 @@
 #!/bin/csh
 
+# These functions are actually used in the ISCE/UAVSAR pipeline
+# November 2020
 
 
 

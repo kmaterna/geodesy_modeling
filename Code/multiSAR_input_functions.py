@@ -16,8 +16,6 @@ import stacking_utilities
 # Collections
 GrdTSData = collections.namedtuple("GrdTSData", ["dtarray", "lon", "lat", "TS"]);
 LevData = collections.namedtuple("LevData", ["name", "lat", "lon", "dtarray", "leveling"]);
-Timeseries = collections.namedtuple("Timeseries", ['name', 'coords',
-                                                   'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su', 'EQtimes']);  # in mm
 
 
 # GET FILE NAMES
