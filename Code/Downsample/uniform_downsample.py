@@ -7,7 +7,8 @@ from InSAR_Object import class_model
 
 
 # InSAR Object is my standard format:
-# InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
+# InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U',
+#                                                        'starttime','endtime']);
 # where LOS is in mm
 
 
@@ -61,7 +62,7 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     ds_lon = np.reshape(X, (len(x_array) * len(y_array),));
     ds_lat = np.reshape(Y, (len(x_array) * len(y_array),));
     ds_LOS = np.reshape(new_obs_array, (len(x_array) * len(y_array),));
-    ds_LOS_unc = np.reshape(new_obs_unc, (len(x_array) * len(y_array),));
+    # ds_LOS_unc = np.reshape(new_obs_unc, (len(x_array) * len(y_array),));
     ds_lkv_e = np.reshape(new_e, (len(x_array) * len(y_array),));
     ds_lkv_n = np.reshape(new_n, (len(x_array) * len(y_array),));
     ds_lkv_u = np.reshape(new_u, (len(x_array) * len(y_array),));
@@ -78,7 +79,7 @@ def get_average_within_box(lonlist, latlist, target_lon, target_lat, averaging_w
     # We search the averaging window in both directions from the target loc, and average the data
     new_data = [];
     for i in range(len(lonlist)):
-        if lonlist[i] >= target_lon - averaging_window and lonlist[i] <= target_lon + averaging_window:
-            if latlist[i] >= target_lat - averaging_window and latlist[i] <= target_lat + averaging_window:
+        if target_lon - averaging_window <= lonlist[i] <= target_lon + averaging_window:
+            if target_lat - averaging_window <= latlist[i] <= target_lat + averaging_window:
                 new_data.append(data[i]);
     return np.nanmean(new_data);

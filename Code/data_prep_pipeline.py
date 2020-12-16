@@ -9,15 +9,15 @@ import numpy as np
 import sys, json
 import subprocess
 import datetime as dt
-import quadtree_downsample_kite
-import downsample_gps_ts
+from Downsample import quadtree_downsample_kite
+from Downsample import downsample_gps_ts
+from Downsample import uniform_downsample
 import multiSAR_input_functions
-import isce_read_write
+from read_write_insar_utilities import isce_read_write
 import InSAR_Object.outputs
 import InSAR_Object.remove_ramp
 import InSAR_Object.inputs
 import InSAR_Object.utilities
-import uniform_downsample
 
 
 def welcome_and_parse(argv):
@@ -64,7 +64,8 @@ def write_gps_displacements(config):
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
         stations = downsample_gps_ts.read_station_ts(new_interval_dict["gps_bbox"], new_interval_dict["gps_reference"],
                                                      remove_coseismic=new_interval_dict["remove_coseismic"]);
-        displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir);
+        displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma,
+                                                                           prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
             displacement_objects = downsample_gps_ts.add_gps_constant_offset(displacement_objects,
                                                                              new_interval_dict["gps_add_offset_mm"]);
@@ -184,7 +185,7 @@ def write_tsx_tre_displacements(config):
                 "tsx_bbox"]);  # bounding box vertical
             Vert_InSAR = uniform_downsample.uniform_downsampling(Vert_InSAR,
                                                                  new_interval_dict["tsx_downsample_interval"],
-                                                                 new_interval_dict["tsx_averaging_window"]);  # uniform downsampling
+                                                                 new_interval_dict["tsx_averaging_window"]);
 
             InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
                                                                config["prep_inputs_dir"] + new_interval_dict[
@@ -213,7 +214,7 @@ def write_s1_displacements(config):
             InSAR_Data = InSAR_Object.utilities.impose_InSAR_bounding_box(InSAR_Data, new_interval_dict["s1_bbox"]);
             InSAR_Data = uniform_downsample.uniform_downsampling(InSAR_Data,
                                                                  new_interval_dict["s1_downsample_interval"],
-                                                                 new_interval_dict["s1_averaging_window"]);  # uniform downsampling
+                                                                 new_interval_dict["s1_averaging_window"]);
 
             InSAR_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                config["prep_inputs_dir"] + new_interval_dict[

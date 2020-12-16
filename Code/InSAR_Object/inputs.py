@@ -8,8 +8,8 @@ import datetime as dt
 import sys
 import xlrd
 import h5py
-import isce_read_write
-import lkv_trig_math
+from read_write_insar_utilities import isce_read_write
+from math_tools import lkv_trig_math
 from .class_model import InSAR_Object
 
 

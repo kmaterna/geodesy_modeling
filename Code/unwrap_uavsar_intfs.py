@@ -9,11 +9,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
-import jpl_uav_read_write
-import netcdf_read_write
-import isce_read_write
-import isce_geocode_tools
-import mask_and_interpolate
+from read_write_insar_utilities import jpl_uav_read_write
+from read_write_insar_utilities import netcdf_read_write
+from read_write_insar_utilities import isce_read_write
+from intf_generating import isce_geocode_tools
+from math_tools import mask_and_interpolate
 
 
 def read_jpl_ground_range_data(data_file_slant, corr_file_slant, ann_file):
@@ -46,7 +46,8 @@ def cut_and_write_out_igram(real, imag, corr, cut_rowcol):
 
 def filter_with_looks_py(after_filtering, after_filtering_corr, looks_x, looks_y):
     # # FILTER STEP: Filter using looks.py.
-    subprocess.call(['looks.py', '-i', 'cut_slc.int', '-o', after_filtering, '-r', str(looks_x), '-a', str(looks_y)], shell=False);
+    subprocess.call(['looks.py', '-i', 'cut_slc.int', '-o', after_filtering, '-r', str(looks_x), '-a',
+                     str(looks_y)], shell=False);
     subprocess.call(
         ['looks.py', '-i', 'cut_cor.cor', '-o', after_filtering_corr, '-r', str(looks_x), '-a', str(looks_y)],
         shell=False);
@@ -98,7 +99,7 @@ def phase_interpolation(phase):
 
 
 def read_and_reapply_mask(mask):  # re-apply the mask
-    unw_grd = netcdf_read_write.read_netcdf4("unwrap.grd");
+    unw_grd = netcdf_read_write.read_netcdf4_xyz("unwrap.grd");
     unw_grd = np.multiply(unw_grd, mask);
     xdata = range(0, np.shape(unw_grd)[1]);
     ydata = range(0, np.shape(unw_grd)[0]);
@@ -130,7 +131,7 @@ def main(ann_file, data_file, corr_file, after_filtering, after_filtering_corr, 
     # # MASK, INTERPOLATE, AND UNWRAP STEP
     masked_phase, mask = multiply_igram_by_coherence_mask(after_filtering, after_filtering_corr,
                                                           cor_cutoff);  # multiply by coherence mask
-    masked_phase = phase_interpolation(masked_phase);  # perform phase interpolation
+    phase_interpolation(masked_phase);  # perform phase interpolation
     subprocess.call(['/Users/kmaterna/Documents/B_Research/Salton/Brawley_multiSAR_project/Code/custom_unwrap.sh'],
                     shell=True);  # THEN UNWRAP
     read_and_reapply_mask(mask);  # re-apply the mask and write

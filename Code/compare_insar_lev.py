@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
 import datetime as dt
-import sys
 import multiSAR_utilities
 import multiSAR_input_functions
 import InSAR_Object.inputs
@@ -121,7 +120,8 @@ def drive_single_uavsar_intf_comparison(myLev, leveling_slice, bounds, uavsar_fi
     InSAR_Data = InSAR_Object.inputs.inputs_isce_unw_geo_losrdr(uavsar_filename, los_filename, bounds);
     InSAR_Data = InSAR_Object.utilities.remove_nans(InSAR_Data);
     vector_index = multiSAR_utilities.find_leveling_in_vector(myLev, InSAR_Data);
-    one_to_one_comparison(myLev, InSAR_Data, vector_index, leveling_slice[0], leveling_slice[1], "UAV", output_dir, flip_insar=True);
+    one_to_one_comparison(myLev, InSAR_Data, vector_index, leveling_slice[0], leveling_slice[1], "UAV", output_dir,
+                          flip_insar=True);
     return;
 
 
@@ -129,45 +129,45 @@ if __name__ == "__main__":
     # Opening stuff
     config_filename = "config_file.txt"
     file_dict = multiSAR_input_functions.get_file_dictionary(config_filename);
-    myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0], file_dict["leveling"].split()[1]);
+    myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0],
+                                                     file_dict["leveling"].split()[1]);
     myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);
 
     # # # S1_Cornell experiment (2015 data)
     # output_dir = "S1_OU/T4D/";
     # leveling_slice = [5, 6];
     # s1_slice = 0;
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
-    #                             s1_slice, output_dir + 'ascending_');
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
-    #                             s1_slice, output_dir + 'descending_');
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"],
+    #                             file_dict["s1_ou_ascending_los"], s1_slice, output_dir + 'ascending_');
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"],
+    #                             file_dict["s1_ou_descending_los"], s1_slice, output_dir + 'descending_');
     #
     # # # S1_Cornell experiment (2016 data)
     # output_dir = "S1_OU/T4E/";
     # leveling_slice = [6, 7];
     # s1_slice = 1;
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
-    #                             s1_slice, output_dir + 'ascending_');
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
-    #                             s1_slice, output_dir + 'descending_');
-    #
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"],
+    #                             file_dict["s1_ou_ascending_los"], s1_slice, output_dir + 'ascending_');
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"],
+    #                             file_dict["s1_ou_descending_los"], s1_slice, output_dir + 'descending_');
+
     # # # S1_Cornell experiment (2017 data)
     # output_dir = "S1_OU/T4F/";
     # leveling_slice = [7, 8];
     # s1_slice = 2;
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
-    #                             s1_slice, output_dir + 'ascending_');
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
-    #                             s1_slice, output_dir + 'descending_');
-    #
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"],
+    #                             file_dict["s1_ou_ascending_los"], s1_slice, output_dir + 'ascending_');
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"],
+    #                             file_dict["s1_ou_descending_los"], s1_slice, output_dir + 'descending_');
+
     # # # S1_Cornell experiment (2018 data)
     # output_dir = "S1_OU/T5/";
     # leveling_slice = [8, 9];
     # s1_slice = 3;
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
-    #                             s1_slice, output_dir + 'ascending_');
-    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
-    #                             s1_slice, output_dir + 'descending_');
-    #
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_ascending"],
+    #                             file_dict["s1_ou_ascending_los"], s1_slice, output_dir + 'ascending_');
+    # drive_ou_cornell_comparison(myLev, leveling_slice, file_dict["s1_ou_descending"],
+    #                             file_dict["s1_ou_descending_los"], s1_slice, output_dir + 'descending_');
 
     # # Individual UAVSAR experiments, starting with 2011-2012
     # output_dir = "UAVSAR_intfs/"
@@ -192,7 +192,6 @@ if __name__ == "__main__":
     # drive_single_uavsar_intf_comparison(myLev, leveling_slice, bounds,
     #                                     file_dict["uavsar_08508_2009_2010_unw"],
     #                                     file_dict["uavsar_08508_2009_2010_los"], output_dir);
-
 
     # #TSX experiment
     # output_dir = "TSX/"

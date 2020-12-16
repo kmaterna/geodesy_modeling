@@ -6,7 +6,8 @@
 # Notes for GMTSAR LOS BINARY:
 # If there's a .los.enu file in the directory, it will be assumed as the valid one for this experiment
 # Be careful what's in your directory. 
-# example: gmt grd2xyz unwrap_ll.grd | gmt grdtrack -Gdsdem.grd | awk {'print $1, $2, $4'} | SAT_look S1A20170330_165508_F3.PRM -bos > bot2017.los.enu
+# example: gmt grd2xyz unwrap_ll.grd | gmt grdtrack -Gdsdem.grd | awk {'print $1, $2, $4'} |
+#      SAT_look S1A20170330_165508_F3.PRM -bos > bot2017.los.enu
 # Not used: fig = qt.plot()  # this will open a plot.show(), won't save it. 
 
 from kite import Scene
@@ -34,7 +35,7 @@ def kite_downsample_isce_unw(datafile, outname,
     return;
 
 
-def geojson_to_outputs(geojsonfile, plotfile, textfile, bbox=[-180, 180, -90, 90], std_min=0.001):
+def geojson_to_outputs(geojsonfile, plotfile, textfile, bbox=(-180, 180, -90, 90), std_min=0.001):
     # ----------------------------
     # This plots downsampled data and standard deviation.
     # It also writes a text file for inversion.

@@ -13,7 +13,7 @@ def remove_model_los(los_file, model_disps_file, adjusted_file):
     # Then we write everything except the reference line
     # Into a file with "_updated" in its name
     # Assumes the reference pixel is the last row of the data file.
-    [lon_pred, lat_pred, u_pred, v_pred, w_pred] = np.loadtxt(model_disps_file, unpack=True, skiprows=1);
+    [_, _, u_pred, v_pred, w_pred] = np.loadtxt(model_disps_file, unpack=True, skiprows=1);
     [lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(los_file, unpack=True, skiprows=1);
     corrected_los = [];
     los_reference_pixel = [u_pred[-1], v_pred[-1], w_pred[-1]];  # last model is reference
@@ -30,7 +30,7 @@ def remove_model_los(los_file, model_disps_file, adjusted_file):
     ofile.write("# Header: lon, lat, disp(m), sig(m), unitE, unitN, unitU from ground to satellite\n");
     for i in range(len(lon_meas)):
         ofile.write("%f %f %f %f %f %f %f \n" % (
-        lon_meas[i], lat_meas[i], corrected_los[i], sig[i], unit_e[i], unit_n[i], unit_u[i]));
+            lon_meas[i], lat_meas[i], corrected_los[i], sig[i], unit_e[i], unit_n[i], unit_u[i]));
     ofile.close();
     return;
 
@@ -40,7 +40,7 @@ def remove_model_gps(gps_file, model_disps_file):
     # subtract the reference prediction
     # and then adjust by that amount.
     # Assumes the reference pixel is the first row of the data file.
-    [lon_pred, lat_pred, u_pred, v_pred, w_pred] = np.loadtxt(model_disps_file, unpack=True, skiprows=1);
+    [_, _, u_pred, v_pred, w_pred] = np.loadtxt(model_disps_file, unpack=True, skiprows=1);
     [lon_meas, lat_meas, u_meas, v_meas, w_meas, sige_meas, sign_meas, sigu_meas] = np.loadtxt(gps_file, unpack=True,
                                                                                                skiprows=1);
     disp_reference_pixel = [u_pred[0], v_pred[0], w_pred[0]];
@@ -53,6 +53,6 @@ def remove_model_gps(gps_file, model_disps_file):
         model_delta = np.subtract(model_for_station, disp_reference_pixel);
         new_data = np.subtract(disp_at_station, model_delta);
         ofile.write("%f %f %f %f %f %f %f %f\n" % (
-        lon_meas[i], lat_meas[i], new_data[0], new_data[1], new_data[2], sige_meas[i], sign_meas[i], sigu_meas[i]));
+            lon_meas[i], lat_meas[i], new_data[0], new_data[1], new_data[2], sige_meas[i], sign_meas[i], sigu_meas[i]));
     ofile.close();
     return;

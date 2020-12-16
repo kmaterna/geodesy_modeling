@@ -38,7 +38,8 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
     if ref_coord is None:
         constant = np.nanmedian(InSAR_Obj.LOS);
     else:
-        nearest_index = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_Obj.lon, InSAR_Obj.lat, ref_coord[0], ref_coord[1]);
+        nearest_index = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_Obj.lon, InSAR_Obj.lat, ref_coord[0],
+                                                                       ref_coord[1]);
         constant = InSAR_Obj.LOS[nearest_index];
     new_disp = [x - constant for x in InSAR_Obj.LOS];
     new_InSAR_Obj = InSAR_Object(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,

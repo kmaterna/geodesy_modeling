@@ -46,7 +46,7 @@ def find_leveling_in_vector(myLev, vector_data):
     print("Finding target leveling pixels in vector of data");
     vector_index = [];
     for bm in range(len(myLev.lat)):
-        name = myLev.name[bm].split()[0];
+        # name = myLev.name[bm].split()[0];
         i_found, mindist = get_nearest_pixel_in_vector(vector_data.lon, vector_data.lat, myLev.lon[bm], myLev.lat[bm]);
         vector_index.append(i_found);
     return vector_index;

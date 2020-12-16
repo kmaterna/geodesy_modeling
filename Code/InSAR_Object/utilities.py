@@ -11,18 +11,14 @@ from .class_model import InSAR_Object
 # ['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
 # where LOS is in mm
 
-def impose_InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
+def impose_InSAR_bounding_box(InSAR_obj, bbox=(-180, 180, -90, 90)):
     # Impose a bounding box on some InSAR data
-    lon = [];
-    lat = [];
-    LOS = [];
+    lon, lat, LOS = [], [], [];
+    unit_E, unit_N, unit_U = [], [], [];
     LOS_unc = [];
-    unit_E = [];
-    unit_N = [];
-    unit_U = [];
     for i in range(len(InSAR_obj.lon)):
-        if InSAR_obj.lon[i] >= bbox[0] and InSAR_obj.lon[i] <= bbox[1]:
-            if InSAR_obj.lat[i] >= bbox[2] and InSAR_obj.lat[i] <= bbox[3]:
+        if bbox[0] <= InSAR_obj.lon[i] <= bbox[1]:
+            if bbox[2] <= InSAR_obj.lat[i] <= bbox[3]:
                 if np.isnan(InSAR_obj.LOS[i]):
                     continue;
                 else:
@@ -40,13 +36,9 @@ def impose_InSAR_bounding_box(InSAR_obj, bbox=[-180, 180, -90, 90]):
 
 def remove_nans(InSAR_obj):
     # Remove Nans from some InSAR object
-    lon = [];
-    lat = [];
-    LOS = [];
+    lon, lat, LOS = [], [], [];
+    unit_E, unit_N, unit_U = [], [], [];
     LOS_unc = [];
-    unit_E = [];
-    unit_N = [];
-    unit_U = [];
     for i in range(len(InSAR_obj.lon)):
         if np.isnan(InSAR_obj.LOS[i]):
             continue;

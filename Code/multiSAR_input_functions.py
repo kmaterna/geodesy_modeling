@@ -10,7 +10,7 @@ import matplotlib.cm as cm
 import datetime as dt
 import collections
 import xlrd
-import netcdf_read_write
+from read_write_insar_utilities import netcdf_read_write
 import stacking_utilities
 
 # Collections
@@ -37,7 +37,7 @@ def inputs_TS_grd(filename, lonfile, latfile, day0=dt.datetime.strptime("2009-04
     # lon and lat files have corresponding lon and lat for each point
     # day0 is the day of the first acquisition in the time series (hard coded for a UAVSAR track default)
     print("Reading TS Grid file  %s" % filename);
-    [tdata, xdata, ydata, zdata] = netcdf_read_write.read_3D_netcdf(filename);
+    [tdata, _, _, zdata] = netcdf_read_write.read_3D_netcdf(filename);
     print("tdata:", tdata);
     print("   where Day0 of this time series is %s " % dt.datetime.strftime(day0, "%Y-%m-%d"));
     print("zdata:", np.shape(zdata));
@@ -86,7 +86,7 @@ def inputs_leveling(data_filename, errors_filename):
 
 
 def read_errors(filename):
-    print("Reading documented errors in %s " % (filename))
+    print("Reading documented errors in %s " % filename)
     rownum = [];
     colnum = [];
     old_values = [];
@@ -212,7 +212,9 @@ def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
     # Lon, lat, disp, sigma, 0, 0, 1 (in m)
     print("Writing leveling to file %s " % filename);
     ofile = open(filename, 'w');
-    ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" % (dt.datetime.strftime(myLev.dtarray[idx1], "%Y-%m-%d"), dt.datetime.strftime(myLev.dtarray[idx2], "%Y-%m-%d")))
+    ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" %
+                (dt.datetime.strftime(myLev.dtarray[idx1], "%Y-%m-%d"),
+                 dt.datetime.strftime(myLev.dtarray[idx2], "%Y-%m-%d")))
     for i in range(len(myLev.leveling)):
         data = myLev.leveling[i][idx2] - myLev.leveling[i][idx1];
         if ~np.isnan(data):
@@ -248,7 +250,8 @@ def write_gps_invertible_format(gps_object_list, filename):
     return;
 
 
-def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incremental=False, gps_i=[], gps_j=[], selected=None):
+def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incremental=False, gps_i=None,
+                         gps_j=None, selected=None):
     # Make a nice time series plot.
     # With incremental or cumulative displacement data.
     num_rows_plots = 3;
@@ -267,7 +270,7 @@ def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incr
         # Collect the data for each plot.
         if incremental:
             data = np.subtract(TS_array[i, :, :], TS_array[i - 1, :, :]);
-        if not incremental:
+        else:
             data = TS_array[i, :, :];
         data = data.T;  # for making a nice map with west approximately to the left.
         data = np.fliplr(data);  # for making a nice map with west approximately to the left.

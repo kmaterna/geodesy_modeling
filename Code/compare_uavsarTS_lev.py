@@ -226,6 +226,5 @@ def leveling_uavsar_ts_comparison_driver():
     return;
 
 
-
 if __name__ == "__main__":
     leveling_uavsar_ts_comparison_driver();

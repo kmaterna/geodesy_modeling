@@ -22,13 +22,17 @@ gps_data_config_file = gps_data_dir + "config.txt"
 def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
     blacklist = [];
     network = 'pbo'
-    station_names, _, _ = stations_within_radius.get_stations_within_box(gps_data_config_file, coord_box=gps_bbox, network=network);
+    station_names, _, _ = stations_within_radius.get_stations_within_box(gps_data_config_file, coord_box=gps_bbox,
+                                                                         network=network);
     print(station_names);
     [dataobj_list, offsetobj_list, eqobj_list, _] = gps_input_pipeline.multi_station_inputs(station_names, blacklist,
-                                                                                            network, "NA", gps_data_config_file);
+                                                                                            network, "NA",
+                                                                                            gps_data_config_file);
     # Importing BRAW
-    [myData, offset_obj, eq_obj] = gps_input_pipeline.get_station_data("BRAW", "unr", gps_data_config_file, refframe="NA")
-    myData = gps_ts_functions.impose_time_limits(myData, dt.datetime.strptime("20080505","%Y%m%d"), dt.datetime.strptime("20200101","%Y%m%d"));
+    [myData, offset_obj, eq_obj] = gps_input_pipeline.get_station_data("BRAW", "unr", gps_data_config_file,
+                                                                       refframe="NA")
+    myData = gps_ts_functions.impose_time_limits(myData, dt.datetime.strptime("20080505", "%Y%m%d"),
+                                                 dt.datetime.strptime("20200101", "%Y%m%d"));
     dataobj_list.append(myData);
     offsetobj_list.append(offset_obj);
     eqobj_list.append(eq_obj);
