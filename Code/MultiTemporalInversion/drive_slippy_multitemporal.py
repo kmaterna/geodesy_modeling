@@ -18,6 +18,9 @@ def welcome_and_parse(argv):
 	config_file = open(config, 'r');
 	config1 = json.load(config_file);
 	subprocess.call(['cp', config, config1['output_dir']]);  # save json for record-keeping
+	for i, key in enumerate(config1["faults"].keys()):
+		fault_name = config1["faults"][key]["filename"]
+		subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
 	return config1;
 
 

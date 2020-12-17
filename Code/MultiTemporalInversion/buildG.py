@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
+import json
 import slippy.xyz2geo as plotting_library
 import slippy.basis
 import slippy.patch
@@ -80,29 +80,42 @@ def input_insar_file(filename):
     return [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar];
 
 
-def beginning_calc(config):
-    # Read Faults into a list of faults (each fault being a dict)
+def input_faults(config):
+    # Read Faults into a list of faults (each fault being a dict), starting from a filename for each fault
+    print("Parsing faults from config file");
     fault_list = [];
     for i, key in enumerate(config["faults"].keys()):
+
+        config_file = open(config["faults"][key]['filename'], 'r');
+        fault_i = json.load(config_file);
+        fault_i = fault_i[key]
         basis = []
         for b in ['basis1', 'basis2', 'basis3']:
-            basis_i = config["faults"][key].pop(b, None)
+            basis_i = fault_i.pop(b, None)
             if basis_i is None:
                 continue
             basis += [basis_i]
         fault_segment = {
-            "strike": config["faults"][key]["strike"],
-            "dip": config["faults"][key]["dip"],
-            "length": config["faults"][key]["length"],
-            "width": config["faults"][key]["width"],
-            "seg_pos_geo": config["faults"][key]["position"],
-            "Nlength": config["faults"][key]["Nlength"],
-            "Nwidth": config["faults"][key]["Nwidth"],
+            "strike": fault_i["strike"],
+            "dip": fault_i["dip"],
+            "length": fault_i["length"],
+            "width": fault_i["width"],
+            "seg_pos_geo": fault_i["position"],
+            "Nlength": fault_i["Nlength"],
+            "Nwidth": fault_i["Nwidth"],
             "penalty": config["faults"][key]["penalty"],
             "slip_basis": basis,
-            "name":i};
+            "name": i
+        };
         fault_list.append(fault_segment)
-        alpha = config['alpha']
+
+    return fault_list;
+
+
+def beginning_calc(config):
+
+    fault_list = input_faults(config);
+    alpha = config['alpha']
 
     # Setting up the basemap before we begin (using the GPS as information)
     for dataset in config["data_files"].keys():
@@ -127,6 +140,7 @@ def beginning_calc(config):
     L_array = [];
     Ns_total = 0;
     fault_names_array = [];
+    Ds = [];
 
     # # Fault processing
     for fault in fault_list:
@@ -142,8 +156,9 @@ def beginning_calc(config):
 
         # Create slip basis vectors
         Ds = len(fault["slip_basis"])  # the number of basis vectors for this slip patch.
-        single_fault_slip_basis = np.array([fault["slip_basis"] for j in range(Ns)])
-        if total_fault_slip_basis == []:
+        single_fault_slip_basis = np.array([fault["slip_basis"] for _j in range(Ns)])
+
+        if len(total_fault_slip_basis) == 0:
             total_fault_slip_basis = single_fault_slip_basis;
         else:
             total_fault_slip_basis = np.concatenate((total_fault_slip_basis, single_fault_slip_basis), axis=0)
@@ -156,7 +171,7 @@ def beginning_calc(config):
         slip_basis_f = np.concatenate((slip_basis_f, single_fault_silp_basis_f), axis=0);
         name_for_patch = np.array([fault["name"]]);
         names_for_patch = name_for_patch.repeat(Ns);
-        fault_names_array=np.concatenate((fault_names_array, names_for_patch), axis=0);        
+        fault_names_array = np.concatenate((fault_names_array, names_for_patch), axis=0);
 
         ### build regularization matrix
         L = np.zeros((0, Ns * Ds))
@@ -309,7 +324,7 @@ def beginning_calc(config):
         leveling_sign = signs_list[filenum];
         newcol = np.zeros((numrows, 1));
         for i in range(len(newcol)):
-            if i >= row_span_list[filenum][0] and i < row_span_list[filenum][1]:
+            if row_span_list[filenum][0] < i < row_span_list[filenum][1]:
                 newcol[i] = leveling_sign;
         G_total = np.hstack((G_total, newcol));
         print("Adding column for %s " % input_file_list[filenum])
@@ -317,7 +332,7 @@ def beginning_calc(config):
         # ADDING THE COLUMNS TO G_NOSMOOTH_TOTAL
         newcol_nosmooth = np.zeros((num_rows_nosmooth, 1));
         for i in range(len(newcol_nosmooth)):
-            if i >= count and i < count + (row_span_list[filenum][1] - row_span_list[filenum][0]):
+            if count <= i < count + (row_span_list[filenum][1] - row_span_list[filenum][0]):
                 newcol_nosmooth[i] = leveling_sign;
         count = count + (row_span_list[filenum][1] - row_span_list[filenum][0]);
         G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
@@ -347,7 +362,8 @@ def beginning_calc(config):
         if signs_list[i] != 0:
             print("Leveling Offset for %s = %f m " % (input_file_list[i], leveling_offsets[i]));
             if abs(leveling_offsets[i]) < 0.0000001:
-                print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." % (input_file_list[i]));
+                print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." %
+                      (input_file_list[i]));
 
     ### get slip patch data for outputs
     #####################################################################
@@ -384,7 +400,7 @@ def beginning_calc(config):
             print("Writing file %s " % output_file_list[filenum]);
 
         elif data_type_list[filenum] == 'insar':
-            Npts = nums_obs[filenum];
+            # Npts = nums_obs[filenum];
             pred_disp_insar = disp_models[filenum];
             slippy.io.write_insar_data(pos_obs_list[filenum],
                                        pred_disp_insar, 0.0 * pred_disp_insar,
@@ -393,7 +409,7 @@ def beginning_calc(config):
             print("Writing file %s " % output_file_list[filenum]);
 
         elif data_type_list[filenum] == 'leveling':
-            Npts = nums_obs[filenum];
+            # Npts = nums_obs[filenum];
             pred_disp_leveling = disp_models[filenum];
             slippy.io.write_insar_data(pos_obs_list[filenum],
                                        pred_disp_leveling, 0.0 * pred_disp_leveling,
@@ -405,7 +421,7 @@ def beginning_calc(config):
 
 
 def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, number_of_datasets):
-    print("Parsing slip outputs from %d epochs " % (n_epochs));
+    print("Parsing slip outputs from %d epochs " % n_epochs);
     count = 0;
     total_cardinal_slip = [];
     for i in range(n_epochs):
