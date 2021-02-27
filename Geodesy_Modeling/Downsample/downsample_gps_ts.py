@@ -15,7 +15,7 @@ import offsets
 # Global variables
 Timeseries = collections.namedtuple("Timeseries", ['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su',
                                                    'EQtimes']);  # in mm
-gps_data_dir = "/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/GPS_POS_DATA/"
+gps_data_dir = "/Users/kmaterna/Documents/B_Research/GEOPHYS_DATA/GPS_POS_DATA/"
 gps_data_config_file = gps_data_dir + "config.txt"
 
 
@@ -65,7 +65,7 @@ def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
         east_params = [east_slope, 0, 0, 0, 0];
         north_params = [north_slope, 0, 0, 0, 0];
         vert_params = [vert_slope, 0, 0, 0, 0];
-        newobj = gps_postseismic_remove.remove_by_model(newobj, gps_data_dir);
+        newobj = gps_postseismic_remove.remove_by_model(newobj, gps_data_config_file);
         # This will actually remove the coseismic offset if within the window.
         newobj = gps_ts_functions.detrend_data_by_value(newobj, east_params, north_params, vert_params);
         cleaned_objects.append(newobj)

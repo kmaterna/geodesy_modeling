@@ -3,7 +3,7 @@
 
 
 import numpy as np
-from InSAR_Object import class_model
+from ..InSAR_Object import class_model
 
 
 # InSAR Object is my standard format:

@@ -10,7 +10,7 @@ import matplotlib.cm as cm
 import datetime as dt
 import collections
 import xlrd
-from read_write_insar_utilities import netcdf_read_write
+from Tectonic_Utils.read_write import netcdf_read_write
 import stacking_utilities
 
 # Collections
@@ -41,8 +41,8 @@ def inputs_TS_grd(filename, lonfile, latfile, day0=dt.datetime.strptime("2009-04
     print("tdata:", tdata);
     print("   where Day0 of this time series is %s " % dt.datetime.strftime(day0, "%Y-%m-%d"));
     print("zdata:", np.shape(zdata));
-    lon = netcdf_read_write.read_grd(lonfile);
-    lat = netcdf_read_write.read_grd(latfile);
+    lon = netcdf_read_write.read_any_grd(lonfile);
+    lat = netcdf_read_write.read_any_grd(latfile);
     print("lon and lat:", np.shape(lon));
     dtarray = [];
     for i in range(len(tdata)):
@@ -279,7 +279,7 @@ def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incr
         gps_i_flipped = [np.shape(data)[1] - x for x in gps_i];
 
         # Plotting now
-        rownum, colnum = stacking_utilities.get_axarr_numbers(num_rows_plots, num_cols_plots, i);
+        rownum, colnum = stacking_utilities.get_axarr_numbers(num_cols_plots, i);
         if i == 0 and incremental is True:
             axarr[rownum][colnum].set_visible(False);
             continue;

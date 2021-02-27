@@ -2,8 +2,8 @@
 
 
 import numpy as np
-import multiSAR_utilities
-from InSAR_Object import class_model
+from .. import multiSAR_utilities
+from ..InSAR_Object import class_model
 
 
 # InSAR Object is my standard format:

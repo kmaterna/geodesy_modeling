@@ -9,15 +9,10 @@ import numpy as np
 import sys, json
 import subprocess
 import datetime as dt
-from Downsample import quadtree_downsample_kite
-from Downsample import downsample_gps_ts
-from Downsample import uniform_downsample
-import multiSAR_input_functions
+from Geodesy_Modeling import Downsample
+from Geodesy_Modeling import multiSAR_input_functions
+from Geodesy_Modeling import InSAR_Object
 from read_write_insar_utilities import isce_read_write
-import InSAR_Object.outputs
-import InSAR_Object.remove_ramp
-import InSAR_Object.inputs
-import InSAR_Object.utilities
 
 
 def welcome_and_parse(argv):
@@ -62,13 +57,16 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
-        stations = downsample_gps_ts.read_station_ts(new_interval_dict["gps_bbox"], new_interval_dict["gps_reference"],
-                                                     remove_coseismic=new_interval_dict["remove_coseismic"]);
-        displacement_objects = downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime, gps_sigma,
-                                                                           prep_dir);
+        stations = Downsample.downsample_gps_ts.read_station_ts(new_interval_dict["gps_bbox"],
+                                                                new_interval_dict["gps_reference"],
+                                                                remove_coseismic=new_interval_dict["remove_coseismic"]);
+        displacement_objects = Downsample.downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime,
+                                                                                      gps_sigma,
+                                                                                      prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
-            displacement_objects = downsample_gps_ts.add_gps_constant_offset(displacement_objects,
-                                                                             new_interval_dict["gps_add_offset_mm"]);
+            displacement_objects = Downsample.downsample_gps_ts.add_gps_constant_offset(displacement_objects,
+                                                                                        new_interval_dict[
+                                                                                            "gps_add_offset_mm"]);
         multiSAR_input_functions.write_gps_invertible_format(displacement_objects,
                                                              config["prep_inputs_dir"] + new_interval_dict[
                                                                  "gps_textfile"]);
@@ -112,12 +110,12 @@ def write_uavsar_displacements(config):
 
         # Get uavsar data
         if 'uav_sourcefile_begin' in new_interval_dict.keys():  # Using time series format
-            source_xml_name = new_interval_dict["uav_sourcefile_begin"]+".xml";
+            source_xml_name = new_interval_dict["uav_sourcefile_begin"] + ".xml";
             scene0 = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_begin"], band=2);
             scene1 = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_end"], band=2);
             data = np.float32(np.subtract(scene1, scene0));  # must be 4-byte floats for quadtree
-        else:   # using an individual interferogram format
-            source_xml_name = new_interval_dict["uav_sourcefile_unw_geo"]+".xml";
+        else:  # using an individual interferogram format
+            source_xml_name = new_interval_dict["uav_sourcefile_unw_geo"] + ".xml";
             data = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_unw_geo"], band=2);
 
         if new_interval_dict["flip_uavsar_los"] == 1:
@@ -130,7 +128,7 @@ def write_uavsar_displacements(config):
         isce_read_write.data_to_file_2_bands(data, data, filename=uavsar_unw_file);  # write data bytes out.
 
         # Quadtree downsampling by Kite
-        uav_textfile = config["prep_inputs_dir"] + new_interval_dict["uav_textfile"];   # .txt, invertible format
+        uav_textfile = config["prep_inputs_dir"] + new_interval_dict["uav_textfile"];  # .txt, invertible format
         drive_uavsar_kite_downsampling(new_interval_dict, config["prep_inputs_dir"]);
 
         # Now we optionally remove a ramp.
@@ -156,14 +154,14 @@ def drive_uavsar_kite_downsampling(interval_dictionary, inputs_dir):
     subprocess.call(['cp', interval_dictionary["rdrfile"], inputs_dir], shell=False);
 
     # Downsample, bbox, and Print
-    quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file,
-                                                      interval_dictionary["epsilon"],
-                                                      interval_dictionary["nan_allowed"],
-                                                      interval_dictionary["tile_size_min"],
-                                                      interval_dictionary["tile_size_max"]);
-    quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile,
-                                                bbox=interval_dictionary["uavsar_bbox"],
-                                                std_min=interval_dictionary["uavsar_std_min"]);
+    Downsample.quadtree_downsample_kite.kite_downsample_isce_unw(uavsar_unw_file, geojson_file,
+                                                                 interval_dictionary["epsilon"],
+                                                                 interval_dictionary["nan_allowed"],
+                                                                 interval_dictionary["tile_size_min"],
+                                                                 interval_dictionary["tile_size_max"]);
+    Downsample.quadtree_downsample_kite.geojson_to_outputs(geojson_file, uav_plotfile, uav_textfile,
+                                                           bbox=interval_dictionary["uavsar_bbox"],
+                                                           std_min=interval_dictionary["uavsar_std_min"]);
     return;
 
 
@@ -183,9 +181,10 @@ def write_tsx_tre_displacements(config):
             Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["tsx_filename"]);
             Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box vertical
-            Vert_InSAR = uniform_downsample.uniform_downsampling(Vert_InSAR,
-                                                                 new_interval_dict["tsx_downsample_interval"],
-                                                                 new_interval_dict["tsx_averaging_window"]);
+            Vert_InSAR = Downsample.uniform_downsample.uniform_downsampling(Vert_InSAR,
+                                                                            new_interval_dict[
+                                                                                "tsx_downsample_interval"],
+                                                                            new_interval_dict["tsx_averaging_window"]);
 
             InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
                                                                config["prep_inputs_dir"] + new_interval_dict[
@@ -212,9 +211,9 @@ def write_s1_displacements(config):
                                                                                new_interval_dict["s1_lkv_filename"],
                                                                                new_interval_dict["s1_slicenum"]);
             InSAR_Data = InSAR_Object.utilities.impose_InSAR_bounding_box(InSAR_Data, new_interval_dict["s1_bbox"]);
-            InSAR_Data = uniform_downsample.uniform_downsampling(InSAR_Data,
-                                                                 new_interval_dict["s1_downsample_interval"],
-                                                                 new_interval_dict["s1_averaging_window"]);
+            InSAR_Data = Downsample.uniform_downsample.uniform_downsampling(InSAR_Data,
+                                                                            new_interval_dict["s1_downsample_interval"],
+                                                                            new_interval_dict["s1_averaging_window"]);
 
             InSAR_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                config["prep_inputs_dir"] + new_interval_dict[
@@ -227,8 +226,8 @@ def write_s1_displacements(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    write_uavsar_displacements(config);
-    write_leveling_displacements(config);
-    write_gps_displacements(config);
-    write_tsx_tre_displacements(config);
-    write_s1_displacements(config);
+    # write_uavsar_displacements(config);
+    # write_leveling_displacements(config);
+    # write_gps_displacements(config);
+    # write_tsx_tre_displacements(config);
+    # write_s1_displacements(config);

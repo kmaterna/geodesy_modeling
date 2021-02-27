@@ -3,7 +3,7 @@
 # This file could also be called pixel utilities
 
 import numpy as np
-import haversine
+from Tectonic_Utils.geodesy import haversine
 
 
 def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):

@@ -10,8 +10,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 from read_write_insar_utilities import jpl_uav_read_write
-from read_write_insar_utilities import netcdf_read_write
+from Tectonic_Utils.read_write import netcdf_read_write
 from read_write_insar_utilities import isce_read_write
+from read_write_insar_utilities import netcdf_plots
 from intf_generating import isce_geocode_tools
 from math_tools import mask_and_interpolate
 
@@ -36,9 +37,9 @@ def cut_and_write_out_igram(real, imag, corr, cut_rowcol):
     (ny, nx) = np.shape(phase);
     netcdf_read_write.produce_output_netcdf(xdata, ydata, phase, 'radians', 'phase.grd', dtype=float);
     netcdf_read_write.produce_output_netcdf(xdata, ydata, corr, 'corr', 'corr.grd', dtype=float);
-    netcdf_read_write.produce_output_plot('phase.grd', 'Phase', 'phase.png', 'phase', aspect=1.0, invert_yaxis=False);
-    netcdf_read_write.produce_output_plot('corr.grd', 'Coherence', 'corr.png', 'corr', aspect=1.0, cmap='binary_r',
-                                          invert_yaxis=False);
+    netcdf_plots.produce_output_plot('phase.grd', 'Phase', 'phase.png', 'phase', aspect=1.0, invert_yaxis=False);
+    netcdf_plots.produce_output_plot('corr.grd', 'Coherence', 'corr.png', 'corr', aspect=1.0, cmap='binary_r',
+                                     invert_yaxis=False);
     isce_read_write.write_isce_data(complex_numbers, nx, ny, 'CFLOAT', 'cut_slc.int');
     isce_read_write.write_isce_data(cor32, nx, ny, 'FLOAT', 'cut_cor.cor');
     return;
@@ -78,12 +79,12 @@ def multiply_igram_by_coherence_mask(after_filtering, after_filtering_corr, cuto
     netcdf_read_write.produce_output_netcdf(xdata, ydata, phase, 'radians', 'phase_filtered.grd');
     netcdf_read_write.produce_output_netcdf(xdata, ydata, masked_phase, 'radians', 'phase_masked.grd', dtype=float);
     netcdf_read_write.produce_output_netcdf(xdata, ydata, corr, 'corr', 'corr.grd', dtype=float);
-    netcdf_read_write.produce_output_plot('phase_filtered.grd', 'Phase', 'phase_filtered.png', 'phase', aspect=1.0,
-                                          invert_yaxis=False);
-    netcdf_read_write.produce_output_plot('phase_masked.grd', 'Phase', 'phase_masked.png', 'phase', aspect=1.0,
-                                          invert_yaxis=False);
-    netcdf_read_write.produce_output_plot('corr.grd', 'Coherence', 'corr.png', 'corr', aspect=1.0, cmap='binary_r',
-                                          invert_yaxis=False);
+    netcdf_plots.produce_output_plot('phase_filtered.grd', 'Phase', 'phase_filtered.png', 'phase', aspect=1.0,
+                                     invert_yaxis=False);
+    netcdf_plots.produce_output_plot('phase_masked.grd', 'Phase', 'phase_masked.png', 'phase', aspect=1.0,
+                                     invert_yaxis=False);
+    netcdf_plots.produce_output_plot('corr.grd', 'Coherence', 'corr.png', 'corr', aspect=1.0, cmap='binary_r',
+                                     invert_yaxis=False);
     return masked_phase, coherence_mask;
 
 
@@ -93,19 +94,19 @@ def phase_interpolation(phase):
     xdata = range(0, np.shape(phase)[1]);
     ydata = range(0, np.shape(phase)[0]);
     netcdf_read_write.produce_output_netcdf(xdata, ydata, interp_array, 'radians', 'phase_interp.grd', dtype=float);
-    netcdf_read_write.produce_output_plot('phase_interp.grd', 'Phase', 'phase_interp.png', 'phase', aspect=1.0,
-                                          invert_yaxis=False);
+    netcdf_plots.produce_output_plot('phase_interp.grd', 'Phase', 'phase_interp.png', 'phase', aspect=1.0,
+                                     invert_yaxis=False);
     return interp_array;
 
 
 def read_and_reapply_mask(mask):  # re-apply the mask
-    unw_grd = netcdf_read_write.read_netcdf4_xyz("unwrap.grd");
+    unw_grd = netcdf_read_write.read_netcdf4("unwrap.grd");
     unw_grd = np.multiply(unw_grd, mask);
     xdata = range(0, np.shape(unw_grd)[1]);
     ydata = range(0, np.shape(unw_grd)[0]);
     netcdf_read_write.produce_output_netcdf(xdata, ydata, unw_grd, 'radians', 'unwrap_masked.grd');
-    netcdf_read_write.produce_output_plot('unwrap_masked.grd', 'Unwrapped Phase', 'unw_masked.png', 'phase', aspect=1.0,
-                                          invert_yaxis=False);
+    netcdf_plots.produce_output_plot('unwrap_masked.grd', 'Unwrapped Phase', 'unw_masked.png', 'phase', aspect=1.0,
+                                     invert_yaxis=False);
     return;
 
 

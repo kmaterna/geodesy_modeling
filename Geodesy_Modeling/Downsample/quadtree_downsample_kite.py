@@ -11,7 +11,8 @@
 # Not used: fig = qt.plot()  # this will open a plot.show(), won't save it. 
 
 from kite import Scene
-import geojson2txt
+from Tectonic_Utils.geodesy import geojson2txt
+from . import plot_geojson
 
 
 def kite_downsample_isce_unw(datafile, outname,
@@ -41,6 +42,6 @@ def geojson_to_outputs(geojsonfile, plotfile, textfile, bbox=(-180, 180, -90, 90
     # It also writes a text file for inversion.
     # The functions here live in the Utility_functions repository
     pixel_list = geojson2txt.read_geojson(geojsonfile);
-    geojson2txt.plot_downsampled_InSAR(pixel_list, plotfile, vmin=-120, vmax=20);
+    plot_geojson.plot_downsampled_InSAR(pixel_list, plotfile, vmin=-120, vmax=20);
     geojson2txt.pixels_to_txt(pixel_list, textfile, bbox, std_min);  # can take a bbox optionally
     return;

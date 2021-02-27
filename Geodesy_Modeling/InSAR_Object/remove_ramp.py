@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
-import multiSAR_utilities
+from .. import multiSAR_utilities
 from .class_model import InSAR_Object
 from .inputs import inputs_txt
 from .outputs import write_insar_invertible_format
