@@ -4,17 +4,17 @@
 # S1 from 2018-2019
 # S1 from OU/Cornell
 # Individual UAVSAR intfs
-# Holy Cow I reproduced Mariana's results. 
-
+# Holy Cow I reproduced Mariana's results.
+import Geodesy_Modeling.leveling_inputs
+import Geodesy_Modeling.multiSAR_utilities
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
 import datetime as dt
-import multiSAR_utilities
-import multiSAR_input_functions
-import InSAR_Object.inputs
-import InSAR_Object.utilities
+from Geodesy_Modeling import multiSAR_utilities
+from Geodesy_Modeling import multiSAR_input_functions
+from Geodesy_Modeling import InSAR_Object
 
 
 def plot_InSAR(InSAR_Data, output_dir):
@@ -128,10 +128,10 @@ def drive_single_uavsar_intf_comparison(myLev, leveling_slice, bounds, uavsar_fi
 if __name__ == "__main__":
     # Opening stuff
     config_filename = "config_file.txt"
-    file_dict = multiSAR_input_functions.get_file_dictionary(config_filename);
-    myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0],
-                                                     file_dict["leveling"].split()[1]);
-    myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);
+    file_dict = Geodesy_Modeling.multiSAR_utilities.get_file_dictionary(config_filename);
+    myLev = Geodesy_Modeling.leveling_inputs.inputs_leveling(file_dict["leveling"].split()[0],
+                                                             file_dict["leveling"].split()[1]);
+    myLev = Geodesy_Modeling.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);
 
     # # # S1_Cornell experiment (2015 data)
     # output_dir = "S1_OU/T4D/";

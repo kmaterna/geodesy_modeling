@@ -18,15 +18,15 @@
 # I think this might be related to unwrapping issues near the edge of the UAVSAR scene? 
 # It looks like there's localized subsidence between June 2014 and October 2014. 
 # There is a difference in the 2012 Brawley Earthquakes for track 26509
-
+import Geodesy_Modeling.leveling_inputs
+import Geodesy_Modeling.multiSAR_utilities
+import Geodesy_Modeling.UAVSAR.uavsar_readwrite
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
 import datetime as dt
-import sys
-import multiSAR_utilities
-import multiSAR_input_functions
+from Geodesy_Modeling import multiSAR_utilities
 
 
 # Uavsar_col = collections.namedtuple("Uavsar_col",["dtarray","lon","lat","TS"]);
@@ -81,9 +81,7 @@ def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, out
             continue;
         else:
             leveling_offset = 1000 * (myLev.leveling[i][lev2] - myLev.leveling[i][lev1])  # negative sign convention
-            uavsar_offset = avg_uavsar_disp(myUAVSAR.TS, uav2, row[i], col[i]) - avg_uavsar_disp(myUAVSAR.TS, uav1,
-                                                                                                 row[i], col[
-                                                                                                     i]) - UAVSAR_ref_offset;
+            uavsar_offset = avg_uavsar_disp(myUAVSAR.TS, uav2, row[i], col[i]) - avg_uavsar_disp(myUAVSAR.TS, uav1, row[i], col[i]) - UAVSAR_ref_offset;
             uavsar_offset = -1 * uavsar_offset;
             if ~np.isnan(leveling_offset) and ~np.isnan(uavsar_offset):
                 oto_lev.append(leveling_offset);
@@ -183,15 +181,15 @@ def leveling_uavsar_ts_comparison_driver():
     # If you want to use the UAVSAR time series format (e.g., a track processed in ISCE)
     # Use this to compare with leveling
     # CONFIGURE
-    file_dict = multiSAR_input_functions.get_file_dictionary("config_file.txt");
+    file_dict = Geodesy_Modeling.multiSAR_utilities.get_file_dictionary("config_file.txt");
     outdir = "UAVSAR_Apr29";
 
     # INPUTS
-    myLev = multiSAR_input_functions.inputs_leveling(file_dict["leveling"].split()[0],
-                                                     file_dict["leveling"].split()[1]);
-    myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(myLev);
-    myUAVSAR = multiSAR_input_functions.inputs_TS_grd(file_dict["uavsar_file"], file_dict["uavsar_lon"],
-                                                      file_dict["uavsar_lat"]);
+    myLev = Geodesy_Modeling.leveling_inputs.inputs_leveling(file_dict["leveling"].split()[0],
+                                                             file_dict["leveling"].split()[1]);
+    myLev = Geodesy_Modeling.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);
+    myUAVSAR = Geodesy_Modeling.UAVSAR.uavsar_readwrite.inputs_TS_grd(file_dict["uavsar_file"], file_dict["uavsar_lon"],
+                                                                      file_dict["uavsar_lat"]);
 
     # Stations P506, P495, WMDG, and WMCA and CRRS
     gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];
@@ -200,10 +198,10 @@ def leveling_uavsar_ts_comparison_driver():
 
     # Plotting UAVSAR in a reasonable way
     selected = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];  # allows you to combine intervals if necessary
-    multiSAR_input_functions.plot_grid_TS_redblue(myUAVSAR, outdir + "/increments.png", vmin=-100, vmax=100, aspect=4,
-                                                  incremental=True, gps_i=ipts, gps_j=jpts, selected=selected);
-    multiSAR_input_functions.plot_grid_TS_redblue(myUAVSAR, outdir + "/full_TS.png", vmin=-160, vmax=160, aspect=4,
-                                                  incremental=False, gps_i=ipts, gps_j=jpts, selected=selected);
+    Geodesy_Modeling.UAVSAR.uavsar_readwrite.plot_grid_TS_redblue(myUAVSAR, outdir + "/increments.png", vmin=-100, vmax=100, aspect=4,
+                                                                  incremental=True, gps_i=ipts, gps_j=jpts, selected=selected);
+    Geodesy_Modeling.UAVSAR.uavsar_readwrite.plot_grid_TS_redblue(myUAVSAR, outdir + "/full_TS.png", vmin=-160, vmax=160, aspect=4,
+                                                                  incremental=False, gps_i=ipts, gps_j=jpts, selected=selected);
 
     # Comparing UAVSAR with leveling.
     # find_leveling_in_uavsar(myLev, myUAVSAR);  # only have to do the first time.

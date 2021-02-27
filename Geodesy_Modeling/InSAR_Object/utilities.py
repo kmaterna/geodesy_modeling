@@ -53,3 +53,16 @@ def remove_nans(InSAR_obj):
     newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U,
                                 starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     return newInSAR_obj;
+
+
+def combine_objects(Obj1, Obj2):
+    lon = np.hstack((Obj1.lon, Obj2.lon));
+    lat = np.hstack((Obj1.lat, Obj2.lat));
+    LOS = np.hstack((Obj1.LOS, Obj2.LOS));
+    LOS_unc = np.hstack((Obj1.LOS_unc, Obj2.LOS_unc));
+    lkv_E = np.hstack((Obj1.lkv_E, Obj2.lkv_E));
+    lkv_N = np.hstack((Obj1.lkv_N, Obj2.lkv_N));
+    lkv_U = np.hstack((Obj1.lkv_U, Obj2.lkv_U));
+    newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
+                                starttime=Obj1.starttime, endtime=Obj1.endtime);
+    return newInSAR_obj;

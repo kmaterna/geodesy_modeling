@@ -4,7 +4,8 @@
 # 1. Get GPS; make relative to benchmark
 # 2. Put InSAR relative to chosen GPS benchmark; solve for ramps etc; downsample
 # 3. Get Leveling
-
+import Geodesy_Modeling.leveling_inputs
+import Geodesy_Modeling.multiSAR_utilities
 import numpy as np
 import sys, json
 import subprocess
@@ -67,8 +68,8 @@ def write_gps_displacements(config):
             displacement_objects = Downsample.downsample_gps_ts.add_gps_constant_offset(displacement_objects,
                                                                                         new_interval_dict[
                                                                                             "gps_add_offset_mm"]);
-        multiSAR_input_functions.write_gps_invertible_format(displacement_objects,
-                                                             config["prep_inputs_dir"] + new_interval_dict[
+        Geodesy_Modeling.multiSAR_utilities.write_gps_invertible_format(displacement_objects,
+                                                                        config["prep_inputs_dir"] + new_interval_dict[
                                                                  "gps_textfile"]);
     return;
 
@@ -83,17 +84,17 @@ def write_leveling_displacements(config):
     for interval_dict_key in config["leveling_data"]:
         new_interval_dict = config["leveling_data"][interval_dict_key];  # for each interval in Leveling
         print("\nPreparing leveling for file %s" % new_interval_dict["lev_outfile"])
-        myLev = multiSAR_input_functions.inputs_leveling(new_interval_dict["leveling_filename"],
-                                                         new_interval_dict["leveling_errors_filename"]);
-        myLev = multiSAR_input_functions.compute_rel_to_datum_nov_2009(
+        myLev = Geodesy_Modeling.leveling_inputs.inputs_leveling(new_interval_dict["leveling_filename"],
+                                                                 new_interval_dict["leveling_errors_filename"]);
+        myLev = Geodesy_Modeling.leveling_inputs.compute_rel_to_datum_nov_2009(
             myLev);  # Computing relative displacements from 2009 onward
-        multiSAR_input_functions.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
-                                                                  new_interval_dict["leveling_end"],
-                                                                  new_interval_dict["leveling_unc"],
-                                                                  config["prep_inputs_dir"] + new_interval_dict[
+        Geodesy_Modeling.leveling_inputs.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
+                                                                          new_interval_dict["leveling_end"],
+                                                                          new_interval_dict["leveling_unc"],
+                                                                          config["prep_inputs_dir"] + new_interval_dict[
                                                                       "lev_outfile"]);
-        multiSAR_input_functions.plot_leveling(config["prep_inputs_dir"] + new_interval_dict["lev_outfile"],
-                                               config["prep_inputs_dir"] + new_interval_dict["lev_plot"]);
+        Geodesy_Modeling.leveling_inputs.plot_leveling(config["prep_inputs_dir"] + new_interval_dict["lev_outfile"],
+                                                       config["prep_inputs_dir"] + new_interval_dict["lev_plot"]);
     return;
 
 
@@ -169,6 +170,7 @@ def write_tsx_tre_displacements(config):
     """
     For TSX, we read the format, and write the insar file
     We also downsample and impose bounding box
+    In the case of TSX, now trying both east and vertical in the inversion.
     """
     if "tsx_data" not in config.keys():
         print("\nNo TSX in this inversion");
@@ -178,15 +180,24 @@ def write_tsx_tre_displacements(config):
             new_interval_dict = config["tsx_data"][interval_dict_key];  # for each interval in TSX
             print("\nStarting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]));
 
+            # We can get both vertical and east from the TRE data.
             Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["tsx_filename"]);
             Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict[
+                "tsx_bbox"]);  # bounding box vertical
+            East_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(East_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box vertical
             Vert_InSAR = Downsample.uniform_downsample.uniform_downsampling(Vert_InSAR,
                                                                             new_interval_dict[
                                                                                 "tsx_downsample_interval"],
                                                                             new_interval_dict["tsx_averaging_window"]);
+            East_InSAR = Downsample.uniform_downsample.uniform_downsampling(East_InSAR,
+                                                                            new_interval_dict[
+                                                                                "tsx_downsample_interval"],
+                                                                            new_interval_dict["tsx_averaging_window"]);
 
-            InSAR_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
+            Total_InSAR = InSAR_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
+
+            InSAR_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
                                                                config["prep_inputs_dir"] + new_interval_dict[
                                                                    "tsx_datafile"]);
             InSAR_Object.outputs.plot_insar(config["prep_inputs_dir"] + new_interval_dict["tsx_datafile"],
@@ -226,8 +237,8 @@ def write_s1_displacements(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    # write_uavsar_displacements(config);
-    # write_leveling_displacements(config);
-    # write_gps_displacements(config);
-    # write_tsx_tre_displacements(config);
-    # write_s1_displacements(config);
+    write_uavsar_displacements(config);
+    write_leveling_displacements(config);
+    write_gps_displacements(config);
+    write_tsx_tre_displacements(config);
+    write_s1_displacements(config);
