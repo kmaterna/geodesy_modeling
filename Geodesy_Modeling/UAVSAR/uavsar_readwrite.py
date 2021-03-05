@@ -5,41 +5,43 @@ import collections
 import stacking_utilities
 from .. import multiSAR_utilities
 from Tectonic_Utils.read_write import netcdf_read_write
-
-
-# Collections
 from matplotlib import pyplot as plt, cm as cm
 
+# Collections
 GrdTSData = collections.namedtuple("GrdTSData", ["dtarray", "lon", "lat", "TS"]);
 
-# UAVSAR INPUT FUNCTIONS FOR NETCDF FORMAT
+# INPUT FUNCTIONS FOR NETCDF FORMAT
 def inputs_TS_grd(filename, lonfile, latfile, day0=dt.datetime.strptime("2009-04-24", "%Y-%m-%d")):
     """
     Reads a TS file with associated lat/lon files
+    The files generally are not orthorectified grids
     GRDnetcdf has tdata (days since day0), x, y, and zdata (3D cube)
-    lon and lat files have corresponding lon and lat for each point
+    lon and lat files are 2D arrays with corresponding lon and lat for each point
     day0 is the day of the first acquisition in the time series (hard coded for a UAVSAR track default)
     """
     print("Reading TS Grid file  %s" % filename);
     [tdata, _, _, zdata] = netcdf_read_write.read_3D_netcdf(filename);
     print("tdata:", tdata);
     print("   where Day0 of this time series is %s " % dt.datetime.strftime(day0, "%Y-%m-%d"));
-    print("zdata:", np.shape(zdata));
-    lon = netcdf_read_write.read_any_grd(lonfile);
-    lat = netcdf_read_write.read_any_grd(latfile);
+    [_, _, lon] = netcdf_read_write.read_any_grd(lonfile);
+    [_, _, lat] = netcdf_read_write.read_any_grd(latfile);
     print("lon and lat:", np.shape(lon));
+    print("zdata:", np.shape(zdata));
+    zdata_correct_size = [];
+    if np.shape(zdata[0])[0] == np.shape(lon)[0]+1 and np.shape(zdata[0])[1] == np.shape(lat)[1]+1:
+        for i in range(len(zdata)):
+            zdata_correct_size.append(zdata[i][0:-1,0:-1]);  # cutting off one pixel on each end for pixel node problem
+    else:
+        zdata_correct_size = zdata;
     dtarray = [];
     for i in range(len(tdata)):
         dtarray.append(day0 + dt.timedelta(days=int(tdata[i])));
-    myGridTS = GrdTSData(dtarray=dtarray, lon=lon, lat=lat, TS=zdata);
+
+    assert(np.shape(lon) == np.shape(zdata_correct_size[0])), ValueError("Lon and Data size don't match");
+    assert(np.shape(lat) == np.shape(zdata_correct_size[0])), ValueError("Lat and Data size don't match");
+    assert(np.shape(zdata_correct_size)[0] == len(dtarray)), ValueError("dtarray and zdata size don't match");
+    myGridTS = GrdTSData(dtarray=dtarray, lon=lon, lat=lat, TS=zdata_correct_size);
     return myGridTS;
-
-
-def get_onetime_displacements(myGridTS, start_idx, end_idx):
-    """ Turns a GridTS object into an InSAR_Object
-    Turning a raster into a vector in the process."""
-
-    return;
 
 
 def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incremental=False, gps_i=None,
@@ -110,15 +112,14 @@ def plot_pixel_ts(TS, dtarray, i, j, name, outdir):
 
 
 def total_ts_visualizing(myUAVSAR, gps_lon, gps_lat, gps_names, selected, outdir):
-    """For UAVSAR time series format"""
-    # Plotting UAVSAR in a reasonable way
-    ipts, jpts = multiSAR_utilities.get_pixel_idxs_from_pts(myUAVSAR.lon, myUAVSAR.lat, gps_lon, gps_lat);
+    """Vizualizations for grid time series format
+    GPS points can be added by index. For future work. """
     plot_grid_TS_redblue(myUAVSAR, outdir + "/increments.png", vmin=-100, vmax=100, aspect=4,
-                                                 incremental=True, gps_i=ipts, gps_j=jpts, selected=selected);
+                         incremental=True, gps_i=None, gps_j=None, selected=selected);
     plot_grid_TS_redblue(myUAVSAR, outdir + "/full_TS.png", vmin=-160, vmax=160, aspect=4,
-                                                 incremental=False, gps_i=ipts, gps_j=jpts, selected=selected);
-    # Comparing UAVSAR with GPS
+                         incremental=False, gps_i=None, gps_j=None, selected=selected);
+    # Comparing InSAR TS with GPS
     for i in range(len(gps_lon)):
-        plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[i], jpts[i], gps_names[i], outdir);
+        ipt, jpt = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, gps_lon[i], gps_lat[i]);
+        plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipt, jpt, gps_names[i], outdir);
     return;
-
