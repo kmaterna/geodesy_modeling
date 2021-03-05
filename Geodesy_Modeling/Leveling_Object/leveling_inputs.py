@@ -11,8 +11,7 @@ LevData = collections.namedtuple("LevData", ["name", "lat", "lon", "dtarray", "l
 
 
 def inputs_leveling(data_filename, errors_filename):
-    # New data structure:
-    # names, lat, lon, datetimes, lists of deformation values
+    """Read leveling from CEC Salton Trough leveling data"""
 
     print("Reading in %s" % data_filename);
     wb = xlrd.open_workbook(data_filename);
@@ -102,7 +101,7 @@ def get_datetimes(timestrings):
 
 
 def match_lon_lat(names, lats, lons, ll_names):
-    # Pair up the latlon info with the timeseries info
+    """Pair up the latlon info with the timeseries info"""
     matched_lons = [];
     matched_lats = [];
     for i in range(len(names)):
@@ -128,7 +127,7 @@ def clean_single_ts(array):
 
 # LEVELING COMPUTE FUNCITON (REFERENCE TO DATUM)
 def compute_rel_to_datum_nov_2009(data):
-    # Skips the 2008 measurement. Returns an object that is 83x10
+    """Skips the 2008 measurement. Returns an object that is 83x10"""
     arrays_of_ref_leveling = [];
     for i in range(len(data.name)):
 
@@ -143,8 +142,7 @@ def compute_rel_to_datum_nov_2009(data):
         idx_late = 7;  # the placement of 2014 after adjustment on the spreadsheet
         step = data.leveling[i][idx_early] - data.leveling[i][idx_late];
 
-        referenced_dates = [];
-        referenced_data = [];
+        referenced_dates, referenced_data = [], [];
 
         for j in range(1, len(data.dtarray)):  # skipping 2008 anyway.
             if j == 6:
@@ -165,9 +163,9 @@ def compute_rel_to_datum_nov_2009(data):
 # -------------- WRITE FUNCTIONS ------------- #
 
 def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
-    # One header line
-    # One datum line (automatically first in the leveling array anyway)
-    # Lon, lat, disp, sigma, 0, 0, 1 (in m)
+    """One header line
+    #One datum line (automatically first in the leveling array anyway)
+    Lon, lat, disp, sigma, 0, 0, 1 (in m)"""
     print("Writing leveling to file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" %

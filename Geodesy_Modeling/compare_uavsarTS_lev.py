@@ -1,3 +1,5 @@
+# THIS FILE IS ON THE CHOPPING BLOCK.
+
 # April 1, 2020
 # Tasks: 
 # Read in leveling and UAVSAR datasets
@@ -18,46 +20,17 @@
 # I think this might be related to unwrapping issues near the edge of the UAVSAR scene? 
 # It looks like there's localized subsidence between June 2014 and October 2014. 
 # There is a difference in the 2012 Brawley Earthquakes for track 26509
-import Geodesy_Modeling.leveling_inputs
-import Geodesy_Modeling.multiSAR_utilities
-import Geodesy_Modeling.UAVSAR.uavsar_readwrite
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
 import datetime as dt
-from Geodesy_Modeling import multiSAR_utilities
-
-
-# Uavsar_col = collections.namedtuple("Uavsar_col",["dtarray","lon","lat","TS"]);
-# LevData = collections.namedtuple("LevData",["name","lat","lon","dtarray", "leveling"]);
-
-def find_leveling_in_uavsar(myLev, myUAVSAR):
-    # Go through each leveling benchmark
-    # Identify its location in the UAVSAR file
-    # It might be outside of the bounds.
-    # Makes a cache so we don't have to keep doing this all the time.
-    ofile = open("leveling_index_cache.txt", 'w');
-    ofile.write("# BM BM_Lat BM_Lat I J IJ_lon IJ_lat Distance(km)\n");
-    for bm in range(len(myLev.lat)):
-        name = myLev.name[bm].split()[0];
-        i_found, j_found = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, myLev.lon[bm],
-                                                                          myLev.lat[bm]);
-        if i_found == -1:
-            print("Point %s outside of domain." % name);
-            ofile.write("%s %f %f %d %d %f %f\n" % (name, myLev.lon[bm], myLev.lat[bm],
-                                                    -1, -1, np.nan, np.nan));
-        else:
-            print("Point %s found at %d, %d " % (name, i_found, j_found));
-            ofile.write("%s %f %f %d %d %f %f\n" % (name, myLev.lon[bm], myLev.lat[bm],
-                                                    i_found, j_found, myUAVSAR.lon[i_found][j_found],
-                                                    myUAVSAR.lat[i_found][j_found]));
-    ofile.close();
-    return;
+import Geodesy_Modeling.UAVSAR.uavsar_readwrite
 
 
 def avg_uavsar_disp(TS, slicenum, row, col):
-    # Average around a few pixels
+    """Average around a few pixels"""
     width_pixels = 10;
     return np.nanmean(TS[slicenum, row - width_pixels:row + width_pixels, col - width_pixels:col + width_pixels]);
 
@@ -81,7 +54,8 @@ def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, out
             continue;
         else:
             leveling_offset = 1000 * (myLev.leveling[i][lev2] - myLev.leveling[i][lev1])  # negative sign convention
-            uavsar_offset = avg_uavsar_disp(myUAVSAR.TS, uav2, row[i], col[i]) - avg_uavsar_disp(myUAVSAR.TS, uav1, row[i], col[i]) - UAVSAR_ref_offset;
+            uavsar_offset = avg_uavsar_disp(myUAVSAR.TS, uav2, row[i], col[i]) - \
+                            avg_uavsar_disp(myUAVSAR.TS, uav1, row[i], col[i]) - UAVSAR_ref_offset;
             uavsar_offset = -1 * uavsar_offset;
             if ~np.isnan(leveling_offset) and ~np.isnan(uavsar_offset):
                 oto_lev.append(leveling_offset);
@@ -148,63 +122,16 @@ def one_to_one_comparison(myLev, myUAVSAR, row, col, lev1, lev2, uav1, uav2, out
     return;
 
 
-def plot_pixel_ts(TS, dtarray, i, j, name, outdir):
-    pixel_value = [];
-    pixel_value2 = [];
-    width_pixels = 80;
-    for date in range(len(dtarray)):
-        pixel_value.append(np.nanmean(TS[date, i - width_pixels:i + width_pixels, j - width_pixels:j + width_pixels]));
-        pixel_value2.append(TS[date, i, j]);
-    plt.figure(figsize=(8, 8));
-    plt.plot(dtarray, pixel_value, '.--', markersize=12);
-    plt.plot(dtarray, pixel_value2, '.--', color='red', markersize=12);
-    plt.xlabel("Time");
-    plt.ylabel("Displacement (mm)");
-    plt.savefig(outdir + "/" + name + "_onepixel.png");
-    return;
-
-
-def get_list_of_pixels_from_pts(raster_lons, raster_lats, target_lons, target_lats):
-    # For UAVSAR, get a list of pixels that correspond to GPS.
-    i_found = [];
-    j_found = [];
-    for i in range(len(target_lons)):
-        itemp, jtemp, dist = multiSAR_utilities.get_nearest_pixel_in_raster(raster_lons, raster_lats, target_lons[i],
-                                                                            target_lats[i]);
-        if itemp != -1:
-            i_found.append(itemp);
-            j_found.append(jtemp);
-    return i_found, j_found;
-
-
 def leveling_uavsar_ts_comparison_driver():
-    # If you want to use the UAVSAR time series format (e.g., a track processed in ISCE)
-    # Use this to compare with leveling
-    # CONFIGURE
-    file_dict = Geodesy_Modeling.multiSAR_utilities.get_file_dictionary("config_file.txt");
+    """
+    If you want to use the UAVSAR time series format (e.g., a track processed in ISCE)
+    Use this to compare with leveling
+    """
     outdir = "UAVSAR_Apr29";
-
-    # INPUTS
-    myLev = Geodesy_Modeling.leveling_inputs.inputs_leveling(file_dict["leveling"].split()[0],
-                                                             file_dict["leveling"].split()[1]);
-    myLev = Geodesy_Modeling.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);
     myUAVSAR = Geodesy_Modeling.UAVSAR.uavsar_readwrite.inputs_TS_grd(file_dict["uavsar_file"], file_dict["uavsar_lon"],
                                                                       file_dict["uavsar_lat"]);
-
-    # Stations P506, P495, WMDG, and WMCA and CRRS
-    gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];
-    gps_lats = [33.081, 33.044960, 33.038325, 33.072, 33.070];
-    ipts, jpts = get_list_of_pixels_from_pts(myUAVSAR.lon, myUAVSAR.lat, gps_lons, gps_lats);
-
-    # Plotting UAVSAR in a reasonable way
-    selected = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];  # allows you to combine intervals if necessary
-    Geodesy_Modeling.UAVSAR.uavsar_readwrite.plot_grid_TS_redblue(myUAVSAR, outdir + "/increments.png", vmin=-100, vmax=100, aspect=4,
-                                                                  incremental=True, gps_i=ipts, gps_j=jpts, selected=selected);
-    Geodesy_Modeling.UAVSAR.uavsar_readwrite.plot_grid_TS_redblue(myUAVSAR, outdir + "/full_TS.png", vmin=-160, vmax=160, aspect=4,
-                                                                  incremental=False, gps_i=ipts, gps_j=jpts, selected=selected);
-
     # Comparing UAVSAR with leveling.
-    # find_leveling_in_uavsar(myLev, myUAVSAR);  # only have to do the first time.
+    find_leveling_in_uavsar(myLev, myUAVSAR);  # only have to do the first time.
     row, col = np.loadtxt("leveling_index_cache.txt", usecols=(3, 4), skiprows=1, unpack=True,
                           dtype={'names': ('row', 'col'), 'formats': (int, int)});
     one_to_one_comparison(myLev, myUAVSAR, row, col, 0, 1, 1, 4, outdir);  # 2009 to 2011
@@ -215,14 +142,4 @@ def leveling_uavsar_ts_comparison_driver():
     one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 5, 7, 9, outdir);  # 2012 to 2014
     one_to_one_comparison(myLev, myUAVSAR, row, col, 5, 8, 9, 10, outdir);  # 2014 to 2017
     one_to_one_comparison(myLev, myUAVSAR, row, col, 3, 8, 7, 10, outdir);  # 2012 to 2017
-
-    # Comparing UAVSAR with GPS
-    plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[0], jpts[0], "P506", outdir);
-    plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[1], jpts[1], "P495", outdir);
-    plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[2], jpts[2], "WMDG", outdir);
-    plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipts[3], jpts[3], "WMCA", outdir);
     return;
-
-
-if __name__ == "__main__":
-    leveling_uavsar_ts_comparison_driver();

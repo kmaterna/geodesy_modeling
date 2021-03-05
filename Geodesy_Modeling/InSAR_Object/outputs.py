@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 
 def write_insar_invertible_format(InSAR_obj, unc_min, filename):
-    # This function uses InSAR displacements to make an insar file that can be inverted.
-    # Writes one header line and multiple data lines.
-    # InSAR_obj is in mm, and written out is in meters
+    """This function uses InSAR displacements to make an insar file that can be inverted.
+    Writes one header line and multiple data lines.
+    InSAR_obj is in mm, and written out is in meters"""
     print("Writing InSAR displacements into file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitN \n");
@@ -27,15 +27,14 @@ def write_insar_invertible_format(InSAR_obj, unc_min, filename):
     return;
 
 
-def plot_insar(txtfile, plotname, vmin=None, vmax=None):
+def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None):
     print("Plotting insar in file %s " % plotname);
-    [lon, lat, disp] = np.loadtxt(txtfile, unpack=True, skiprows=1, usecols=(0, 1, 2));
     plt.figure(dpi=300, figsize=(8, 8));
     if vmin is not None:
-        plt.scatter(lon, lat, c=disp, s=18, cmap='rainbow', vmin=vmin, vmax=vmax);
+        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow', vmin=vmin, vmax=vmax);
     else:
-        plt.scatter(lon, lat, c=disp, s=18, cmap='rainbow');
+        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow');
     plt.colorbar();
-    plt.title("InSAR with %d Points " % len(disp));
+    plt.title("InSAR with %d Points " % len(InSAR_Obj.LOS));
     plt.savefig(plotname);
     return;

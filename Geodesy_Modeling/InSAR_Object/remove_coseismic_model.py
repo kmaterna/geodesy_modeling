@@ -6,13 +6,15 @@ import numpy as np
 
 
 def remove_model_los(los_file, model_disps_file, adjusted_file):
-    # Pseudocode:
-    # What is the modeled delta-e, delta-n, and delta-u of each point relative to the reference point?
-    # Then, how does that project into the local LOS?
-    # Finally, subtract that offset from each point
-    # Then we write everything except the reference line
-    # Into a file with "_updated" in its name
-    # Assumes the reference pixel is the last row of the data file.
+    """
+    Pseudocode:
+    What is the modeled delta-e, delta-n, and delta-u of each point relative to the reference point?
+    Then, how does that project into the local LOS?
+    Finally, subtract that offset from each point
+    Then we write everything except the reference line
+    Into a file with "_updated" in its name
+    Assumes the reference pixel is the last row of the data file.
+    """
     [_, _, u_pred, v_pred, w_pred] = np.loadtxt(model_disps_file, unpack=True, skiprows=1);
     [lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(los_file, unpack=True, skiprows=1);
     corrected_los = [];
@@ -36,10 +38,12 @@ def remove_model_los(los_file, model_disps_file, adjusted_file):
 
 
 def remove_model_gps(gps_file, model_disps_file):
-    # Take the prediction at each station,
-    # subtract the reference prediction
-    # and then adjust by that amount.
-    # Assumes the reference pixel is the first row of the data file.
+    """
+    Take the prediction at each station,
+    subtract the reference prediction
+    and then adjust by that amount.
+    Assumes the reference pixel is the first row of the data file.
+    """
     [_, _, u_pred, v_pred, w_pred] = np.loadtxt(model_disps_file, unpack=True, skiprows=1);
     [lon_meas, lat_meas, u_meas, v_meas, w_meas, sige_meas, sign_meas, sigu_meas] = np.loadtxt(gps_file, unpack=True,
                                                                                                skiprows=1);

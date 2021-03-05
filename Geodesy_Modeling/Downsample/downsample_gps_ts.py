@@ -81,7 +81,7 @@ def read_station_ts(gps_bbox, gps_reference, remove_coseismic=0):
 
 
 def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir):
-    # Get the values of TS at starttime and endtime
+    """Get the values of TS at starttime and endtime"""
     startlim = starttime - dt.timedelta(days=1065);
     endlim = endtime + dt.timedelta(days=1065);
     gps_displacements_object = [];
@@ -118,10 +118,12 @@ def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir)
 
 
 def add_gps_constant_offset(displacement_object, enu_constant_offset):
-    # In case your reference station undergoes some offset, you might want to put that back
-    # to all data because it's been referenced-out already.
-    # Allows for more realistic GNSS inversions
-    # Offset and displacement obj in mm
+    """
+    In case your reference station undergoes some offset, you might want to put that back
+    to all data because it's been referenced-out already.
+    Allows for more realistic GNSS inversions
+    Offset and displacement obj in mm
+    """
     new_gps_displacements_object = [];
 
     for one_object in displacement_object:
@@ -136,8 +138,10 @@ def add_gps_constant_offset(displacement_object, enu_constant_offset):
 
 
 def subsample_in_time(station, starttime, endtime):
-    # Take a station and give us the data points corresponding to the starttime and endtime
-    # return E0, N0, U0, E1, N1, U1;
+    """
+    Take a station and give us the data points corresponding to the starttime and endtime
+    return E0, N0, U0, E1, N1, U1
+    """
     dE_array_start = [];
     dN_array_start = [];
     dU_array_start = [];

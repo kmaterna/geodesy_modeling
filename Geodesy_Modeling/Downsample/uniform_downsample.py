@@ -75,8 +75,10 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
 
 
 def get_average_within_box(lonlist, latlist, target_lon, target_lat, averaging_window, data):
-    # averaging window in degrees
-    # We search the averaging window in both directions from the target loc, and average the data
+    """
+    averaging window in degrees
+    Search the averaging window in both directions from the target loc, and average the data
+    """
     new_data = [];
     for i in range(len(lonlist)):
         if target_lon - averaging_window <= lonlist[i] <= target_lon + averaging_window:

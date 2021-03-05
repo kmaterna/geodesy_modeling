@@ -7,7 +7,8 @@ from Tectonic_Utils.geodesy import haversine
 
 
 def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
-    # Take a raster and find the grid location closest to the target location
+    """Take a raster and find the grid location closest to the target location
+    SHOULD I RE-WRITE THIS TO BE FASTER GIVEN REGULARLY SPACED GRIDS?"""
     dist = np.zeros(np.shape(raster_lon));
     lon_shape = np.shape(raster_lon);
     for i in range(lon_shape[0]):
@@ -27,7 +28,7 @@ def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
 
 
 def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
-    # Take a vector and find the location closest to the target location
+    """Take a vector and find the location closest to the target location"""
     dist = np.zeros(np.shape(vector_lon));
     for i in range(len(vector_lon)):
         mypt = [vector_lat[i], vector_lon[i]];
@@ -41,19 +42,40 @@ def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
     return i_found, minimum_distance;
 
 
-def find_leveling_in_vector(myLev, vector_data):
-    # Get the index for each leveling benchmark.
+def find_pixel_idxs_in_InSAR_Obj(InSAR_Data, target_lons, target_lats):
+    """
+    Get the index for each leveling benchmark.
+    myLev = leveling object
+    InSAR_Data : insar object, or any object with 1D lists of lon/lat attributes
+    vector_index : a list that matches the length of InSAR_Data.lon
+    """
     print("Finding target leveling pixels in vector of data");
     vector_index = [];
-    for bm in range(len(myLev.lat)):
+    for bm in range(len(target_lons)):
         # name = myLev.name[bm].split()[0];
-        i_found, mindist = get_nearest_pixel_in_vector(vector_data.lon, vector_data.lat, myLev.lon[bm], myLev.lat[bm]);
-        vector_index.append(i_found);
+        i_found, mindist = get_nearest_pixel_in_vector(InSAR_Data.lon, InSAR_Data.lat, target_lons[bm], target_lats[bm]);
+        if i_found != -1:
+            vector_index.append(i_found);
+        else:
+            vector_index.append(np.nan);
     return vector_index;
 
 
+def get_pixel_idxs_from_pts(raster_lons, raster_lats, target_lons, target_lats):
+    """For some raster lon/lat, get a list of pixel indices i,j that correspond to GPS."""
+    i_found, j_found = [], [];
+    for i in range(len(target_lons)):
+        itemp, jtemp, dist = get_nearest_pixel_in_raster(raster_lons, raster_lats, target_lons[i],
+                                                                            target_lats[i]);
+        if itemp != -1:
+            i_found.append(itemp);
+            j_found.append(jtemp);
+    return i_found, j_found;
+
+
+
 def get_file_dictionary(config_filename):
-    # GET FILE NAMES
+    """GET FILE NAMES"""
     this_dict = {};
     ifile = open(config_filename);
     for line in ifile:
@@ -65,8 +87,8 @@ def get_file_dictionary(config_filename):
 
 
 def write_gps_invertible_format(gps_object_list, filename):
-    # One header line
-    # GPS Data in meters
+    """One header line
+    GPS Data in meters"""
     print("Writing GPS displacements into file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# Header: lon, lat, dE, dN, dU, Se, Sn, Su (m)\n");

@@ -12,8 +12,10 @@ from .outputs import write_insar_invertible_format
 
 
 def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
-    # Here we will solve the least squares problem for the equation of a plane, and then remove it.
-    # Then write out the data again.
+    """
+    Solve the least squares problem for the equation of a plane, and then remove it.
+    Then write out the data again.
+    """
     InSAR_Obj = inputs_txt(insar_textfile);
     noplane_Obj = remove_ramp_insarformat(InSAR_Obj, ref_coord);
     print("Writing ramp-removed data into file %s " % ramp_removed_file);
@@ -32,9 +34,11 @@ def remove_constant_filewise(insar_textfile, constant_removed_file, ref_coord=No
 
 
 def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
-    # Remove a constant from the InSAR_Obj.
-    # If ref_coord, then remove ref_coord.
-    # If not, then remove the median value.
+    """
+    Remove a constant from the InSAR_Obj.
+    If ref_coord, then remove ref_coord.
+    If not, then remove the median value.
+    """
     if ref_coord is None:
         constant = np.nanmedian(InSAR_Obj.LOS);
     else:
@@ -49,10 +53,12 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
 
 
 def remove_ramp_insarformat(InSAR_Obj, ref_coord=None):
-    # Plane equation: ax + by + c = z
-    # Solving Ax = B
-    # We will re-reference if provided.
-    # Otherwise, we will remove the constant associated with the ramp.
+    """"
+    Plane equation: ax + by + c = z
+    Solving Ax = B
+    We will re-reference if provided.
+    Otherwise, we will remove the constant associated with the ramp.
+    """
     Z = [];
     A = np.zeros((len(InSAR_Obj.lon), 3));
     for i in range(len(InSAR_Obj.lon)):
@@ -78,8 +84,9 @@ def remove_ramp_insarformat(InSAR_Obj, ref_coord=None):
     return new_InSAR_Obj;
 
 
-def remove_ramp_with_GPS(insar_textfile, gps_textfile):
-    return
+# FUTURE WORK:
+# def remove_ramp_with_GPS(insar_textfile, gps_textfile):
+#     return
 
 
 def plotting_ramp_results(Obj1, Obj2, filename):

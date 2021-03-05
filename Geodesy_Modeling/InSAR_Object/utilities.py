@@ -12,7 +12,7 @@ from .class_model import InSAR_Object
 # where LOS is in mm
 
 def impose_InSAR_bounding_box(InSAR_obj, bbox=(-180, 180, -90, 90)):
-    # Impose a bounding box on some InSAR data
+    """Impose a bounding box on some InSAR data"""
     lon, lat, LOS = [], [], [];
     unit_E, unit_N, unit_U = [], [], [];
     LOS_unc = [];
@@ -35,7 +35,7 @@ def impose_InSAR_bounding_box(InSAR_obj, bbox=(-180, 180, -90, 90)):
 
 
 def remove_nans(InSAR_obj):
-    # Remove Nans from some InSAR object
+    """Remove Nans from some InSAR object"""
     lon, lat, LOS = [], [], [];
     unit_E, unit_N, unit_U = [], [], [];
     LOS_unc = [];
@@ -53,6 +53,13 @@ def remove_nans(InSAR_obj):
     newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U,
                                 starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     return newInSAR_obj;
+
+
+def flip_los_sign(InSAR_obj):
+    new_InSAR_obj = InSAR_Object(lon=InSAR_obj.lon, lat=InSAR_obj.lat, LOS=np.multiply(InSAR_obj.LOS, -1),
+                                 LOS_unc=InSAR_obj.LOS_unc, lkv_E=InSAR_obj.lkv_E, lkv_N=InSAR_obj.lkv_N,
+                                 lkv_U=InSAR_obj.lkv_U, starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    return new_InSAR_obj;
 
 
 def combine_objects(Obj1, Obj2):

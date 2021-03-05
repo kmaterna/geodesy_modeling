@@ -25,7 +25,7 @@ def read_jpl_ground_range_data(data_file_slant, corr_file_slant, ann_file):
 
 
 def cut_and_write_out_igram(real, imag, corr, cut_rowcol):
-    # Cut imag, real, and corr arrays; write them in lots of formats.
+    """Cut imag, real, and corr arrays; write them in lots of formats."""
     real = real[cut_rowcol[0]:cut_rowcol[1], cut_rowcol[2]:cut_rowcol[3]];
     imag = imag[cut_rowcol[0]:cut_rowcol[1], cut_rowcol[2]:cut_rowcol[3]];
     corr = corr[cut_rowcol[0]:cut_rowcol[1], cut_rowcol[2]:cut_rowcol[3]];
@@ -69,7 +69,7 @@ def plotting_filtering(before_file, after_file):
 
 
 def multiply_igram_by_coherence_mask(after_filtering, after_filtering_corr, cutoff):
-    # Multiply by coherence mask
+    """Multiply by coherence mask"""
     phase = isce_read_write.read_phase_data(after_filtering);
     corr = isce_read_write.read_scalar_data(after_filtering_corr);
     coherence_mask = mask_and_interpolate.make_coherence_mask(corr, cutoff);
@@ -89,7 +89,7 @@ def multiply_igram_by_coherence_mask(after_filtering, after_filtering_corr, cuto
 
 
 def phase_interpolation(phase):
-    # Perform phase interpolation
+    """Perform phase interpolation"""
     interp_array = mask_and_interpolate.interpolate_2d(phase);
     xdata = range(0, np.shape(phase)[1]);
     ydata = range(0, np.shape(phase)[0]);

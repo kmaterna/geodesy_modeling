@@ -13,17 +13,24 @@ from math_tools import lkv_trig_math
 from .class_model import InSAR_Object
 
 
-# INPUT FUNCTION FOR REGULAR INVERTIBLE TEXT FILE:
 def inputs_txt(insar_textfile):
+    """Input function for invertible text file"""
     [lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(insar_textfile, unpack=True, skiprows=1);
     InSAR_Obj = InSAR_Object(lon=lon_meas, lat=lat_meas, LOS=disp*1000, LOS_unc=sig*1000, lkv_E=unit_e, lkv_N=unit_n,
                              lkv_U=unit_u, starttime=None, endtime=None);
     return InSAR_Obj;
 
 
-# INPUT FUNCTION FOR TRE-DERIVED S1 AND TSX
+def inputs_simplest_txt(insar_textfile):
+    """Input function for lon, lat, LOS (mm)"""
+    [lon_meas, lat_meas, disp] = np.loadtxt(insar_textfile, unpack=True, skiprows=1);
+    InSAR_Obj = InSAR_Object(lon=lon_meas, lat=lat_meas, LOS=disp, LOS_unc=None, lkv_E=None, lkv_N=None,
+                             lkv_U=None, starttime=None, endtime=None);
+    return InSAR_Obj;
+
+
 def inputs_TRE(filename):
-    # Reading data from SNT1 TRE data.
+    """Reading InSAR data from TRE data in excel spreadsheets."""
     print("Reading in %s" % filename);
     wb = xlrd.open_workbook(filename);
 
@@ -77,9 +84,11 @@ def inputs_TRE(filename):
 
 # INPUT FUNCTION FOR CONTRIBUTED S1 DATASET
 def inputs_cornell_ou_velocities_hdf5(filename, lkv_filename, slicenum=0):
-    # This is for one track at a time.
-    # In this case, the hdf5 file contains 5 velocity measurements for each pixel, one at each time interval.
-    # We will return whichever slicenum (0-4) is supplied
+    """
+    This is for one track at a time.
+    In this case, the hdf5 file contains 5 velocity measurements for each pixel, one at each time interval.
+    We will return whichever slicenum (0-4) is supplied
+    """
     print("Reading %s " % filename);
     f = h5py.File(filename, 'r');  # reads the hdf5 into a dictionary f
 
@@ -113,9 +122,11 @@ def inputs_cornell_ou_velocities_hdf5(filename, lkv_filename, slicenum=0):
 
 
 def inputs_isce_unw_geo_losrdr(isce_unw_filename, los_filename, time_bounds=(None, None)):
-    # Function to read a geocoded unw file and associated rdr.los.geo, and
-    # extract an InSAR object.
-    # In the return value, each field is a vector.
+    """
+    Function to read a geocoded unw file and associated rdr.los.geo, and
+    extract an InSAR object.
+    In the return value, each field is a vector.
+    """
     xarray, yarray, data = isce_read_write.read_isce_unw_geo(isce_unw_filename);
     incidence = isce_read_write.read_scalar_data(los_filename, band=1);
     azimuth = isce_read_write.read_scalar_data(los_filename, band=2);
@@ -135,6 +146,7 @@ def inputs_isce_unw_geo_losrdr(isce_unw_filename, los_filename, time_bounds=(Non
 
 
 def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
+    """A function that does displacement = rate x time"""
     numdata = np.shape(rateslice)[0] * np.shape(rateslice)[1];
     ratevector = np.reshape(rateslice, (numdata,));
     datevector = [dt.datetime.strptime(str(date_intformat[0]), "%Y%m%d"),
@@ -144,7 +156,7 @@ def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
 
 
 def convert_rates_to_disps(LOS_rates, starttime, endtime):
-    # LOS_rates is a vector. starttime/endtime are datetime objects
+    """LOS_rates is a vector. starttime/endtime are datetime objects"""
     tdelta = endtime - starttime;
     interval_years = tdelta.days / 365.24;  # the number of years spanned by the velocity.
     Disps = [i * interval_years for i in LOS_rates];
