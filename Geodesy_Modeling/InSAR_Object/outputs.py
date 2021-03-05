@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime as dt
 
 
 def write_insar_invertible_format(InSAR_obj, unc_min, filename):
@@ -34,7 +35,10 @@ def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None):
         plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow', vmin=vmin, vmax=vmax);
     else:
         plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow');
-    plt.colorbar();
-    plt.title("InSAR with %d Points " % len(InSAR_Obj.LOS));
+    cb = plt.colorbar();
+    cb.set_label('Displacement (mm)', fontsize=16);
+    starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m");
+    endtime = dt.datetime.strftime(InSAR_Obj.endtime, "%Y-%m");
+    plt.title("InSAR with %d Points from %s to %s" % (len(InSAR_Obj.LOS), starttime, endtime));
     plt.savefig(plotname);
     return;

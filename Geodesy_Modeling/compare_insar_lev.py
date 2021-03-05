@@ -123,7 +123,7 @@ def drive_single_uavsar_intf_comparison(myLev, bounds, uavsar_filename, los_file
 
 def drive_tre_comparison(myLev, los_filename, lev_slice, outfile):
     """Read TRE data and compare with leveling"""
-    VertTSXData, EastTSXData = InSAR_Object.inputs.inputs_TRE(los_filename);
+    VertTSXData, EastTSXData = InSAR_Object.inputs.inputs_TRE_vert_east(los_filename);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
     one_to_one_comparison(myLev, VertTSXData, "TSX", outfile);
     InSAR_Object.outputs.plot_insar(VertTSXData, outfile+"InSAR_velo.png");

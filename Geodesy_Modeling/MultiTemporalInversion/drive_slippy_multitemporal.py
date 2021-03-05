@@ -5,7 +5,7 @@
 import sys
 import json
 import subprocess
-import buildG
+from . import buildG
 
 
 def welcome_and_parse(argv):

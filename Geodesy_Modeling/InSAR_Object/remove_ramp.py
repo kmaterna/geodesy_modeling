@@ -99,7 +99,7 @@ def plotting_ramp_results(Obj1, Obj2, filename):
     axarr[1].scatter(Obj2.lon, Obj2.lat, c=Obj2.LOS, cmap='rainbow', vmin=vmin, vmax=vmax);
     axarr[1].set_title('Object Without Ramps');
 
-    cbarax = f.add_axes([0.75, 0.35, 0.2, 0.3], visible=False);
+    _ = f.add_axes([0.75, 0.35, 0.2, 0.3], visible=False);
     color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
     custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='rainbow');
     custom_cmap.set_array(np.arange(vmin, vmax));

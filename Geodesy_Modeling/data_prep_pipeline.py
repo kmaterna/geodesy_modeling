@@ -179,7 +179,7 @@ def write_tsx_tre_displacements(config):
             print("\nStarting to extract TSX TRE-format from %s " % (new_interval_dict["tsx_filename"]));
 
             # We can get both vertical and east from the TRE data.
-            Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE(new_interval_dict["tsx_filename"]);
+            Vert_InSAR, East_InSAR = InSAR_Object.inputs.inputs_TRE_vert_east(new_interval_dict["tsx_filename"]);
             Vert_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box vertical
             East_InSAR = InSAR_Object.utilities.impose_InSAR_bounding_box(East_InSAR, new_interval_dict[

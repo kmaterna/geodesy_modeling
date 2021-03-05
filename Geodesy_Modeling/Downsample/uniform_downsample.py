@@ -13,6 +13,11 @@ from ..InSAR_Object import class_model
 
 
 def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
+    """
+    InSAR_obj : an InSAR_Object with 1D columns of data
+    sampling_interval : degrees, float
+    averaging_window : degrees, float
+    """
     print("Uniform downsampling: Starting with %d points " % (len(InSAR_obj.lon)));
 
     # Step 1: Create uniform downsampled arrays
@@ -62,12 +67,12 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     ds_lon = np.reshape(X, (len(x_array) * len(y_array),));
     ds_lat = np.reshape(Y, (len(x_array) * len(y_array),));
     ds_LOS = np.reshape(new_obs_array, (len(x_array) * len(y_array),));
-    # ds_LOS_unc = np.reshape(new_obs_unc, (len(x_array) * len(y_array),));
+    # ds_LOS_unc = np.reshape(new_obs_unc, (len(x_array) * len(y_array),));   # not sure how to handle average unc.
     ds_lkv_e = np.reshape(new_e, (len(x_array) * len(y_array),));
     ds_lkv_n = np.reshape(new_n, (len(x_array) * len(y_array),));
     ds_lkv_u = np.reshape(new_u, (len(x_array) * len(y_array),));
 
-    ds_InSAR_obj = class_model.InSAR_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=InSAR_obj.LOS_unc,
+    ds_InSAR_obj = class_model.InSAR_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=None,
                                             lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u,
                                             starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     print("Done with downsampling: Ending with %d points " % (len(ds_lon)));
@@ -78,6 +83,7 @@ def get_average_within_box(lonlist, latlist, target_lon, target_lat, averaging_w
     """
     averaging window in degrees
     Search the averaging window in both directions from the target loc, and average the data
+    Could this have better performance?
     """
     new_data = [];
     for i in range(len(lonlist)):

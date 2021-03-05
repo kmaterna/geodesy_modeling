@@ -6,12 +6,6 @@ import numpy as np
 from ..InSAR_Object import class_model
 
 
-# InSAR Object is my standard format:
-# InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U',
-#                                                       'starttime','endtime']);
-# where LOS is in mm
-
-
 def uniform_downsampling(InSAR_obj, spatial_wavelength_x, spatial_wavelength_y):
     print("Spatial Filtering: Starting with %d points " % (len(InSAR_obj.LOS)));
     print("STOP! Filtering algorithm is not written yet!!!! ");

@@ -29,7 +29,7 @@ def inputs_simplest_txt(insar_textfile):
     return InSAR_Obj;
 
 
-def inputs_TRE(filename):
+def inputs_TRE_vert_east(filename):
     """Reading InSAR data from TRE data in excel spreadsheets."""
     print("Reading in %s" % filename);
     wb = xlrd.open_workbook(filename);
@@ -58,11 +58,18 @@ def inputs_TRE(filename):
         starttime = dt.datetime.strptime("2012-09-01", "%Y-%m-%d");
         endtime = dt.datetime.strptime("2013-09-01", "%Y-%m-%d");  # Hard coded for this experiment.
     elif "SNT1" in filename:
-        starttime = dt.datetime.strptime("2014-04-01", "%Y-%m-%d");
+        starttime = dt.datetime.strptime("2015-04-01", "%Y-%m-%d");
         endtime = dt.datetime.strptime("2018-04-01", "%Y-%m-%d");  # Hard coded for this experiment.
     elif "SNT2" in filename:
         starttime = dt.datetime.strptime("2018-05-01", "%Y-%m-%d");
         endtime = dt.datetime.strptime("2019-08-01", "%Y-%m-%d");  # Hard coded for this experiment.
+    elif "ENV_2005" in filename:
+        starttime = dt.datetime.strptime("2005-08-01", "%Y-%m-%d");  # for Heber experiment, vertical/east
+        endtime = dt.datetime.strptime("2010-08-01", "%Y-%m-%d");  # for Heber experiment, vertical/east
+        # Heber dataset:
+        # ascending: 12-2003 to 08-2010 (but denser data starts at 08-2005)
+        # descending: 02-2003 to 09-2010
+        # vertical/east : 08-2005 to 08-2010
     else:
         print("Unrecognized TRE filename option! Cannot find start and end times.  Exiting...");
         sys.exit(0);
