@@ -188,7 +188,7 @@ def inputs_leveling_heber(infile):
     for i in range(35, 60):  # take the first column of the third sheet
         dtarray.append(dt.datetime.strptime(data[i][0], "%b %Y"));
 
-    # Get locations of benchmarks and reference benchmark
+    # Get locations of benchmarks and reference benchmark, with the reference in the first line.
     sheet = wb.sheet_by_index(1);
     numcols = sheet.ncols;
     numrows = sheet.nrows;
@@ -205,7 +205,6 @@ def inputs_leveling_heber(infile):
             all_lons.append(float(lonstring));
     reflat = all_lats[0];
     reflon = all_lons[0];
-    print(reflat)
 
     # Extract each station's leveling data
     for colnum in range(2, 35):  # for each station's leveling data
@@ -215,7 +214,10 @@ def inputs_leveling_heber(infile):
             if data[i][colnum] == "NOT FOUND":
                 levarray.append(np.nan);
             else:
-                levarray.append(float(data[i][colnum]));
+                if abs(float(data[i][colnum])) > 1:  # one bad measurement in the spreadsheet, AF-59
+                    levarray.append(np.nan);
+                else:
+                    levarray.append(float(data[i][colnum]));
         station_lon_idx = locnames.index(station_name);
 
         new_station = LevStation(name=station_name, lat=all_lats[station_lon_idx], lon=all_lons[station_lon_idx],

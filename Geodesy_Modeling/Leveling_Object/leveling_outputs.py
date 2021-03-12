@@ -22,9 +22,11 @@ def plot_leveling_displacements(leveling_stations, outfile):
 
 
 def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
-    """One header line
+    """
+    One header line
     One datum line (automatically first in the leveling array anyway)
-    Lon, lat, disp, sigma, 0, 0, 1 (in m)"""
+    Lon, lat, disp, sigma, 0, 0, 1 (in m)
+    """
     print("Writing leveling to file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" %
@@ -44,5 +46,15 @@ def plot_simple_leveling(txtfile, plotname):
     plt.figure(dpi=300);
     plt.scatter(lon, lat, c=disp, s=40, cmap='rainbow')
     plt.colorbar();
+    plt.savefig(plotname);
+    return;
+
+
+def basic_ts_plot(leveling_object, plotname):
+    plt.figure(figsize=(10, 7), dpi=300);
+    for item in leveling_object:
+        plt.plot(item.dtarray, item.leveling);
+    plt.xlabel('Time');
+    plt.ylabel('Leveling (m)');
     plt.savefig(plotname);
     return;
