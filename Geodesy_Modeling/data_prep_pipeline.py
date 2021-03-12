@@ -4,6 +4,7 @@
 # 1. Get GPS; make relative to benchmark
 # 2. Put InSAR relative to chosen GPS benchmark; solve for ramps etc; downsample
 # 3. Get Leveling
+import Geodesy_Modeling.Leveling_Object.leveling_outputs
 from Geodesy_Modeling.Leveling_Object import leveling_inputs
 import Geodesy_Modeling.multiSAR_utilities
 import numpy as np
@@ -84,14 +85,14 @@ def write_leveling_displacements(config):
         print("\nPreparing leveling for file %s" % new_interval_dict["lev_outfile"])
         myLev = leveling_inputs.inputs_leveling(new_interval_dict["leveling_filename"],
                                                 new_interval_dict["leveling_errors_filename"]);
-        myLev = leveling_inputs.compute_rel_to_datum_nov_2009(
-            myLev);  # Computing relative displacements from 2009 onward
-        leveling_inputs.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
-                                                         new_interval_dict["leveling_end"],
-                                                         new_interval_dict["leveling_unc"],
-                                                         config["prep_inputs_dir"] + new_interval_dict["lev_outfile"]);
-        leveling_inputs.plot_leveling(config["prep_inputs_dir"] + new_interval_dict["lev_outfile"],
-                                      config["prep_inputs_dir"] + new_interval_dict["lev_plot"]);
+        myLev = leveling_inputs.compute_rel_to_datum_nov_2009(myLev);  # Computing relative displacements after 2009
+        myLev = leveling_inputs.convert_lev_old_object_to_new_objects(myLev);  # to a list of leveling benchmarks
+        Geodesy_Modeling.Leveling_Object.leveling_outputs.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
+                                                                                           new_interval_dict["leveling_end"],
+                                                                                           new_interval_dict["leveling_unc"],
+                                                                                           config["prep_inputs_dir"] + new_interval_dict["lev_outfile"]);
+        Geodesy_Modeling.Leveling_Object.leveling_outputs.plot_simple_leveling(config["prep_inputs_dir"] + new_interval_dict["lev_outfile"],
+                                                                               config["prep_inputs_dir"] + new_interval_dict["lev_plot"]);
     return;
 
 

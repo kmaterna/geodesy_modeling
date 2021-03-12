@@ -33,7 +33,7 @@ def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
     Fast function because of numpy math"""
     dist = np.sqrt(np.power(np.subtract(vector_lon, target_lon), 2) + np.power(np.subtract(vector_lat, target_lat), 2));
     minimum_distance = np.nanmin(dist);
-    close_pixels = np.where(dist<0.0009);  # the runner-up close pixels, about 100 of them
+    close_pixels = np.where(dist < 0.0009);  # the runner-up close pixels, about 100 of them
     if minimum_distance < 0.003:  # if we're inside the domain.
         idx = np.where(dist == np.nanmin(dist));
         i_found = idx[0][0];

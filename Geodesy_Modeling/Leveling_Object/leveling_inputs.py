@@ -1,14 +1,16 @@
 # A series of functions for io of leveling data
 # LEVELING INPUT FUNCTIONS FOR CEC SALTON TROUGH LEVELING DATA
+# Slightly annoying read functions
 
 import collections
 import datetime as dt
 import numpy as np
 import xlrd
-from matplotlib import pyplot as plt
 
-LevData = collections.namedtuple("LevData", ["name", "lat", "lon", "dtarray", "leveling"]);
-
+LevData_Network = collections.namedtuple("LevData_Network", ["name", "lat", "lon", "dtarray", "leveling"]);
+# LevData_Network: old format, do not develop with it.
+LevStation = collections.namedtuple("LevStation", ["name", "lat", "lon", "dtarray", "leveling", "reflon", "reflat"]);
+# LevStation: new format, one object for each station. Develop with this one.  Units of meters.
 
 def inputs_leveling(data_filename, errors_filename):
     """Read leveling from CEC Salton Trough leveling data"""
@@ -38,16 +40,14 @@ def inputs_leveling(data_filename, errors_filename):
         single_leveling_array = clean_single_ts(single_leveling_array);
         leveling_array.append(single_leveling_array);
 
-    myLev = LevData(name=names, lon=lons, lat=lats, dtarray=dtarray, leveling=leveling_array);
+    myLev = LevData_Network(name=names, lon=lons, lat=lats, dtarray=dtarray, leveling=leveling_array);
     return myLev;
 
 
 def read_errors(filename):
     print("Reading documented errors in %s " % filename)
-    rownum = [];
-    colnum = [];
-    old_values = [];
-    new_values = [];
+    rownum, colnum = [], [];
+    old_values, new_values = [], [];
     ifile = open(filename, 'r');
     for line in ifile:
         temp = line.split("::");
@@ -102,8 +102,7 @@ def get_datetimes(timestrings):
 
 def match_lon_lat(names, lats, lons, ll_names):
     """Pair up the latlon info with the timeseries info"""
-    matched_lons = [];
-    matched_lats = [];
+    matched_lons, matched_lats = [], [];
     for i in range(len(names)):
         find_name = names[i];
         if names[i] == "Y-1225 Datum":
@@ -129,9 +128,11 @@ def clean_single_ts(array):
 def compute_rel_to_datum_nov_2009(data):
     """Skips the 2008 measurement. Returns an object that is 83x10"""
     arrays_of_ref_leveling = [];
+    referenced_dates, referenced_data = [], [];
     for i in range(len(data.name)):
 
         # Automatically find the first day that matters.  Either after 2008 or has data.
+        idx = 0;
         for j in range(len(data.dtarray)):
             if ~np.isnan(data.leveling[i][j]) and data.dtarray[j] > dt.datetime.strptime("2009-01-01", "%Y-%m-%d"):
                 idx = j;  # this is the first date after 2009 that has data
@@ -155,35 +156,71 @@ def compute_rel_to_datum_nov_2009(data):
                 referenced_data.append(data.leveling[i][j] - data.leveling[i][idx]);
 
         arrays_of_ref_leveling.append(referenced_data);
-    referenced_object = LevData(name=data.name, lon=data.lon, lat=data.lat, dtarray=referenced_dates,
-                                leveling=arrays_of_ref_leveling);
+    referenced_object = LevData_Network(name=data.name, lon=data.lon, lat=data.lat, dtarray=referenced_dates,
+                                        leveling=arrays_of_ref_leveling);
     return referenced_object;
 
 
-# -------------- WRITE FUNCTIONS ------------- #
-
-def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
-    """One header line
-    One datum line (automatically first in the leveling array anyway)
-    Lon, lat, disp, sigma, 0, 0, 1 (in m)"""
-    print("Writing leveling to file %s " % filename);
-    ofile = open(filename, 'w');
-    ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" %
-                (dt.datetime.strftime(myLev.dtarray[idx1], "%Y-%m-%d"),
-                 dt.datetime.strftime(myLev.dtarray[idx2], "%Y-%m-%d")))
-    for i in range(len(myLev.leveling)):
-        data = myLev.leveling[i][idx2] - myLev.leveling[i][idx1];
-        if ~np.isnan(data):
-            ofile.write("%f %f %f %f 0 0 1\n" % (myLev.lon[i], myLev.lat[i], data, unc))
-    ofile.close();
-    return;
+def convert_lev_old_object_to_new_objects(LevData_Network_Object):
+    """Take object from previous read-in structure and convert it to a list of LevStation objects"""
+    LevStationList = [];
+    for i in range(len(LevData_Network_Object.name)):
+        new_object = LevStation(name=LevData_Network_Object.name[i], lon=LevData_Network_Object.lon[i],
+                                lat=LevData_Network_Object.lat[i], dtarray=LevData_Network_Object.dtarray,
+                                leveling=LevData_Network_Object.leveling[i],
+                                reflon=LevData_Network_Object.lon[0], reflat=LevData_Network_Object.lat[0]);
+        LevStationList.append(new_object);
+    return LevStationList;
 
 
-def plot_leveling(txtfile, plotname):
-    print("Plotting leveling in file %s " % plotname);
-    [lon, lat, disp] = np.loadtxt(txtfile, unpack=True, skiprows=1, usecols=(0, 1, 2));
-    plt.figure(dpi=300);
-    plt.scatter(lon, lat, c=disp, s=40, cmap='rainbow')
-    plt.colorbar();
-    plt.savefig(plotname);
-    return;
+def inputs_leveling_heber(infile):
+    """CEC HEBER LEVELING SPREADSHEET"""
+    station_list = [];
+    print("Reading in %s" % infile);
+    wb = xlrd.open_workbook(infile);
+    sheet = wb.sheet_by_index(2);
+    numcols = sheet.ncols;
+    numrows = sheet.nrows;
+    data = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
+
+    # Get dates
+    dtarray = [];
+    for i in range(35, 60):  # take the first column of the third sheet
+        dtarray.append(dt.datetime.strptime(data[i][0], "%b %Y"));
+
+    # Get locations of benchmarks and reference benchmark
+    sheet = wb.sheet_by_index(1);
+    numcols = sheet.ncols;
+    numrows = sheet.nrows;
+    locdata = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
+    locnames = []; all_lons = []; all_lats = [];
+    for i in range(1, 185):
+        if locdata[i][1] != "":
+            latstring = str(locdata[i][1]);
+            latstring = latstring.replace('..', '.');
+            lonstring = str(locdata[i][2]);
+            lonstring = lonstring.replace('..', '.');
+            locnames.append(locdata[i][0]);
+            all_lats.append(float(latstring));
+            all_lons.append(float(lonstring));
+    reflat = all_lats[0];
+    reflon = all_lons[0];
+    print(reflat)
+
+    # Extract each station's leveling data
+    for colnum in range(2, 35):  # for each station's leveling data
+        station_name = data[34][colnum];  # the string station name
+        levarray = [];
+        for i in range(35, 60):
+            if data[i][colnum] == "NOT FOUND":
+                levarray.append(np.nan);
+            else:
+                levarray.append(float(data[i][colnum]));
+        station_lon_idx = locnames.index(station_name);
+
+        new_station = LevStation(name=station_name, lat=all_lats[station_lon_idx], lon=all_lons[station_lon_idx],
+                                 dtarray=dtarray, leveling=levarray, reflon=reflon, reflat=reflat);
+
+        station_list.append(new_station);
+    print("Returning %d leveling stations " % len(station_list));
+    return station_list;
