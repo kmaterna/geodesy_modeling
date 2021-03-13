@@ -3,11 +3,11 @@
 # Impose Bounding Box
 
 import numpy as np
-from .class_model import InSAR_Object
+from .class_model import InSAR_1D_Object
 
 
 # InSAR Object is my standard format:
-# InSAR_Object = collections.namedtuple('InSAR_Object',
+# InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object',
 # ['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
 # where LOS is in mm
 
@@ -29,8 +29,8 @@ def impose_InSAR_bounding_box(InSAR_obj, bbox=(-180, 180, -90, 90)):
                     unit_E.append(InSAR_obj.lkv_E[i]);
                     unit_N.append(InSAR_obj.lkv_N[i]);
                     unit_U.append(InSAR_obj.lkv_U[i]);
-    newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U,
-                                starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U,
+                                   starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     return newInSAR_obj;
 
 
@@ -50,15 +50,15 @@ def remove_nans(InSAR_obj):
             unit_E.append(InSAR_obj.lkv_E[i]);
             unit_N.append(InSAR_obj.lkv_N[i]);
             unit_U.append(InSAR_obj.lkv_U[i]);
-    newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U,
-                                starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N, lkv_U=unit_U,
+                                   starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     return newInSAR_obj;
 
 
 def flip_los_sign(InSAR_obj):
-    new_InSAR_obj = InSAR_Object(lon=InSAR_obj.lon, lat=InSAR_obj.lat, LOS=np.multiply(InSAR_obj.LOS, -1),
-                                 LOS_unc=InSAR_obj.LOS_unc, lkv_E=InSAR_obj.lkv_E, lkv_N=InSAR_obj.lkv_N,
-                                 lkv_U=InSAR_obj.lkv_U, starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    new_InSAR_obj = InSAR_1D_Object(lon=InSAR_obj.lon, lat=InSAR_obj.lat, LOS=np.multiply(InSAR_obj.LOS, -1),
+                                    LOS_unc=InSAR_obj.LOS_unc, lkv_E=InSAR_obj.lkv_E, lkv_N=InSAR_obj.lkv_N,
+                                    lkv_U=InSAR_obj.lkv_U, starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     return new_InSAR_obj;
 
 
@@ -70,6 +70,6 @@ def combine_objects(Obj1, Obj2):
     lkv_E = np.hstack((Obj1.lkv_E, Obj2.lkv_E));
     lkv_N = np.hstack((Obj1.lkv_N, Obj2.lkv_N));
     lkv_U = np.hstack((Obj1.lkv_U, Obj2.lkv_U));
-    newInSAR_obj = InSAR_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
-                                starttime=Obj1.starttime, endtime=Obj1.endtime);
+    newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
+                                   starttime=Obj1.starttime, endtime=Obj1.endtime);
     return newInSAR_obj;

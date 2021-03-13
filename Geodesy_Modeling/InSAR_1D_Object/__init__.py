@@ -1,5 +1,4 @@
-
-from .class_model import InSAR_Object
+from .class_model import InSAR_1D_Object
 from . import inputs
 from . import outputs
 from . import remove_coseismic_model

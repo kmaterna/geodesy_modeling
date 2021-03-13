@@ -1,3 +1,3 @@
 from . import Downsample
-from . import InSAR_Object
+from . import InSAR_1D_Object
 from . import Leveling_Object

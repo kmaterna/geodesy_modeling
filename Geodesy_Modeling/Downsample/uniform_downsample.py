@@ -3,18 +3,18 @@
 
 import numpy as np
 from .. import multiSAR_utilities
-from ..InSAR_Object import class_model
+from ..InSAR_1D_Object import class_model
 
 
 # InSAR Object is my standard format:
-# InSAR_Object = collections.namedtuple('InSAR_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U',
+# InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U',
 #                                                        'starttime','endtime']);
 # where LOS is in mm
 
 
 def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     """
-    InSAR_obj : an InSAR_Object with 1D columns of data
+    InSAR_obj : an InSAR_1D_Object with 1D columns of data
     sampling_interval : degrees, float
     averaging_window : degrees, float
     """
@@ -72,9 +72,9 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     ds_lkv_n = np.reshape(new_n, (len(x_array) * len(y_array),));
     ds_lkv_u = np.reshape(new_u, (len(x_array) * len(y_array),));
 
-    ds_InSAR_obj = class_model.InSAR_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=None,
-                                            lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u,
-                                            starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    ds_InSAR_obj = class_model.InSAR_1D_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=None,
+                                               lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u,
+                                               starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     print("Done with downsampling: Ending with %d points " % (len(ds_lon)));
     return ds_InSAR_obj;
 

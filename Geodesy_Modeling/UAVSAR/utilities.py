@@ -1,10 +1,10 @@
 
 import numpy as np
-from ..InSAR_Object import class_model
+from ..InSAR_1D_Object import class_model
 
 
 # GrdTSData = collections.namedtuple("GrdTSData", ["dtarray", "lon", "lat", "TS"]);
-# InSAR_Object = collections.namedtuple('InSAR_Object', ['lon', 'lat', 'LOS', 'LOS_unc',
+# InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object', ['lon', 'lat', 'LOS', 'LOS_unc',
 #                                                        'lkv_E', 'lkv_N', 'lkv_U', 'starttime', 'endtime']);
 
 def avg_uavsar_disp(TS, slicenum, row, col):
@@ -14,7 +14,7 @@ def avg_uavsar_disp(TS, slicenum, row, col):
 
 
 def get_onetime_displacements(myGridTS, start_idx, end_idx):
-    """ Turns a GridTS object into an InSAR_Object.
+    """ Turns a GridTS object into an InSAR_1D_Object.
     Turning a raster into a vector in the process."""
     los_raster = np.subtract(myGridTS.TS[end_idx][:,:], myGridTS.TS[start_idx][:,:]);
     los_vector = np.reshape(los_raster, (np.size(los_raster),));
