@@ -1,7 +1,7 @@
 # A series of functions for io of leveling data
-# LEVELING INPUT FUNCTIONS FOR CEC SALTON TROUGH LEVELING DATA
-import datetime as dt
+# LEVELING OUTPUT FUNCTIONS
 
+import datetime as dt
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -9,14 +9,17 @@ from matplotlib import pyplot as plt
 # -------------- WRITE FUNCTIONS ------------- #
 
 def plot_leveling_displacements(leveling_stations, outfile):
-    """Plot a leveling object"""
+    """
+    Plot a leveling object at the last time-step
+    Benchmarks without data at the last time-step are not shown.
+    """
     disp = [item.leveling[-1] for item in leveling_stations];
     lon = [item.lon for item in leveling_stations];
     lat = [item.lat for item in leveling_stations];
     plt.figure();
     plt.scatter(lon, lat, c=disp, s=40, cmap='rainbow');
     plt.plot(leveling_stations[0].reflon, leveling_stations[0].reflat, marker='*');
-    plt.colorbar();
+    plt.colorbar(label="Leveling displacements (m)");
     plt.savefig(outfile);
     return;
 
@@ -61,5 +64,20 @@ def basic_ts_plot(leveling_object, plotname):
         plt.plot(item.dtarray, item.leveling);
     plt.xlabel('Time');
     plt.ylabel('Leveling (m)');
+    plt.savefig(plotname);
+    return;
+
+
+def plot_leveling_slopes(leveling_object, slopes, description, plotname):
+    """
+    Plot a color map of leveling benchmark slopes
+    """
+    lon = [item.lon for item in leveling_object];
+    lat = [item.lat for item in leveling_object];
+    plt.figure();
+    plt.scatter(lon, lat, c=slopes, s=40, vmin=-0.020, vmax=0.020, cmap='RdBu');
+    plt.plot(leveling_object[0].reflon, leveling_object[0].reflat, marker='*');
+    plt.title(description, fontsize=20);
+    plt.colorbar(label='Displacement Rate (m/yr)');
     plt.savefig(plotname);
     return;
