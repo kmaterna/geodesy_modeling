@@ -8,9 +8,10 @@ import numpy as np
 import xlrd
 
 LevData_Network = collections.namedtuple("LevData_Network", ["name", "lat", "lon", "dtarray", "leveling"]);
-# LevData_Network: old format, do not develop with it.
+#    LevData_Network: old format, still keeping for Brawley, but do not develop new code with it.
 LevStation = collections.namedtuple("LevStation", ["name", "lat", "lon", "dtarray", "leveling", "reflon", "reflat"]);
-# LevStation: new format, one object for each station. Develop with this one.  Units of meters.
+#    LevStation: new format, one object for each station. Develop with this one.  Units of meters.
+
 
 def inputs_leveling(data_filename, errors_filename):
     """Read leveling from CEC Salton Trough leveling data"""
@@ -174,19 +175,10 @@ def convert_lev_old_object_to_new_objects(LevData_Network_Object):
 
 
 def inputs_leveling_heber(infile):
-    """CEC HEBER LEVELING SPREADSHEET"""
+    """CEC HEBER LEVELING SPREADSHEET INTO LIST OF LEVELING OBJECTS"""
     station_list = [];
     print("Reading in %s" % infile);
     wb = xlrd.open_workbook(infile);
-    sheet = wb.sheet_by_index(2);
-    numcols = sheet.ncols;
-    numrows = sheet.nrows;
-    data = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
-
-    # Get dates
-    dtarray = [];
-    for i in range(35, 60):  # take the first column of the third sheet
-        dtarray.append(dt.datetime.strptime(data[i][0], "%b %Y"));
 
     # Get locations of benchmarks and reference benchmark, with the reference in the first line.
     sheet = wb.sheet_by_index(1);
@@ -206,23 +198,30 @@ def inputs_leveling_heber(infile):
     reflat = all_lats[0];
     reflon = all_lons[0];
 
+    # Get leveling data from the spreadsheet
+    sheet = wb.sheet_by_index(0);
+    numcols = sheet.ncols;
+    numrows = sheet.nrows;
+    data = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
+
+    # Get dates for all leveling array
+    dtarray = [];
+    for i in range(32, 57):  # take the first column of the third sheet
+        dtarray.append(dt.datetime.strptime(data[i][0], "%b %Y"));
+
     # Extract each station's leveling data
-    for colnum in range(2, 35):  # for each station's leveling data
-        station_name = data[34][colnum];  # the string station name
+    for colnum in range(5, 163):  # for each station's leveling data
+        station_name = data[31][colnum];  # the string station name
         levarray = [];
-        for i in range(35, 60):
-            if data[i][colnum] == "NOT FOUND":
+        for i in range(32, 57):
+            if data[i][colnum] in ["DESTROYED", "", "NOT FOUND", "?", "UNACCESSABLE ", "LOST"]:
                 levarray.append(np.nan);
             else:
-                if abs(float(data[i][colnum])) > 1:  # one bad measurement in the spreadsheet, AF-59
-                    levarray.append(np.nan);
-                else:
-                    levarray.append(float(data[i][colnum]));
+                levarray.append(float(data[i][colnum]));
+        # print(station_name, len(levarray), len(dtarray));
         station_lon_idx = locnames.index(station_name);
-
         new_station = LevStation(name=station_name, lat=all_lats[station_lon_idx], lon=all_lons[station_lon_idx],
                                  dtarray=dtarray, leveling=levarray, reflon=reflon, reflat=reflat);
-
         station_list.append(new_station);
     print("Returning %d leveling stations " % len(station_list));
     return station_list;

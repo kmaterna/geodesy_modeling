@@ -24,7 +24,7 @@ def plot_leveling_displacements(leveling_stations, outfile):
 def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
     """
     One header line
-    One datum line (automatically first in the leveling array anyway)
+    One datum line (assuming the whole network is with respect to the same reference datum)
     Lon, lat, disp, sigma, 0, 0, 1 (in m)
     """
     print("Writing leveling to file %s " % filename);
@@ -32,7 +32,12 @@ def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
     ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" %
                 (dt.datetime.strftime(myLev[0].dtarray[idx1], "%Y-%m-%d"),
                  dt.datetime.strftime(myLev[0].dtarray[idx2], "%Y-%m-%d")))
+    # write reference line, hard coded to be 0
+    ofile.write("%f %f 0.0 %f 0 0 1\n" % (myLev[0].reflon, myLev[0].reflat, unc) );
+    # write all other lines
     for station in myLev:
+        if station.lon == station.reflon and station.lat == station.reflat:
+            continue;
         data = station.leveling[idx2] - station.leveling[idx1];
         if ~np.isnan(data):
             ofile.write("%f %f %f %f 0 0 1\n" % (station.lon, station.lat, data, unc))
