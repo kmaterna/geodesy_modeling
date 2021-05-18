@@ -5,6 +5,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Tectonic_Utils.geodesy import haversine
+from Tectonic_Utils.geodesy import fault_vector_functions
 
 
 def read_surface_fault_trace(infile):
@@ -26,7 +27,7 @@ def split_fault_trace(fault_trace, typical_spacing_km):
     """
     Algorithm: Walk up the fault in chunks.  If the chunk is smaller than typical_spacing_km, it becomes one segment.
     Otherwise we split the segment into something similar to typical_spacing_km.
-    Returns: [starting lon, starting_lat, strike, length] for each fault trace segment
+    Returns: (starting lon, starting_lat, strike, length, ending_lon, ending_lat) for each fault trace segment
     """
     all_fault_segments = [];
     for i in range(1, len(fault_trace[0])):
@@ -59,6 +60,28 @@ def split_fault_trace(fault_trace, typical_spacing_km):
                 all_fault_segments.append(one_fault_segment);
     print("Meshed fault trace of %d segments into %d segments " % (len(fault_trace[0]), len(all_fault_segments)));
     return all_fault_segments;
+
+
+def convert_2d_segments_to_internal_fault_dictionary(fault_segments, dip, dip_direction, top_depth, bottom_depth,
+                                                     slip_cm, rake):
+    """
+    fault_segment includes: (starting lon, starting_lat, strike, length, ending_lon, ending_lat)
+    where starting_lon is probably south of ending_lon.
+    We are converting to the internal fault_dictionary format from Elastic_stresses_py
+    """
+    fault_dict_list = [];
+    for item in fault_segments:
+        # Flip strike/dip if necessary
+        if dip_direction == 'south':
+            strike = item[2] - 180;
+            # Do I flip the lon/lat to the other corner here too?  Not totally sure.  Should test this.
+        else:
+            strike = item[2];
+        downdip_width = fault_vector_functions.get_downdip_width(top_depth, bottom_depth, dip);
+        new_fault = {"strike": strike, "dip": dip, "length": item[3], "rake": rake, "slip": slip_cm / 100,
+                     "tensile": 0, "depth": top_depth, "width": downdip_width, "lon": item[0], "lat": item[1]};
+        fault_dict_list.append(new_fault);
+    return fault_dict_list;
 
 
 def plot_surface_fault_and_segments(surface_fault, all_fault_segments, outfile="surface_segments.png"):
