@@ -125,6 +125,12 @@ def beginning_calc(config):
             obs_gps_pos_geo = gps_input[0]
             obs_pos_geo_basemap = obs_gps_pos_geo[:, None, :].repeat(3, axis=1).reshape((Ngps * 3, 3))
             break;
+        if config["data_files"][dataset]["type"] == "leveling":
+            lev_input = slippy.io.read_insar_data(config["data_files"][dataset]["data_file"]);
+            Ngps = len(lev_input[0])
+            obs_gps_pos_geo = lev_input[0]
+            obs_pos_geo_basemap = obs_gps_pos_geo[:, None, :].repeat(3, axis=1).reshape((Ngps * 3, 3))
+            break;
     bm = plotting_library.create_default_basemap(obs_pos_geo_basemap[:, 0], obs_pos_geo_basemap[:, 1])
     number_of_datasets = len(config["data_files"].keys());
 
