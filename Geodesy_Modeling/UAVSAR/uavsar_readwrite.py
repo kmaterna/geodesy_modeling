@@ -2,7 +2,6 @@ import datetime as dt
 import matplotlib
 import numpy as np
 import collections
-import stacking_utilities
 from .. import multiSAR_utilities
 from Tectonic_Utils.read_write import netcdf_read_write
 from matplotlib import pyplot as plt, cm as cm
@@ -30,7 +29,7 @@ def inputs_TS_grd(filename, lonfile, latfile, day0=dt.datetime.strptime("2009-04
     zdata_correct_size = [];
     if np.shape(zdata[0])[0] == np.shape(lon)[0]+1 and np.shape(zdata[0])[1] == np.shape(lat)[1]+1:
         for i in range(len(zdata)):
-            zdata_correct_size.append(zdata[i][0:-1,0:-1]);  # cutting off one pixel on each end for pixel node problem
+            zdata_correct_size.append(zdata[i][0:-1, 0:-1]);  # cutting off one pixel on each end for pixel node problem
     else:
         zdata_correct_size = zdata;
     dtarray = [];
@@ -73,7 +72,7 @@ def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incr
         gps_i_flipped = [np.shape(data)[1] - x for x in gps_i];
 
         # Plotting now
-        rownum, colnum = stacking_utilities.get_axarr_numbers(num_cols_plots, i);
+        rownum, colnum = get_axarr_numbers(num_cols_plots, i);
         if i == 0 and incremental is True:
             axarr[rownum][colnum].set_visible(False);
             continue;
@@ -94,6 +93,14 @@ def plot_grid_TS_redblue(TS_GRD_OBJ, outfile, vmin=-50, vmax=200, aspect=1, incr
 
     plt.savefig(outfile);
     return;
+
+
+def get_axarr_numbers(cols, idx):
+    """Given an incrementally counting idx number and a subplot dimension, where is our plot?
+    total_plots = rows * cols; """
+    col_num = np.mod(idx, cols);
+    row_num = int(np.floor(idx / cols));
+    return row_num, col_num;
 
 
 def plot_pixel_ts(TS, dtarray, i, j, name, outdir):

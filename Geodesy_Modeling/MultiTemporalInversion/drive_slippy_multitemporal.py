@@ -6,8 +6,7 @@
 import sys
 import json
 import subprocess
-# from . import buildG   # there's an import/IDE/path problem here...
-from Geodesy_Modeling.Geodesy_Modeling.MultiTemporalInversion import buildG
+from . import buildG
 
 
 def welcome_and_parse(argv):

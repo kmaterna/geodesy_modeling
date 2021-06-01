@@ -1,18 +1,18 @@
-# June 2020
-# Getting ready for a multi-datasource, multi-time-step inversion
-# STEPS: 
-# 1. Get GPS; make relative to benchmark
-# 2. Put InSAR relative to chosen GPS benchmark; solve for ramps etc; downsample
-# 3. Get Leveling
-import Geodesy_Modeling.Leveling_Object.leveling_outputs
-from Geodesy_Modeling.Leveling_Object import leveling_inputs
-import Geodesy_Modeling.multiSAR_utilities
+#!/usr/bin/env python
+
+# Prepare data for a multi-datasource, multi-time-step inversion
+# GNSS: make relative to benchmark
+# INSAR: make relative to chosen benchmark; solve for ramps; downsample
+# Leveling: write out
+
+from Geodesy_Modeling import Leveling_Object
 import numpy as np
 import sys, json
 import subprocess
 import datetime as dt
 from Geodesy_Modeling import Downsample
 from Geodesy_Modeling import InSAR_1D_Object
+from Geodesy_Modeling import GNSS_Object
 from read_write_insar_utilities import isce_read_write
 
 
@@ -68,8 +68,8 @@ def write_gps_displacements(config):
             displacement_objects = Downsample.downsample_gps_ts.add_gps_constant_offset(displacement_objects,
                                                                                         new_interval_dict[
                                                                                             "gps_add_offset_mm"]);
-        Geodesy_Modeling.multiSAR_utilities.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
-                                                                        + new_interval_dict["gps_textfile"]);
+        GNSS_Object.utilities.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
+                                                          + new_interval_dict["gps_textfile"]);
     return;
 
 
@@ -83,16 +83,19 @@ def write_leveling_displacements(config):
     for interval_dict_key in config["leveling_data"]:
         new_interval_dict = config["leveling_data"][interval_dict_key];  # for each interval in Leveling
         print("\nPreparing leveling for file %s" % new_interval_dict["lev_outfile"])
-        myLev = leveling_inputs.inputs_leveling(new_interval_dict["leveling_filename"],
-                                                new_interval_dict["leveling_errors_filename"]);
-        myLev = leveling_inputs.compute_rel_to_datum_nov_2009(myLev);  # Computing relative displacements after 2009
-        myLev = leveling_inputs.convert_lev_old_object_to_new_objects(myLev);  # to a list of leveling benchmarks
-        Geodesy_Modeling.Leveling_Object.leveling_outputs.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
-                                                                                           new_interval_dict["leveling_end"],
-                                                                                           new_interval_dict["leveling_unc"],
-                                                                                           config["prep_inputs_dir"] + new_interval_dict["lev_outfile"]);
-        Geodesy_Modeling.Leveling_Object.leveling_outputs.plot_simple_leveling(config["prep_inputs_dir"] + new_interval_dict["lev_outfile"],
-                                                                               config["prep_inputs_dir"] + new_interval_dict["lev_plot"]);
+        myLev = Leveling_Object.leveling_inputs.inputs_leveling(new_interval_dict["leveling_filename"],
+                                                                new_interval_dict["leveling_errors_filename"]);
+        myLev = Leveling_Object.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);  # Relative disp after 2009
+        myLev = Leveling_Object.leveling_inputs.convert_lev_old_object_to_new_objects(myLev);  # leveling benchmarks
+        Leveling_Object.leveling_outputs.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
+                                                                          new_interval_dict["leveling_end"],
+                                                                          new_interval_dict["leveling_unc"],
+                                                                          config["prep_inputs_dir"] +
+                                                                          new_interval_dict["lev_outfile"]);
+        Leveling_Object.leveling_outputs.plot_simple_leveling(config["prep_inputs_dir"] +
+                                                              new_interval_dict["lev_outfile"],
+                                                              config["prep_inputs_dir"] +
+                                                              new_interval_dict["lev_plot"]);
     return;
 
 
@@ -132,7 +135,8 @@ def write_uavsar_displacements(config):
 
         # Now we optionally remove a ramp.
         if new_interval_dict["remove_ramp"] == 1:
-            InSAR_1D_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile, ref_coord=config['reference_ll']);
+            InSAR_1D_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
+                                                             ref_coord=config['reference_ll']);
 
         # Now we optionally remove a constant
         if new_interval_dict["remove_constant"] == 1:
@@ -199,7 +203,8 @@ def write_tsx_tre_displacements(config):
             InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
                                                                   config["prep_inputs_dir"] +
                                                                   new_interval_dict["tsx_datafile"]);
-            InSAR_obj = InSAR_1D_Object.inputs.inputs_simplest_txt(config["prep_inputs_dir"] + new_interval_dict["tsx_datafile"]);
+            InSAR_obj = InSAR_1D_Object.inputs.inputs_simplest_txt(config["prep_inputs_dir"] +
+                                                                   new_interval_dict["tsx_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["tsx_plot"]);
 
     return;
@@ -228,7 +233,8 @@ def write_s1_displacements(config):
             InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                   config["prep_inputs_dir"] + new_interval_dict[
                                                                    "s1_datafile"]);
-            InSAR_obj = InSAR_1D_Object.inputs.inputs_simplest_txt(config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
+            InSAR_obj = InSAR_1D_Object.inputs.inputs_simplest_txt(config["prep_inputs_dir"] +
+                                                                   new_interval_dict["s1_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["s1_plot"]);
 
     return;
