@@ -1,10 +1,8 @@
-# A series of functions for io of leveling data
-# including CEC Salton Trough Leveling Data
+# A series of functions for io of leveling data, including CEC Salton Trough Leveling Data
 
 import collections
 import datetime as dt
 import numpy as np
-import xlrd
 import pandas
 
 LevStation = collections.namedtuple("LevStation", ["name", "lat", "lon", "dtarray", "leveling", "reflon", "reflat"]);
@@ -33,10 +31,10 @@ def inputs_brawley_leveling(data_filename, errors_filename):
     names, lons, lats = match_lon_lat(names, latitudes, longitudes, ll_names);
 
     LevStationList = [];
-    for x in range(1, 83):
+    for x in range(0, 83):
         single_leveling_array = df.loc[x][1:-1].tolist();
         single_leveling_array = clean_single_ts(single_leveling_array);
-        new_object = LevStation(name=names[x-1], lon=lons[x-1], lat=lats[x-1], dtarray=dtarray,
+        new_object = LevStation(name=names[x], lon=lons[x], lat=lats[x], dtarray=dtarray,
                                 leveling=single_leveling_array, reflon=lons[0], reflat=lats[0]);
         LevStationList.append(new_object);
     return LevStationList;
@@ -142,7 +140,6 @@ def compute_rel_to_datum_nov_2009(data):
                 referenced_dates.append(station.dtarray[j]);
                 referenced_data.append(station.leveling[j] - station.leveling[idx]);
 
-
         referenced_object = LevStation(name=station.name, lon=station.lon, lat=station.lat, dtarray=referenced_dates,
                                        leveling=referenced_data, reflon=station.reflon, reflat=station.reflat);
         RefLevStations.append(referenced_object);
@@ -151,51 +148,42 @@ def compute_rel_to_datum_nov_2009(data):
 
 # HEBER DATA SPREADSHEET
 def inputs_leveling_heber(infile):
-    """CEC HEBER LEVELING SPREADSHEET INTO LIST OF LEVELING OBJECTS.
-    WILL HAVE TO FIX THIS BECAUSE XLRD DOESN'T SUPPORT XLSX ANYMORE"""
+    """
+    CEC HEBER LEVELING SPREADSHEET INTO LIST OF LEVELING OBJECTS.
+    """
     station_list = [];
     print("Reading in %s" % infile);
-    wb = xlrd.open_workbook(infile);
 
     # Get locations of benchmarks and reference benchmark, with the reference in the first line.
-    sheet = wb.sheet_by_index(1);
-    numcols = sheet.ncols;
-    numrows = sheet.nrows;
-    locdata = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
-    locnames = []; all_lons = []; all_lats = [];
-    for i in range(1, 185):
-        if locdata[i][1] != "":
-            latstring = str(locdata[i][1]);
-            latstring = latstring.replace('..', '.');
-            lonstring = str(locdata[i][2]);
-            lonstring = lonstring.replace('..', '.');
-            locnames.append(locdata[i][0]);
+    df = pandas.read_excel(infile, sheet_name=1);
+    locnames, all_lons, all_lats = [], [], [];
+    names = df['BENCHMARKS HEBER'].values.tolist();
+    lats_temp = df['Lat'].values.tolist();
+    lons_temp = df['Lon'].values.tolist();
+    for i in range(len(lats_temp)):
+        if lats_temp[i] != "":
+            latstring = str(lats_temp[i]).replace('..', '.');
+            lonstring = str(lons_temp[i]).replace('..', '.');
+            locnames.append(names[i]);
             all_lats.append(float(latstring));
             all_lons.append(float(lonstring));
     reflat = all_lats[0];
     reflon = all_lons[0];
 
-    # Get leveling data from the spreadsheet
-    sheet = wb.sheet_by_index(0);
-    numcols = sheet.ncols;
-    numrows = sheet.nrows;
-    data = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
-
-    # Get dates for all leveling array
-    dtarray = [];
-    for i in range(32, 57):  # take the first column of the third sheet
-        dtarray.append(dt.datetime.strptime(data[i][0], "%b %Y"));
+    # # Get leveling data from the spreadsheet
+    df = pandas.read_excel(infile, sheet_name=0);
+    dtstrings = df.iloc[31:56, 0].tolist();
+    dtarray = [dt.datetime.strptime(x, "%b %Y") for x in dtstrings];
 
     # Extract each station's leveling data
     for colnum in range(5, 163):  # for each station's leveling data
-        station_name = data[31][colnum];  # the string station name
+        station_name = df.iloc[30][colnum];  # the string station name
         levarray = [];
-        for i in range(32, 57):
-            if data[i][colnum] in ["DESTROYED", "", "NOT FOUND", "?", "UNACCESSABLE ", "LOST"]:
+        for i in range(31, 56):
+            if df.iloc[i][colnum] in ["DESTROYED", "", "NOT FOUND", "?", "UNACCESSABLE ", "LOST"]:
                 levarray.append(np.nan);
             else:
-                levarray.append(float(data[i][colnum]));
-        # print(station_name, len(levarray), len(dtarray));
+                levarray.append(float(df.iloc[i][colnum]));
         station_lon_idx = locnames.index(station_name);
         new_station = LevStation(name=station_name, lat=all_lats[station_lon_idx], lon=all_lons[station_lon_idx],
                                  dtarray=dtarray, leveling=levarray, reflon=reflon, reflat=reflat);

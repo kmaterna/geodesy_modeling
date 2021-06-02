@@ -148,10 +148,9 @@ if __name__ == "__main__":
     # Opening stuff
     config_filename = sys.argv[1];
     file_dict = multiSAR_utilities.get_file_dictionary(config_filename);
-    myLev = Leveling_Object.leveling_inputs.inputs_leveling(file_dict["leveling"].split()[0],
-                                                            file_dict["leveling"].split()[1]);
+    myLev = Leveling_Object.leveling_inputs.inputs_brawley_leveling(file_dict["leveling"].split()[0],
+                                                                    file_dict["leveling"].split()[1]);
     myLev = Leveling_Object.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);
-    myLev = Leveling_Object.leveling_inputs.convert_lev_old_object_to_new_objects(myLev);  # to list of lev benchmarks
 
     # # # S1_Cornell experiment (2015 data), leveling slice 5-6
     # output_dir = "S1_OU/T4D/";
