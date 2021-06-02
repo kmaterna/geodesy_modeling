@@ -1,48 +1,45 @@
 # A series of functions for io of leveling data
-# LEVELING INPUT FUNCTIONS FOR CEC SALTON TROUGH LEVELING DATA
-# Slightly annoying read functions
+# including CEC Salton Trough Leveling Data
 
 import collections
 import datetime as dt
 import numpy as np
 import xlrd
+import pandas
 
-LevData_Network = collections.namedtuple("LevData_Network", ["name", "lat", "lon", "dtarray", "leveling"]);
-#    LevData_Network: old format, still keeping for Brawley, but do not develop new code with it.
 LevStation = collections.namedtuple("LevStation", ["name", "lat", "lon", "dtarray", "leveling", "reflon", "reflat"]);
-#    LevStation: new format, one object for each station. Develop with this one.  Units of meters.
+# LevStation: list-of-objects format, one object for each station. Units of meters.
 
 
-def inputs_leveling(data_filename, errors_filename):
-    """Read leveling from CEC Salton Trough leveling data"""
-
+def inputs_brawley_leveling(data_filename, errors_filename):
+    """Read leveling from CEC Salton Trough North Brawley leveling data"""
     print("Reading in %s" % data_filename);
-    wb = xlrd.open_workbook(data_filename);
-    sheet = wb.sheet_by_index(0);
-    numcols = sheet.ncols;
-    numrows = sheet.nrows;
-    data = [[sheet.cell_value(r, c) for c in range(numcols)] for r in range(numrows)];
-    [rownum, colnum, old_values, new_values] = read_errors(errors_filename);
-    data = implement_changes(data, rownum, colnum, old_values, new_values);
+    df = pandas.read_excel(data_filename, engine='openpyxl');
 
-    dtarray = get_datetimes(data[0][1:-1]);
-    names = [data[i][0] for i in range(1, numrows)];
+    # Fix typos
+    [rownum, colnum, _old_values, new_values] = read_errors(errors_filename);
+    df = implement_changes_dataframe(df, rownum, colnum, new_values);
 
-    # # Get the latitude and longitude information
-    latsheet = wb.sheet_by_index(2);
-    latitudes = latsheet.col_values(1)[1:];
-    longitudes = latsheet.col_values(2)[1:];
-    ll_names = latsheet.col_values(0)[1:];
+    # Reading name information
+    column_names = df.columns[1:-1].tolist();
+    names = df['BENCHMARK'].values.tolist();
+    dtarray = get_datetimes(column_names);
+
+    # Reading lat/lon information
+    lonlat_sheet = pandas.read_excel(data_filename, engine='openpyxl', sheet_name=2);
+    ll_names = lonlat_sheet['Benchmark'].values.tolist();
+    longitudes = [float(x) for x in lonlat_sheet['Longitude'].values.tolist()];
+    latitudes = [float(x) for x in lonlat_sheet['Latitude'].values.tolist()];
     names, lons, lats = match_lon_lat(names, latitudes, longitudes, ll_names);
 
-    leveling_array = [];
-    for i in range(1, numrows):
-        single_leveling_array = data[i][1:13];
+    LevStationList = [];
+    for x in range(1, 83):
+        single_leveling_array = df.loc[x][1:-1].tolist();
         single_leveling_array = clean_single_ts(single_leveling_array);
-        leveling_array.append(single_leveling_array);
-
-    myLev = LevData_Network(name=names, lon=lons, lat=lats, dtarray=dtarray, leveling=leveling_array);
-    return myLev;
+        new_object = LevStation(name=names[x-1], lon=lons[x-1], lat=lats[x-1], dtarray=dtarray,
+                                leveling=single_leveling_array, reflon=lons[0], reflat=lats[0]);
+        LevStationList.append(new_object);
+    return LevStationList;
 
 
 def read_errors(filename):
@@ -52,7 +49,7 @@ def read_errors(filename):
     ifile = open(filename, 'r');
     for line in ifile:
         temp = line.split("::");
-        if temp[0] == "Row":
+        if temp[0] == "#":
             continue;
         rownum.append(int(temp[0]));
         colnum.append(int(temp[1]));
@@ -62,26 +59,15 @@ def read_errors(filename):
     return [rownum, colnum, old_values, new_values];
 
 
-def implement_changes(data, rownum, colnum, old_values, new_values):
+def implement_changes_dataframe(df, rownum, colnum, new_values):
     print("Implementing changes to data:");
     for i in range(len(rownum)):
-        # Catching any bugs and errors
-        if str(data[rownum[i]][colnum[i]]) != str(old_values[i]):
-            print("PROBLEM at row %d! Attempting to modify data. Value found %s does not match expected value %s "
-                  % (i, data[rownum[i]][colnum[i]], old_values[i]));
-            print("Skipping.");
-            continue;
-
-        else:
-            # Over-writing the data
-            print("MODIFYING data at %d, %d: %s goes to %s" % (rownum[i], colnum[i], old_values[i], new_values[i]));
-            if type(data[rownum[i]][colnum[i]]) == str:
-                data[rownum[i]][colnum[i]] = new_values[i];
-            elif type(data[rownum[i]][colnum[i]]) == float:
-                data[rownum[i]][colnum[i]] = float(new_values[i]);
-            elif type(data[rownum[i]][colnum[i]]) == int:
-                data[rownum[i]][colnum[i]] = int(new_values[i]);
-    return data;
+        col_names = df.columns[0:-1].tolist();
+        print("Finding error in column %s" % col_names[colnum[i]-1])  # get the right column
+        old_value = df.iloc[rownum[i]-2, colnum[i]-1];
+        df.iloc[rownum[i]-2, colnum[i]-1] = new_values[i];  # assignment
+        print("   Carefully replacing %s with %s" % (old_value, new_values[i]) );
+    return df;
 
 
 def get_datetimes(timestrings):
@@ -92,6 +78,8 @@ def get_datetimes(timestrings):
             temp = timestrings[i].split(" 88 ");
             temp2 = temp[1].split();
             mmm = temp2[0];
+            if mmm == ')CT':
+                mmm = 'OCT';   # fixing a typo
             year = temp2[1];
             dtarray.append(dt.datetime.strptime(year + "-" + mmm + "-01",
                                                 "%Y-%b-%d"));  # issue here, but not too bad.
@@ -121,61 +109,50 @@ def clean_single_ts(array):
                 array[i]) == "NOT" or str(array[i]) == "FOUND":
             newarray.append(np.nan);
         else:
-            newarray.append(array[i]);
+            newarray.append(float(array[i]));
     return newarray;
 
 
 # LEVELING COMPUTE FUNCITON (REFERENCE TO DATUM)
 def compute_rel_to_datum_nov_2009(data):
     """Skips the 2008 measurement. Returns an object that is 83x10"""
-    arrays_of_ref_leveling = [];
-    referenced_dates, referenced_data = [], [];
-    for i in range(len(data.name)):
+    RefLevStations = [];
+    for station in data:
 
         # Automatically find the first day that matters.  Either after 2008 or has data.
         idx = 0;
-        for j in range(len(data.dtarray)):
-            if ~np.isnan(data.leveling[i][j]) and data.dtarray[j] > dt.datetime.strptime("2009-01-01", "%Y-%m-%d"):
+        for j in range(len(station.dtarray)):
+            if ~np.isnan(station.leveling[j]) and station.dtarray[j] > dt.datetime.strptime("2009-01-01", "%Y-%m-%d"):
                 idx = j;  # this is the first date after 2009 that has data
                 break;
 
         # Accounting for a change in Datum height in 2014
         idx_early = 6;  # the placement of 2014 before adjustment on the spreadsheet
         idx_late = 7;  # the placement of 2014 after adjustment on the spreadsheet
-        step = data.leveling[i][idx_early] - data.leveling[i][idx_late];
+        step = station.leveling[idx_early] - station.leveling[idx_late];
 
         referenced_dates, referenced_data = [], [];
-
-        for j in range(1, len(data.dtarray)):  # skipping 2008 anyway.
+        for j in range(1, len(station.dtarray)):  # skipping 2008 anyway.
             if j == 6:
                 continue;  # passing over the 2014 measurement before re-referencing.
-            if data.dtarray[j] > dt.datetime.strptime("2014-01-01", "%Y-%m-%d"):
-                referenced_dates.append(data.dtarray[j]);
-                referenced_data.append(data.leveling[i][j] - data.leveling[i][idx] + step);
+            if station.dtarray[j] > dt.datetime.strptime("2014-01-01", "%Y-%m-%d"):
+                referenced_dates.append(station.dtarray[j]);
+                referenced_data.append(station.leveling[j] - station.leveling[idx] + step);
             else:
-                referenced_dates.append(data.dtarray[j]);
-                referenced_data.append(data.leveling[i][j] - data.leveling[i][idx]);
-
-        arrays_of_ref_leveling.append(referenced_data);
-    referenced_object = LevData_Network(name=data.name, lon=data.lon, lat=data.lat, dtarray=referenced_dates,
-                                        leveling=arrays_of_ref_leveling);
-    return referenced_object;
+                referenced_dates.append(station.dtarray[j]);
+                referenced_data.append(station.leveling[j] - station.leveling[idx]);
 
 
-def convert_lev_old_object_to_new_objects(LevData_Network_Object):
-    """Take object from previous read-in structure and convert it to a list of LevStation objects"""
-    LevStationList = [];
-    for i in range(len(LevData_Network_Object.name)):
-        new_object = LevStation(name=LevData_Network_Object.name[i], lon=LevData_Network_Object.lon[i],
-                                lat=LevData_Network_Object.lat[i], dtarray=LevData_Network_Object.dtarray,
-                                leveling=LevData_Network_Object.leveling[i],
-                                reflon=LevData_Network_Object.lon[0], reflat=LevData_Network_Object.lat[0]);
-        LevStationList.append(new_object);
-    return LevStationList;
+        referenced_object = LevStation(name=station.name, lon=station.lon, lat=station.lat, dtarray=referenced_dates,
+                                       leveling=referenced_data, reflon=station.reflon, reflat=station.reflat);
+        RefLevStations.append(referenced_object);
+    return RefLevStations;
 
 
+# HEBER DATA SPREADSHEET
 def inputs_leveling_heber(infile):
-    """CEC HEBER LEVELING SPREADSHEET INTO LIST OF LEVELING OBJECTS"""
+    """CEC HEBER LEVELING SPREADSHEET INTO LIST OF LEVELING OBJECTS.
+    WILL HAVE TO FIX THIS BECAUSE XLRD DOESN'T SUPPORT XLSX ANYMORE"""
     station_list = [];
     print("Reading in %s" % infile);
     wb = xlrd.open_workbook(infile);

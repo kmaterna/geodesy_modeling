@@ -83,10 +83,9 @@ def write_leveling_displacements(config):
     for interval_dict_key in config["leveling_data"]:
         new_interval_dict = config["leveling_data"][interval_dict_key];  # for each interval in Leveling
         print("\nPreparing leveling for file %s" % new_interval_dict["lev_outfile"])
-        myLev = Leveling_Object.leveling_inputs.inputs_leveling(new_interval_dict["leveling_filename"],
-                                                                new_interval_dict["leveling_errors_filename"]);
+        myLev = Leveling_Object.leveling_inputs.inputs_brawley_leveling(new_interval_dict["leveling_filename"],
+                                                                        new_interval_dict["leveling_errors_filename"]);
         myLev = Leveling_Object.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);  # Relative disp after 2009
-        myLev = Leveling_Object.leveling_inputs.convert_lev_old_object_to_new_objects(myLev);  # leveling benchmarks
         Leveling_Object.leveling_outputs.write_leveling_invertible_format(myLev, new_interval_dict["leveling_start"],
                                                                           new_interval_dict["leveling_end"],
                                                                           new_interval_dict["leveling_unc"],
@@ -143,7 +142,7 @@ def write_uavsar_displacements(config):
             InSAR_1D_Object.remove_ramp.remove_constant_filewise(uav_textfile, uav_textfile);
 
         # Now we make a plot
-        InSAR_Obj = InSAR_1D_Object.inputs.inputs_simplest_txt(uav_textfile);
+        InSAR_Obj = InSAR_1D_Object.inputs.inputs_txt(uav_textfile);
         InSAR_1D_Object.outputs.plot_insar(InSAR_Obj, config["prep_inputs_dir"] + new_interval_dict["uav_ending_plot"]);
     return;
 
