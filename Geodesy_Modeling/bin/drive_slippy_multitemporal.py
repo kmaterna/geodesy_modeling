@@ -1,12 +1,9 @@
-#!/bin/usr/env python
-# June 2020
-# Run Slippy with multiple time intervals in the input 
+#!/usr/bin/env python
+# Run Slippy with multiple time intervals in the input
 # (A really big G matrix)
 
-import sys
-import json
-import subprocess
-from . import buildG
+import sys, json, subprocess
+from Geodesy_Modeling import MultiTemporalInversion
 
 
 def welcome_and_parse(argv):
@@ -19,13 +16,14 @@ def welcome_and_parse(argv):
     config_file = open(config, 'r');
     config1 = json.load(config_file);
     subprocess.call(['mkdir', '-p', config1["output_dir"]], shell=False);
-    subprocess.call(['cp', config, config1['output_dir']]);  # NEXT: DUMP THIS OUT FROM THE CODE INSTEAD.
     for i, key in enumerate(config1["faults"].keys()):
         fault_name = config1["faults"][key]["filename"]
         subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
+    with open(config1['output_dir']+'/config.json', 'w') as fp:
+        json.dump(config1, fp, indent="  ");   # save config file, record-keeping
     return config1;
 
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    buildG.beginning_calc(config);
+    MultiTemporalInversion.buildG.beginning_calc(config);
