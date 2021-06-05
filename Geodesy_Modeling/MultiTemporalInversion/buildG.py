@@ -114,6 +114,9 @@ def input_faults(config):
 
 def beginning_calc(config):
 
+    with open(config['output_dir']+'/config.json', 'w') as fp:
+        json.dump(config, fp, indent="  ");   # save config file, record-keepin
+
     fault_list = input_faults(config);
     alpha = config['alpha']
 
@@ -201,7 +204,7 @@ def beginning_calc(config):
     for epoch in config["epochs"].keys():
         n_epochs = n_epochs + 1;
         total_spans.append(config["epochs"][epoch]["name"]);
-        span_output_files.append(config["epochs"][epoch]["slip_output_file"]);
+        span_output_files.append(config["output_dir"]+config["epochs"][epoch]["slip_output_file"]);
     n_model_params = np.shape(L)[0];
     print("Finding fault model for %d epochs " % n_epochs);
     print("Number of fault model parameters per epoch: %d" % n_model_params);
@@ -231,7 +234,7 @@ def beginning_calc(config):
         this_data_spans = config["data_files"][data_file]["span"];  # span expected of all data files
         this_strength = config["data_files"][data_file]["strength"];  # strength expected of all data files
         input_file_list.append(config["data_files"][data_file]["data_file"]);  # infile expected of all data files
-        output_file_list.append(config["data_files"][data_file]["outfile"]);  # outfile expected of all data files
+        output_file_list.append(config["output_dir"]+config["data_files"][data_file]["outfile"]);  # predicted outfile
         data_type_list.append(config["data_files"][data_file]["type"]);  # type expected of all data files
         spans_list.append(this_data_spans);
         strengths_list.append(this_strength);
@@ -382,7 +385,6 @@ def beginning_calc(config):
 
     # OUTPUT EACH SLIP INTERVAL
     for i in range(n_epochs):
-        one_span = total_spans[i];
         slip_output_file = span_output_files[i];
 
         # ### write output
