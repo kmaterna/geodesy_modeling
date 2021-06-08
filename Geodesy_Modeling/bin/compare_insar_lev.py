@@ -20,7 +20,8 @@ from Geodesy_Modeling import InSAR_1D_Object
 from Geodesy_Modeling import Leveling_Object
 from Geodesy_Modeling import UAVSAR
 
-def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None):
+def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None,
+                          gps_names=None, label="LOS"):
     """
     myLev : list of leveling objects (displacements) with two time intervals, a start and an end
     InSAR_Data : InSAR object (displacements) with a start and end time
@@ -53,6 +54,7 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
                 lon_plotting.append(lon_leveling_list[i]);
                 lat_plotting.append(lat_leveling_list[i]);
 
+    # Comparison plot between leveling and InSAR
     fig, axarr = plt.subplots(2, 2, figsize=(14, 10));
     # Individual plot of leveling or InSAR
     color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
@@ -91,16 +93,18 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     axarr[1][1].plot(lon_leveling_list, lat_leveling_list, '*', color='black');
     axarr[1][1].plot(myLev[0].lon, myLev[0].lat, '*', color='red');
     axarr[1][1].plot(-115.510, 33.081, 'v', markersize=10, color='black');
+    axarr[1][1].text(-115.510, 33.081, '  P506', color='black');
     if gps_lon:
         for i in range(len(gps_lon)):
             axarr[1][1].plot(gps_lon[i], gps_lat[i], 'v', markersize=10, color='black');
+            axarr[1][1].text(gps_lon[i], gps_lat[i], '  '+gps_names[i], color='black');
 
     _ = fig.add_axes([0.75, 0.35, 0.2, 0.3], visible=False);
     color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
     custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='RdYlBu_r');
     custom_cmap.set_array(np.arange(vmin, vmax));
     cb = plt.colorbar(custom_cmap, aspect=12, fraction=0.2, orientation='vertical');
-    cb.set_label('Displacement (mm)', fontsize=18);
+    cb.set_label(label+' Displacement (mm)', fontsize=18);
     cb.ax.tick_params(labelsize=12);
     plt.savefig(filename);
     print("Saving %s " % filename);
@@ -111,7 +115,7 @@ def drive_ou_cornell_comparison(myLev, data_file, los_file, s1_slice, lev_slice,
     InSAR_Data = InSAR_1D_Object.inputs.inputs_cornell_ou_velocities_hdf5(data_file, los_file, s1_slice);
     InSAR_Data = InSAR_1D_Object.utilities.remove_nans(InSAR_Data);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
-    one_to_one_comparison(myLev, InSAR_Data, "S1", outfile);
+    one_to_one_comparison(myLev, InSAR_Data, "S1", outfile, label="LOS");
     return;
 
 
@@ -121,7 +125,7 @@ def drive_single_uavsar_intf_comparison(myLev, bounds, uavsar_filename, los_file
     InSAR_Data = InSAR_1D_Object.utilities.remove_nans(InSAR_Data);
     InSAR_Data = InSAR_1D_Object.utilities.flip_los_sign(InSAR_Data);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
-    one_to_one_comparison(myLev, InSAR_Data, "UAV", outfile);
+    one_to_one_comparison(myLev, InSAR_Data, "UAV", outfile, label="LOS");
     return;
 
 
@@ -129,18 +133,20 @@ def drive_tre_comparison(myLev, los_filename, lev_slice, outfile):
     """Read TRE data and compare with leveling"""
     VertTSXData, EastTSXData = InSAR_1D_Object.inputs.inputs_TRE_vert_east(los_filename);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
-    one_to_one_comparison(myLev, VertTSXData, "TSX", outfile);
+    one_to_one_comparison(myLev, VertTSXData, "TSX", outfile, label="Vertical");
     InSAR_1D_Object.outputs.plot_insar(VertTSXData, outfile + "InSAR_velo.png");
     return;
 
 
-def drive_uavsar_ts_comparison(myLev, losfile, lonfile, latfile, gps_lon, gps_lat, lev_slice, uav_slice, outfile):
+def drive_uavsar_ts_comparison(myLev, losfile, lonfile, latfile, gps_lon, gps_lat, gps_names,
+                               lev_slice, uav_slice, outfile):
     """A different type of UAVSAR format, the SBAS time series analysis"""
     myUAVSAR_TS = UAVSAR.uavsar_readwrite.inputs_TS_grd(losfile, lonfile, latfile);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
     myUAVSAR_insarobj = UAVSAR.utilities.get_onetime_displacements(myUAVSAR_TS, uav_slice[0], uav_slice[1]);
     myUAVSAR_insarobj = InSAR_1D_Object.utilities.flip_los_sign(myUAVSAR_insarobj);
-    one_to_one_comparison(myLev, myUAVSAR_insarobj, "UAVSAR", outfile, gps_lon=gps_lon, gps_lat=gps_lat);
+    one_to_one_comparison(myLev, myUAVSAR_insarobj, "UAVSAR", outfile, gps_lon=gps_lon, gps_lat=gps_lat,
+                          gps_names=gps_names, label="LOS");
     return;
 
 
@@ -152,12 +158,12 @@ if __name__ == "__main__":
                                                                     file_dict["leveling"].split()[1]);
     myLev = Leveling_Object.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);
 
-    # # # S1_Cornell experiment (2015 data), leveling slice 5-6
-    # output_dir = "S1_OU/T4D/";
-    # drive_ou_cornell_comparison(myLev, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
-    #                             s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'ascending_56.png');
-    # drive_ou_cornell_comparison(myLev, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
-    #                             s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'descending_56.png');
+    # # S1_Cornell experiment (2015 data), leveling slice 5-6
+    output_dir = "S1_OU/T4D/";
+    drive_ou_cornell_comparison(myLev, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
+                                s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'ascending_56.png');
+    drive_ou_cornell_comparison(myLev, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
+                                s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'descending_56.png');
     #
     # # # S1_Cornell experiment (2016 data), leveling slice 6-7
     # output_dir = "S1_OU/T4E/";
@@ -181,8 +187,7 @@ if __name__ == "__main__":
     #                             s1_slice=3, lev_slice=[8, 9], outfile=output_dir+'descending_89.png');
 
     # TSX experiment: 2012-2013, leveling slice 3-4
-    output_dir = "TSX/"
-    drive_tre_comparison(myLev, file_dict["tsx"], lev_slice=[3, 4], outfile=output_dir+"one_to_one_34.png");
+    # drive_tre_comparison(myLev, file_dict["tsx"], lev_slice=[3, 4], outfile="TSX/one_to_one_34.png");
 
     # # S1 experiment: 2014-2018, leveling slice 5-8
     # output_dir = "SNT1/"
@@ -217,20 +222,21 @@ if __name__ == "__main__":
     # outdir = "UAVSAR_Apr29/";
     # gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];  # Stations P506, P495, WMDG, WMCA and CRRS
     # gps_lats = [33.081, 33.044960, 33.038325, 33.072, 33.070];
+    # gps_names = ['P506', 'P495', 'WMDG', 'WMCA', 'CRRS'];
     # uav_los, uav_lon, uav_lat = file_dict["uavsar_file"], file_dict["uavsar_lon"], file_dict["uavsar_lat"];
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[0, 1], uav_slice=[1, 4],
-    #                            outfile=outdir+"one_01_14.png");  # 2009-2011
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[1, 2], uav_slice=[4, 6],
-    #                            outfile=outdir+"one_12_46.png");  # 2011 to 2011
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[2, 3], uav_slice=[6, 7],
-    #                            outfile=outdir+"one_23_67.png");  # 2011 to 2012
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[3, 4], uav_slice=[7, 8],
-    #                            outfile=outdir+"one_34_78.png");  # 2012 to 2013
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[4, 5], uav_slice=[8, 9],
-    #                            outfile=outdir+"one_45_89.png");  # 2013 to 2014
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[3, 5], uav_slice=[7, 9],
-    #                            outfile=outdir+"one_35_79.png");  # 2012 to 2014
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[5, 8],
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[0, 1],
+    #                            uav_slice=[1, 4], outfile=outdir+"one_01_14.png");  # 2009-2011
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[1, 2],
+    #                            uav_slice=[4, 6], outfile=outdir+"one_12_46.png");  # 2011 to 2011
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[2, 3],
+    #                            uav_slice=[6, 7], outfile=outdir+"one_23_67.png");  # 2011 to 2012
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[3, 4],
+    #                            uav_slice=[7, 8], outfile=outdir+"one_34_78.png");  # 2012 to 2013
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[4, 5],
+    #                            uav_slice=[8, 9], outfile=outdir+"one_45_89.png");  # 2013 to 2014
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[3, 5],
+    #                            uav_slice=[7, 9], outfile=outdir+"one_35_79.png");  # 2012 to 2014
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[5, 8],
     #                            uav_slice=[9, 10], outfile=outdir+"one_58_910.png");  # 2014 to 2017
-    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, lev_slice=[3, 8],
+    # drive_uavsar_ts_comparison(myLev, uav_los, uav_lon, uav_lat, gps_lons, gps_lats, gps_names, lev_slice=[3, 8],
     #                            uav_slice=[7, 10], outfile=outdir+"one_38_710.png");  # 2012 to 2014

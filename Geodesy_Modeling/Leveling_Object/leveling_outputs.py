@@ -145,7 +145,7 @@ def single_panel_plot(ax, lons, lats, data, vmin, vmax, label, plotting_multipli
         if markersize > 35:
             markersize = 35;
         ax.plot(lons[i], lats[i], marker='o', markersize=markersize, color=dot_color, fillstyle="full");
-        ax.plot(lons[0], lats[0], marker='*', markersize=10, color='black', fillstyle="full");
+        ax.plot(lons[0], lats[0], marker='*', markersize=25, color='black', fillstyle="full");
 
     ax.set_xticklabels([]);
     ax.set_yticklabels([]);
