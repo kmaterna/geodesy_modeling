@@ -115,25 +115,20 @@ def input_faults(config):
 def beginning_calc(config):
 
     with open(config['output_dir']+'/config.json', 'w') as fp:
-        json.dump(config, fp, indent="  ");   # save config file, record-keepin
+        json.dump(config, fp, indent="  ");   # save config file, record-keeping
 
     fault_list = input_faults(config);
     alpha = config['alpha']
 
-    # Setting up the basemap before we begin (using the GPS as information)
-    for dataset in config["data_files"].keys():
-        if config["data_files"][dataset]["type"] == "gps":
-            gps_input = slippy.io.read_gps_data(config["data_files"][dataset]["data_file"]);
-            Ngps = len(gps_input[0])
-            obs_gps_pos_geo = gps_input[0]
-            obs_pos_geo_basemap = obs_gps_pos_geo[:, None, :].repeat(3, axis=1).reshape((Ngps * 3, 3))
-            break;
-        if config["data_files"][dataset]["type"] == "leveling":
-            lev_input = slippy.io.read_insar_data(config["data_files"][dataset]["data_file"]);
-            Ngps = len(lev_input[0])
-            obs_gps_pos_geo = lev_input[0]
-            obs_pos_geo_basemap = obs_gps_pos_geo[:, None, :].repeat(3, axis=1).reshape((Ngps * 3, 3))
-            break;
+    # Setting up the basemap before we begin (using the first dataset as information)
+    first_dataset = list(config["data_files"].keys())[0]
+    if config["data_files"][first_dataset]["type"] == "gps":
+        first_input = slippy.io.read_gps_data(config["data_files"][first_dataset]["data_file"]);  # gps
+    else:
+        first_input = slippy.io.read_insar_data(config["data_files"][first_dataset]["data_file"]);   # lev or insar
+    Ngps = len(first_input[0])
+    obs_pos_geo = first_input[0]
+    obs_pos_geo_basemap = obs_pos_geo[:, None, :].repeat(3, axis=1).reshape((Ngps * 3, 3))
     bm = plotting_library.create_default_basemap(obs_pos_geo_basemap[:, 0], obs_pos_geo_basemap[:, 1])
     number_of_datasets = len(config["data_files"].keys());
 
@@ -149,7 +144,7 @@ def beginning_calc(config):
     L_array = [];
     Ns_total = 0;
     fault_names_array = [];
-    Ds = [];
+    Ds = 0;   # the dimensions of the slip basis, assumed to be the same for all slip patches
 
     # # Fault processing
     for fault in fault_list:
@@ -199,8 +194,7 @@ def beginning_calc(config):
     # PARSE HOW MANY EPOCHS WE ARE USING
     # This will tell us how many epochs, model parameters total, and output files we need.
     n_epochs = 0;
-    total_spans = [];
-    span_output_files = [];
+    total_spans, span_output_files = [], [];
     for epoch in config["epochs"].keys():
         n_epochs = n_epochs + 1;
         total_spans.append(config["epochs"][epoch]["name"]);
@@ -210,7 +204,7 @@ def beginning_calc(config):
     print("Number of fault model parameters per epoch: %d" % n_model_params);
     print("Total number of model parameters: %d" % (n_model_params * n_epochs + number_of_datasets));
 
-    # INITIALIZING THE LARGE MATRICIES
+    # INITIALIZING THE LARGE MATRICES
     d_total = np.zeros((0,));
     sig_total = np.zeros((0,));
     weight_total = np.zeros((0,));
@@ -221,13 +215,9 @@ def beginning_calc(config):
     pos_basis_list = [];
 
     # INITIAL DATA SCOPING: HOW MANY FILES WILL NEED TO BE READ?
-    input_file_list = [];
-    spans_list = [];
-    data_type_list = [];
-    strengths_list = [];
-    signs_list = [];
-    output_file_list = [];
-    row_span_list = [];
+    input_file_list, output_file_list = [], [];
+    spans_list, strengths_list, signs_list = [], [], [];
+    data_type_list, row_span_list = [], [];
     print("Available data indicated in json file: ")
 
     for data_file in config["data_files"].keys():
@@ -246,7 +236,6 @@ def beginning_calc(config):
 
     # START THE MAJOR INVERSION LOOP
     for filenum in range(len(input_file_list)):
-        leveling_sign = signs_list[filenum];
 
         # INPUT STAGE
         filename = input_file_list[filenum];

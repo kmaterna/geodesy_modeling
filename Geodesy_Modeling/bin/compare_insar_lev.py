@@ -21,7 +21,7 @@ from Geodesy_Modeling import Leveling_Object
 from Geodesy_Modeling import UAVSAR
 
 def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None,
-                          gps_names=None, label="LOS"):
+                          gps_names=None, label="LOS", graph_scale=80):
     """
     myLev : list of leveling objects (displacements) with two time intervals, a start and an end
     InSAR_Data : InSAR object (displacements) with a start and end time
@@ -71,10 +71,14 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
         "Leveling: " + dt.datetime.strftime(myLev[0].dtarray[0], "%m-%Y") + " to " + dt.datetime.strftime(
             myLev[0].dtarray[1], "%m-%Y"), fontsize=15);
     axarr[0][0].plot(myLev[0].lon, myLev[0].lat, '*', markersize=12, color='black');
+    axarr[0][0].set_xticks([-115.59, -115.57, -115.55, -115.53, -115.51]);
+    axarr[0][0].ticklabel_format(useOffset=False)
     axarr[1][0].set_title(
         sat + ": " + dt.datetime.strftime(InSAR_Data.starttime, "%m-%Y") + " to " + dt.datetime.strftime(
             InSAR_Data.endtime, "%m-%Y"), fontsize=15);
     axarr[1][0].plot(myLev[0].lon, myLev[0].lat, '*', markersize=12, color='black');
+    axarr[1][0].set_xticks([-115.59, -115.57, -115.55, -115.53, -115.51]);
+    axarr[1][0].ticklabel_format(useOffset=False)
 
     # The one-to-one plot
     axarr[0][1].plot([-80, 80], [-80, 80], linestyle='--', color='gray')
@@ -82,8 +86,8 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     axarr[0][1].set_xlabel('Leveling offset (mm)', fontsize=20);
     axarr[0][1].set_ylabel(sat + ' offset (mm)', fontsize=20);
     axarr[0][1].tick_params(axis='both', which='major', labelsize=16)
-    axarr[0][1].set_xlim([-80, 80])
-    axarr[0][1].set_ylim([-80, 80])
+    axarr[0][1].set_xlim([-graph_scale, graph_scale])
+    axarr[0][1].set_ylim([-graph_scale, graph_scale])
     axarr[0][1].grid(True)
 
     # Plotting the InSAR data in the bottom panel, as used in other panels
@@ -115,7 +119,7 @@ def drive_ou_cornell_comparison(myLev, data_file, los_file, s1_slice, lev_slice,
     InSAR_Data = InSAR_1D_Object.inputs.inputs_cornell_ou_velocities_hdf5(data_file, los_file, s1_slice);
     InSAR_Data = InSAR_1D_Object.utilities.remove_nans(InSAR_Data);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
-    one_to_one_comparison(myLev, InSAR_Data, "S1", outfile, label="LOS");
+    one_to_one_comparison(myLev, InSAR_Data, "S1", outfile, label="LOS", graph_scale=50);
     return;
 
 
@@ -133,7 +137,7 @@ def drive_tre_comparison(myLev, los_filename, lev_slice, outfile):
     """Read TRE data and compare with leveling"""
     VertTSXData, EastTSXData = InSAR_1D_Object.inputs.inputs_TRE_vert_east(los_filename);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
-    one_to_one_comparison(myLev, VertTSXData, "TSX", outfile, label="Vertical");
+    one_to_one_comparison(myLev, VertTSXData, "TSX", outfile, label="Vertical", graph_scale=50);
     InSAR_1D_Object.outputs.plot_insar(VertTSXData, outfile + "InSAR_velo.png");
     return;
 
@@ -158,12 +162,12 @@ if __name__ == "__main__":
                                                                     file_dict["leveling"].split()[1]);
     myLev = Leveling_Object.leveling_inputs.compute_rel_to_datum_nov_2009(myLev);
 
-    # # S1_Cornell experiment (2015 data), leveling slice 5-6
-    output_dir = "S1_OU/T4D/";
-    drive_ou_cornell_comparison(myLev, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
-                                s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'ascending_56.png');
-    drive_ou_cornell_comparison(myLev, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
-                                s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'descending_56.png');
+    # # # S1_Cornell experiment (2015 data), leveling slice 5-6
+    # output_dir = "S1_OU/T4D/";
+    # drive_ou_cornell_comparison(myLev, file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"],
+    #                             s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'ascending_56.png');
+    # drive_ou_cornell_comparison(myLev, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
+    #                             s1_slice=0, lev_slice=[5, 6], outfile=output_dir+'descending_56.png');
     #
     # # # S1_Cornell experiment (2016 data), leveling slice 6-7
     # output_dir = "S1_OU/T4E/";
@@ -186,8 +190,8 @@ if __name__ == "__main__":
     # drive_ou_cornell_comparison(myLev, file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"],
     #                             s1_slice=3, lev_slice=[8, 9], outfile=output_dir+'descending_89.png');
 
-    # TSX experiment: 2012-2013, leveling slice 3-4
-    # drive_tre_comparison(myLev, file_dict["tsx"], lev_slice=[3, 4], outfile="TSX/one_to_one_34.png");
+    # # TSX experiment: 2012-2013, leveling slice 3-4
+    drive_tre_comparison(myLev, file_dict["tsx"], lev_slice=[3, 4], outfile="TSX/one_to_one_34.png");
 
     # # S1 experiment: 2014-2018, leveling slice 5-8
     # output_dir = "SNT1/"

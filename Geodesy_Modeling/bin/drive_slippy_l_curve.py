@@ -19,14 +19,15 @@ def welcome_and_parse(argv):
         fault_name = config1["faults"][key]["filename"]
         subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
     with open(config1['output_dir_lcurve']+'/config.json', 'w') as fp:
-        json.dump(config1, fp, indent="  ");   # save config file, record-keeping
+        json.dump(config1, fp, indent="  ");   # save master config file, record-keeping
     return config1;
 
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
     for alpha in config['range_alpha']:
-        config["alpha"] = alpha;
-        config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";
+        config["alpha"] = alpha;    # set the alpha
+        config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";   # set the output dir
         subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
         MultiTemporalInversion.buildG.beginning_calc(config);
+        MultiTemporalInversion.metrics.main_function(config);
