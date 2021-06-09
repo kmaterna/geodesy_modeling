@@ -22,12 +22,37 @@ def welcome_and_parse(argv):
         json.dump(config1, fp, indent="  ");   # save master config file, record-keeping
     return config1;
 
+def iterate_many_inversions(config):
+    """
+    A driver for looping multiple inversions depending on the experiment, testing the impact of alpha or smoothing.
+    """
+    if config["switch_alpha"] and not config["switch_penalty"]:   # 1d search in slip penalty
+        for alpha in config['range_alpha']:
+            config["alpha"] = alpha;    # set the alpha
+            config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";   # set the output dir
+            subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
+            MultiTemporalInversion.buildG.beginning_calc(config);
+            MultiTemporalInversion.metrics.main_function(config);
+    elif config["switch_penalty"] and not config["switch_alpha"]:   # 1d search in smoothing penalty
+        for penalty in config['range_penalty']:
+            config["faults"]["fault1"]["penalty"] = penalty;    # set the smoothing penalty
+            config["output_dir"] = config["output_dir_lcurve"]+"/penalty_"+str(penalty)+"/";   # set the output dir
+            subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
+            MultiTemporalInversion.buildG.beginning_calc(config);
+            MultiTemporalInversion.metrics.main_function(config);
+    else:
+        for alpha in config['range_alpha']:
+            for penalty in config['range_penalty']:
+                config["faults"]["fault1"]["penalty"] = penalty;  # set the smoothing penalty
+                config["alpha"] = alpha;  # set the alpha
+                config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"_"+str(penalty)+"/";
+                subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
+                MultiTemporalInversion.buildG.beginning_calc(config);
+                MultiTemporalInversion.metrics.main_function(config);
+    return;
+
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    for alpha in config['range_alpha']:
-        config["alpha"] = alpha;    # set the alpha
-        config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";   # set the output dir
-        subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
-        MultiTemporalInversion.buildG.beginning_calc(config);
-        MultiTemporalInversion.metrics.main_function(config);
+    # iterate_many_inversions(config);
+    MultiTemporalInversion.l_curve.main_driver(config);

@@ -47,23 +47,56 @@ def read_obs_vs_predicted_object(config):
     return [obs_pos_column, obs_disp_column, pred_disp_column, obs_sigma_column, obs_type_column];
 
 
-def get_total_misfit(config):
-    """Misfit can be defined in many ways. Here we include them. """
-    print("Calculating metrics for inversion results.");
-
+# -------- SIMPLE MISFIT FUNCTIONS ----------- #
+def simple_misfit_driver(config):
+    # Compute simple misfit - one column for each data.
     [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
-
-    # Compute simple misfit
-    # metrics = compute_simple_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
-    # write_simple_misfit(metrics, config["summary_file"]);
-
-    # Compute three metrics for gps, insar, and leveling respectively
-    metrics = compute_compound_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
-    write_compound_misfit(metrics, config["summary_file"]);  # matching write function
-
+    metrics = compute_simple_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
+    write_simple_misfit(metrics, config["summary_file"]);
     return;
 
-# -------- MISFIT COMPUTE FUNCTIONS ----------- #
+
+def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, data_type='all'):
+    """
+    The simplest misfit calculation, from any or all types of data
+    Options for data_type: ['all', 'gps', 'insar', 'leveling'];
+    Want in both absolute numbers and relative to the respective uncertainties.
+    """
+    if data_type == 'all':
+        idx = [index for index, element in enumerate(obs_type) if
+               element != ''];  # take everything in the observation vector
+    else:
+        idx = [index for index, element in enumerate(obs_type) if element == data_type];  # filter on data type
+    npts = len(obs_disp[idx]);
+    abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
+    norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
+    mean_average_misfit = np.nanmean(abs_misfit);
+    mean_norm_average_misfit = np.nanmean(norm_misfit);
+    return [mean_average_misfit, mean_norm_average_misfit, npts];
+
+
+def write_simple_misfit(metrics, outfile):
+    ofile = open(outfile, 'w');  # cleaning the file from last times
+    print("Writing %s " % outfile);
+    print("Average total misfit: %f mm" % (1000 * metrics[0]));
+    print("Average normalized misfit: %f sigma \n" % (metrics[1]));
+    ofile.write("Average misfit: %f mm\n" % (1000 * metrics[0]));
+    ofile.write("Average normalized misfit: %f sigma \n" % (metrics[1]));
+    ofile.write("Total npts: %d \n" % metrics[2]);
+    ofile.close();
+    return;
+
+
+# -------- COMPOUND MISFIT FUNCTIONS ----------- #
+def compound_misfit_driver(config):
+    # Compute three metrics for gps, insar, and leveling respectively
+    print("Calculating metrics for inversion results.");
+    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
+    metrics = compute_compound_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
+    write_compound_misfit(metrics, config["summary_file"]);  # matching write function
+    return;
+
+
 def compute_compound_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
     [gps_misfit, gps_x2, gps_npts] = compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type,
                                                            data_type='gps');
@@ -74,55 +107,9 @@ def compute_compound_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
     return [gps_misfit, gps_x2, gps_npts, ins_misfit, ins_x2, ins_npts, lev_misfit, lev_x2, lev_npts];
 
 
-def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, data_type='all'):
-    # The simplest misfit calculation, from any or all types of data
-    # Options for data_type: ['all', 'gps', 'insar', 'leveling'];
-    # Want in both absolute numbers and relative to the respective uncertainties.
-    if data_type == 'all':
-        idx = [index for index, element in enumerate(obs_type) if
-               element != ''];  # take everything in the observation vector
-    else:
-        idx = [index for index, element in enumerate(obs_type) if element == data_type];  # filter on data type
-
-    npts = len(obs_disp[idx]);
-    if npts == 0:
-        return [None, None, 0];
-    abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
-    norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
-    mean_average_misfit = np.nanmean(abs_misfit);
-    mean_norm_average_misfit = np.nanmean(norm_misfit);
-    return [mean_average_misfit, mean_norm_average_misfit, npts];
-
-
-# -------- SLIP COMPUTE FUNCTIONS ----------- #
-def get_slip_moments(slip_filename):
-    # From the inversion results, what is the moment of the slip distribution?
-    # Later, it might be important to describe how much of this slip is strike-slip vs reverse.
-    # Question for a later time.
-    moment_total = 0;
-    mu = 30e9;  # Pa, assumed.
-    length, width, leftlat, thrust, tensile = np.loadtxt(slip_filename, skiprows=1, unpack=True,
-                                                         usecols=(5, 6, 7, 8, 9));
-    for i in range(len(length)):
-        slip = np.sqrt(leftlat[i]*leftlat[i] + thrust[i]*thrust[i]);
-        area = length[i]*width[i];  # m^2
-        momenti = moment_calculations.moment_from_muad(mu, area, slip);
-        moment_total = moment_total+momenti;
-    mw = moment_calculations.mw_from_moment(moment_total);
-    print("Calculating moment from %s" % slip_filename);
-    return [moment_total, mw];
-
-
-
-# -------- WRITE FUNCTIONS ----------- # 
 def write_compound_misfit(metrics, outfile):
     ofile = open(outfile, 'w');  # cleaning the file from last times
     print("Writing %s " % outfile);
-
-    # # moments
-    # scinot = "{:e}".format(moments[0]);
-    # print("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );
-    # ofile.write("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );
 
     if metrics[0]:
         print("Average GPS misfit: %f mm" % (1000*metrics[0]) );
@@ -149,9 +136,60 @@ def write_compound_misfit(metrics, outfile):
     return;
 
 
+# -------- COMPOUND MISFIT FUNCTIONS ----------- #
+def brawley_misfit_driver(config):
+    # Compute three metrics for gps, insar, and leveling respectively
+    print("Calculating metrics for inversion results.");
+    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
+    metrics = compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
+    write_simple_misfit(metrics, config["summary_file"]);  # matching write function
+    return;
+
+def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
+    idx = np.where(obs_pos[0] > -115.58);
+    metrics = compute_simple_misfit(obs_pos[idx], obs_disp[idx], pred_disp[idx], obs_sigma[idx], obs_type[idx]);
+    return metrics;
+
+
+# -------- SLIP COMPUTE FUNCTIONS ----------- #
+def slip_metrics_driver(config):
+    moments = get_slip_moments(config["output_dir"]+config['epochs']['EpochA']["slip_output_file"]);  # fix this for T4
+    write_slip_moments(moments, config["summary_file"]);
+    return;
+
+
+def get_slip_moments(slip_filename):
+    # From the inversion results, what is the moment of the slip distribution?
+    # Later, it might be important to describe how much of this slip is strike-slip vs reverse.
+    # Question for a later time.
+    moment_total = 0;
+    mu = 30e9;  # Pa, assumed.
+    length, width, leftlat, thrust, tensile = np.loadtxt(slip_filename, skiprows=1, unpack=True,
+                                                         usecols=(5, 6, 7, 8, 9));
+    for i in range(len(length)):
+        slip = np.sqrt(leftlat[i]*leftlat[i] + thrust[i]*thrust[i]);
+        area = length[i]*width[i];  # m^2
+        momenti = moment_calculations.moment_from_muad(mu, area, slip);
+        moment_total = moment_total+momenti;
+    mw = moment_calculations.mw_from_moment(moment_total);
+    print("Calculating moment from %s" % slip_filename);
+    return [moment_total, mw];
+
+
+def write_slip_moments(moments, filename):
+    # moments
+    ofile = open(filename, 'a');  # appending to the file
+    scinot = "{:e}".format(moments[0]);
+    print("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );
+    ofile.write("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );
+    ofile.close();
+    return;
+
+
 # -------- ACCESS FUNCTIONS ----------- # 
 def main_function(config):
+    """Misfit can be defined in many ways. Here we point to them. """
     config["summary_file"] = config["output_dir"]+"summary_stats.txt";  # Creates an output file
-    get_total_misfit(config);
-    # moments = get_slip_moments(config["slip_output_file"]);
+    simple_misfit_driver(config);
+    slip_metrics_driver(config);   # for the amount of slip.
     return;

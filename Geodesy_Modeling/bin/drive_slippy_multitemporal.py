@@ -24,5 +24,5 @@ def welcome_and_parse(argv):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    # MultiTemporalInversion.buildG.beginning_calc(config);
+    MultiTemporalInversion.buildG.beginning_calc(config);
     MultiTemporalInversion.metrics.main_function(config);
