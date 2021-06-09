@@ -337,7 +337,7 @@ def beginning_calc(config):
 
     plt.figure(figsize=(12, 8), dpi=300);
     plt.imshow(G_total, vmin=-0.02, vmax=0.02, aspect=1/10)
-    plt.savefig("image_of_G.png");
+    plt.savefig(config['output_dir']+"/image_of_G.png");
 
     # INVERT BIG-G
     #   ### estimate slip and compute predicted displacement

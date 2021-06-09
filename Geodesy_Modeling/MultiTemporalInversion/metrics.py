@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# After you've done an inversion, what are the results? 
+# After you've done an inversion, what are the results?
 # How much moment is created, and how big is the misfit? 
 # Writes into a summary text file, and prints to screen. 
 # Useful for L-curve analysis.
@@ -146,6 +145,7 @@ def brawley_misfit_driver(config):
     return;
 
 def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
+    """ This isn't being used right now. """
     idx = np.where(obs_pos[0] > -115.58);
     metrics = compute_simple_misfit(obs_pos[idx], obs_disp[idx], pred_disp[idx], obs_sigma[idx], obs_type[idx]);
     return metrics;

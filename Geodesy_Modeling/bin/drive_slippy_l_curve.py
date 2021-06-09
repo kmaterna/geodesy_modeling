@@ -35,7 +35,8 @@ def iterate_many_inversions(config):
             MultiTemporalInversion.metrics.main_function(config);
     elif config["switch_penalty"] and not config["switch_alpha"]:   # 1d search in smoothing penalty
         for penalty in config['range_penalty']:
-            config["faults"]["fault1"]["penalty"] = penalty;    # set the smoothing penalty
+            for key in config["faults"].keys():
+                config["faults"][key]["penalty"] = penalty;    # set the smoothing penalty
             config["output_dir"] = config["output_dir_lcurve"]+"/penalty_"+str(penalty)+"/";   # set the output dir
             subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
             MultiTemporalInversion.buildG.beginning_calc(config);
@@ -43,7 +44,8 @@ def iterate_many_inversions(config):
     else:
         for alpha in config['range_alpha']:
             for penalty in config['range_penalty']:
-                config["faults"]["fault1"]["penalty"] = penalty;  # set the smoothing penalty
+                for key in config["faults"].keys():
+                    config["faults"][key]["penalty"] = penalty;  # set the smoothing penalty
                 config["alpha"] = alpha;  # set the alpha
                 config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"_"+str(penalty)+"/";
                 subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
