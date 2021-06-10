@@ -38,13 +38,16 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
     Remove a constant from the InSAR_Obj.
     If ref_coord, then remove ref_coord.
     If not, then remove the median value.
+    :param InSAR_Obj: 1D insar object
+    :param ref_coord: [lon, lat] of point constrained to be zero.
+    :returns: 1D insar object
     """
-    if ref_coord is None:
-        constant = np.nanmedian(InSAR_Obj.LOS);
-    else:
+    if ref_coord:
         nearest_index, _, _ = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_Obj.lon, InSAR_Obj.lat, ref_coord[0],
                                                                              ref_coord[1]);
         constant = InSAR_Obj.LOS[nearest_index];
+    else:
+        constant = np.nanmedian(InSAR_Obj.LOS);
     new_disp = [x - constant for x in InSAR_Obj.LOS];
     new_InSAR_Obj = InSAR_1D_Object(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
                                     lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,
@@ -58,6 +61,9 @@ def remove_ramp_insarformat(InSAR_Obj, ref_coord=None):
     Solving Ax = B
     We will re-reference if provided.
     Otherwise, we will remove the constant associated with the ramp.
+    :param InSAR_Obj: 1D insar object
+    :param ref_coord: [lon, lat] of point constrained to be zero.
+    :returns: 1D insar object
     """
     Z = [];
     A = np.zeros((len(InSAR_Obj.lon), 3));
@@ -74,7 +80,7 @@ def remove_ramp_insarformat(InSAR_Obj, ref_coord=None):
         new_disp.append(InSAR_Obj.LOS[i] - ramp_solution);
 
     # Re-reference if necessary
-    if ref_coord is not None:
+    if ref_coord:
         ref_plane = model[0] * ref_coord[0] + model[1] * ref_coord[1] + model[2];
         new_disp = [x - ref_plane for x in new_disp];
 

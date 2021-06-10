@@ -58,16 +58,16 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
-        stations = Downsample.downsample_gps_ts.read_station_ts(new_interval_dict["gps_bbox"],
-                                                                new_interval_dict["gps_reference"],
-                                                                remove_coseismic=new_interval_dict["remove_coseismic"]);
+        stations = GNSS_Object.read_gnss.read_station_ts(new_interval_dict["gps_bbox"],
+                                                         new_interval_dict["gps_reference"],
+                                                         remove_coseismic=new_interval_dict["remove_coseismic"]);
         displacement_objects = Downsample.downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime,
                                                                                       gps_sigma,
                                                                                       prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
-            displacement_objects = Downsample.downsample_gps_ts.add_gps_constant_offset(displacement_objects,
-                                                                                        new_interval_dict[
-                                                                                            "gps_add_offset_mm"]);
+            displacement_objects = GNSS_Object.utilities.add_gps_constant_offset(displacement_objects,
+                                                                                 new_interval_dict[
+                                                                                     "gps_add_offset_mm"]);
         GNSS_Object.utilities.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
                                                           + new_interval_dict["gps_textfile"]);
     return;
