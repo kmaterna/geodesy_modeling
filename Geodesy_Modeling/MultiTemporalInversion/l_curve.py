@@ -108,8 +108,8 @@ def plot_2d_curve(alphas, penalties, misfits, param1_name, param2_name, outfile)
     ax.set_zlabel('Misfit (mm)')
     ax = chosen_axis_annotations(ax);
     ax.set_title("Misfit vs Regularization Parameters");
-    # plt.show();  # good for playing.
-    plt.savefig(outfile);
+    plt.show();  # good for playing.
+    # plt.savefig(outfile);
     return;
 
 

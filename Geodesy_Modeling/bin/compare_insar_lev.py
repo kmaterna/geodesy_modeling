@@ -88,6 +88,13 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     axarr[0][1].tick_params(axis='both', which='major', labelsize=16)
     axarr[0][1].set_xlim([-graph_scale, graph_scale])
     axarr[0][1].set_ylim([-graph_scale, graph_scale])
+
+    # Computing misfit
+    misfit_function = np.nanmean(np.abs(np.subtract(oto_lev, oto_tsx)));   # average deviation from 1-to-1
+    corr_matrix = np.corrcoef(oto_lev, oto_tsx)
+    corr = corr_matrix[0, 1]
+    r2 = corr ** 2
+    axarr[0][1].set_title("Avg misfit = %.2f mm, Rsq = %.2f" % (misfit_function, r2), fontsize=15);
     axarr[0][1].grid(True)
 
     # Plotting the InSAR data in the bottom panel, as used in other panels
@@ -201,28 +208,28 @@ if __name__ == "__main__":
     # output_dir = "SNT2/"
     # drive_tre_comparison(myLev, file_dict["snt2"], lev_slice=[8, 9], outfile=output_dir+"one_to_one_89.png");
 
-    # # Individual UAVSAR experiments, starting with 2011-2012, leveling slice 2-3
-    # # Should set vmin/vmax to -150/150 for this one.
-    # output_dir = "UAVSAR_intfs/"
-    # bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"));
-    # drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2011_2012_unw"],
-    #                                     file_dict["uavsar_08508_2011_2012_los"], lev_slice=[2, 3],
-    #                                     outfile=output_dir+"one_to_one_23.png");
-    #
-    # # Individual UAVSAR experiments, 2010-2011, leveling slice 1-2
-    # output_dir = "UAVSAR_intfs/"
-    # bounds = (dt.datetime.strptime("20101215", "%Y%m%d"), dt.datetime.strptime("20111110", "%Y%m%d"));
-    # drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2010_2011_unw"],
-    #                                     file_dict["uavsar_08508_2010_2011_los"], lev_slice=[1, 2],
-    #                                     outfile=output_dir+"one_to_one_12.png");
-    #
-    # # Individual UAVSAR experiments, 2009-2010, leveling slice 0-1
-    # output_dir = "UAVSAR_intfs/"
-    # bounds = (dt.datetime.strptime("20091015", "%Y%m%d"), dt.datetime.strptime("20101215", "%Y%m%d"));
-    # drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2009_2010_unw"],
-    #                                     file_dict["uavsar_08508_2009_2010_los"], lev_slice=[0, 1],
-    #                                     outfile=output_dir+"one_to_one_01.png");
-    #
+    # Individual UAVSAR experiments, starting with 2011-2012, leveling slice 2-3
+    # Should set vmin/vmax to -150/150 for this one.
+    output_dir = "UAVSAR_intfs/"
+    bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"));
+    drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2011_2012_unw"],
+                                        file_dict["uavsar_08508_2011_2012_los"], lev_slice=[2, 3],
+                                        outfile=output_dir+"one_to_one_23.png");
+
+    # Individual UAVSAR experiments, 2010-2011, leveling slice 1-2
+    output_dir = "UAVSAR_intfs/"
+    bounds = (dt.datetime.strptime("20101215", "%Y%m%d"), dt.datetime.strptime("20111110", "%Y%m%d"));
+    drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2010_2011_unw"],
+                                        file_dict["uavsar_08508_2010_2011_los"], lev_slice=[1, 2],
+                                        outfile=output_dir+"one_to_one_12.png");
+
+    # Individual UAVSAR experiments, 2009-2010, leveling slice 0-1
+    output_dir = "UAVSAR_intfs/"
+    bounds = (dt.datetime.strptime("20091015", "%Y%m%d"), dt.datetime.strptime("20101215", "%Y%m%d"));
+    drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2009_2010_unw"],
+                                        file_dict["uavsar_08508_2009_2010_los"], lev_slice=[0, 1],
+                                        outfile=output_dir+"one_to_one_01.png");
+
     # outdir = "UAVSAR_Apr29/";
     # gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];  # Stations P506, P495, WMDG, WMCA and CRRS
     # gps_lats = [33.081, 33.044960, 33.038325, 33.072, 33.070];

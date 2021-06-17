@@ -158,14 +158,13 @@ def slip_metrics_driver(config):
     return;
 
 
-def get_slip_moments(slip_filename):
+def get_slip_moments(slip_filename, mu=30e9):
     # From the inversion results, what is the moment of the slip distribution?
     # Later, it might be important to describe how much of this slip is strike-slip vs reverse.
     # Question for a later time.
+    # mu is shear modulus, in Pa.
     moment_total = 0;
-    mu = 30e9;  # Pa, assumed.
-    length, width, leftlat, thrust, tensile = np.loadtxt(slip_filename, skiprows=1, unpack=True,
-                                                         usecols=(5, 6, 7, 8, 9));
+    length, width, leftlat, thrust, _ = np.loadtxt(slip_filename, skiprows=1, unpack=True, usecols=(5, 6, 7, 8, 9));
     for i in range(len(length)):
         slip = np.sqrt(leftlat[i]*leftlat[i] + thrust[i]*thrust[i]);
         area = length[i]*width[i];  # m^2

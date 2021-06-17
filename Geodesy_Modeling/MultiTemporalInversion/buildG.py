@@ -335,9 +335,36 @@ def beginning_calc(config):
         count = count + (row_span_list[filenum][1] - row_span_list[filenum][0]);
         G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
 
+    # Now we have the big-G matrix for all times, all data
     plt.figure(figsize=(12, 8), dpi=300);
     plt.imshow(G_total, vmin=-0.02, vmax=0.02, aspect=1/10)
     plt.savefig(config['output_dir']+"/image_of_G.png");
+
+    # Model Resolution Matrix:
+    Ggi = scipy.linalg.pinv(G_nosmooth_total);
+    Rmatrix = np.dot(Ggi, G_nosmooth_total);
+    for i in range(np.shape(Rmatrix)[0]):
+        for j in range(np.shape(Rmatrix)[1]):
+            if abs(Rmatrix[i][j]) < 1e-10:
+                Rmatrix[i][j] = np.nan;
+    plt.figure();
+    plt.plot(np.diag(Rmatrix));
+    plt.savefig('test_diagonal.png')
+
+    # Which ones are rows and columns? Assuming we go from shallow to deep.
+    plt.figure(figsize=(12, 8), dpi=300);
+    plt.imshow(np.log10(Rmatrix), aspect=1);
+    plt.colorbar();
+    plt.savefig(config['output_dir'] + "/model_resolution.png");
+
+    # Another way:
+    # how much displacement is caused by a unit displacement at each model cell?
+    # Similar to what Noel did. A possibility.
+    # Another way: invert 100 iterations of the data, and take the standard deviation of that distribution
+    # Can only do this once we have defined
+    # May also involve a different script.
+    # This would involve a somewhat refactor of this script (configure, input, compute, output)
+    # Or would do for only a single inversion, slippy-style. 
 
     # INVERT BIG-G
     #   ### estimate slip and compute predicted displacement
@@ -346,9 +373,9 @@ def beginning_calc(config):
     print("G_total:", np.shape(G_total));
     print("slip_f:", np.shape(slip_f))
     print("G_nosmooth_total:", np.shape(G_nosmooth_total));
-    print(np.shape(G_nosmooth_total.dot(slip_f)))
-    print(np.shape(sig_total))
-    print(np.shape(weight_total));
+    print("shape of data (G*slip): ", np.shape(G_nosmooth_total.dot(slip_f)))
+    print("shape of sigmas       : ", np.shape(sig_total))
+    print("shape of weights      : ", np.shape(weight_total));
     pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;
 
     total_cardinal_slip, leveling_offsets = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis,
