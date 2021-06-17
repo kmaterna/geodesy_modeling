@@ -112,84 +112,143 @@ def input_faults(config):
     return fault_list;
 
 
+def graph_big_G(config, G):
+    # Show big-G matrix for all times, all data
+    plt.figure(figsize=(12, 8), dpi=300);
+    plt.imshow(G, vmin=-0.02, vmax=0.02, aspect=1/10);
+    plt.savefig(config['output_dir']+"/image_of_G.png");
+    return;
+
+
+def graph_resolution(config, G):
+    # Model Resolution Matrix:
+    Ggi = scipy.linalg.pinv(G);
+    Rmatrix = np.dot(Ggi, G);
+    for i in range(np.shape(Rmatrix)[0]):
+        for j in range(np.shape(Rmatrix)[1]):
+            if abs(Rmatrix[i][j]) < 1e-10:
+                Rmatrix[i][j] = np.nan;
+    plt.figure();
+    plt.plot(np.diag(Rmatrix));
+    plt.savefig('test_diagonal.png')
+
+    # Which ones are rows and columns? Assuming we go from shallow to deep.
+    plt.figure(figsize=(12, 8), dpi=300);
+    plt.imshow(np.log10(Rmatrix), aspect=1);
+    plt.colorbar();
+    plt.savefig(config['output_dir'] + "/model_resolution.png");
+
+    # Another way:
+    # how much displacement is caused by a unit displacement at each model cell?
+    # Similar to what Noel did. A possibility.
+    # Another way: invert 100 iterations of the data, and take the standard deviation of that distribution
+    # Can only do this once we have defined
+    # May also involve a different script.
+    # This would involve a somewhat refactor of this script (configure, input, compute, output)
+    # Or would do for only a single inversion, slippy-style.
+
+    return;
+
+
+def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, number_of_datasets):
+    """ simple utility function to reduce lines in the main program"""
+    print("Parsing slip outputs from %d epochs " % n_epochs);
+    count = 0;
+    total_cardinal_slip = [];
+    for i in range(n_epochs):
+        n_params = int((len(slip_f) - number_of_datasets) / n_epochs);  # num fault params; ex: 200
+        start = count;
+        finish = count + n_params;
+        slip_during_epoch = slip_f[start:finish];
+        count = count + n_params;
+
+        slip = slip_during_epoch.reshape((Ns_total, Ds))  # ASSUMES ALL FAULTS HAVE SAME NUMBER OF BASIS VECTORS
+        cardinal_slip = slippy.basis.cardinal_components(slip, total_fault_slip_basis)
+        total_cardinal_slip.append(cardinal_slip);
+
+    leveling_offsets = slip_f[-number_of_datasets:];
+
+    return total_cardinal_slip, leveling_offsets;
+
+
+def parse_disp_outputs(pred_disp_f, num_obs):
+    """ simple utility function """
+    count = 0;
+    disp_segments = [];
+    for i in range(len(num_obs)):
+        disp_segment = pred_disp_f[count:count + num_obs[i]]
+        disp_segments.append(disp_segment);
+        count = count + num_obs[i];
+    return disp_segments;
+
+
 def beginning_calc(config):
 
     with open(config['output_dir']+'/config.json', 'w') as fp:
-        json.dump(config, fp, indent="  ");   # save config file, record-keeping
+        json.dump(config, fp, indent="  ");   # save copy of config file in outdir, for record-keeping
 
     fault_list = input_faults(config);
-    alpha = config['alpha']
+    alpha = config['alpha']  # a parameter to produce Minimum norm solution (optional)
 
     # Setting up the basemap before we begin (using the first dataset as information)
+    number_of_datasets = len(config["data_files"].keys());   # integer
     first_dataset = list(config["data_files"].keys())[0]
     if config["data_files"][first_dataset]["type"] == "gps":
         first_input = slippy.io.read_gps_data(config["data_files"][first_dataset]["data_file"]);  # gps
     else:
         first_input = slippy.io.read_insar_data(config["data_files"][first_dataset]["data_file"]);   # lev or insar
-    Ngps = len(first_input[0])
     obs_pos_geo = first_input[0]
-    obs_pos_geo_basemap = obs_pos_geo[:, None, :].repeat(3, axis=1).reshape((Ngps * 3, 3))
+    obs_pos_geo_basemap = obs_pos_geo[:, None, :].repeat(3, axis=1).reshape((len(first_input[0]) * 3, 3))  # reshape llh
     bm = plotting_library.create_default_basemap(obs_pos_geo_basemap[:, 0], obs_pos_geo_basemap[:, 1])
-    number_of_datasets = len(config["data_files"].keys());
 
     # # ###################################################################
     # ### discretize the fault segments
     # ### create slip basis vectors for each patch
     # ### build regularization matrix
     # ###################################################################
+    Ds = len(fault_list[0]["slip_basis"]);   # number of basis vectors for slip patch, assumed same for all slip patches
     patches = [];  # a growing list of fault patches.
-    slip_basis_f = np.zeros((0, 3))  # a growing list of basis functions for slip patches
-    total_fault_slip_basis = [];
-    patches_f = [];
-    L_array = [];
-    Ns_total = 0;
-    fault_names_array = [];
-    Ds = 0;   # the dimensions of the slip basis, assumed to be the same for all slip patches
+    total_fault_slip_basis = np.zeros((0, Ds, 3));   # a collection of basis vectors, one object for each fault patch
+    patches_f = [];  # patches repeated for each basis (for example, one for dip slip and one for strike slip)
+    slip_basis_f = np.zeros((0, 3))   # basis functions repeated for each slip patch
+    fault_names_array = [];  # a list of fault names (integers) for each fault patch
+    L_array = [];   # may hold several smoothing matrices, if using 2+ faults
 
     # # Fault processing
     for fault in fault_list:
         # Convert fault to cartesian coordinates
         fault["seg_pos_cart"] = plotting_library.geodetic_to_cartesian(fault["seg_pos_geo"], bm)
 
-        # Discretize fault segment
-        seg = slippy.patch.Patch(fault["seg_pos_cart"],
-                                 fault["length"], fault["width"],
-                                 fault["strike"], fault["dip"])
+        # Discretize this fault segment
+        seg = slippy.patch.Patch(fault["seg_pos_cart"], fault["length"], fault["width"], fault["strike"], fault["dip"]);
         single_fault_patches = np.array(seg.discretize(fault["Nlength"], fault["Nwidth"]))
-        Ns = len(single_fault_patches);
+        Ns = len(single_fault_patches);  # number of segments discretized from this fault
 
-        # Create slip basis vectors
-        Ds = len(fault["slip_basis"])  # the number of basis vectors for this slip patch.
+        # Create slip basis vectors, into an object of basis vectors for each fault segment
         single_fault_slip_basis = np.array([fault["slip_basis"] for _j in range(Ns)])
+        total_fault_slip_basis = np.concatenate((total_fault_slip_basis, single_fault_slip_basis), axis=0)
 
-        if len(total_fault_slip_basis) == 0:
-            total_fault_slip_basis = single_fault_slip_basis;
-        else:
-            total_fault_slip_basis = np.concatenate((total_fault_slip_basis, single_fault_slip_basis), axis=0)
+        # Reshape: Packaging of slip_basis_f and patches_f
         single_fault_silp_basis_f = single_fault_slip_basis.reshape((Ns * Ds, 3))
-
-        # Packaging of slip_basis_f
         single_fault_patches_f = single_fault_patches[:, None].repeat(Ds, axis=1).reshape((Ns * Ds,))
         patches = np.concatenate((patches, single_fault_patches), axis=0)
         patches_f = np.concatenate((patches_f, single_fault_patches_f), axis=0)
         slip_basis_f = np.concatenate((slip_basis_f, single_fault_silp_basis_f), axis=0);
-        name_for_patch = np.array([fault["name"]]);
-        names_for_patch = name_for_patch.repeat(Ns);
+        names_for_patch = np.array([fault["name"]]).repeat(Ns);   # patch names: an integer repeated Ns times
         fault_names_array = np.concatenate((fault_names_array, names_for_patch), axis=0);
 
-        ### build regularization matrix
+        ### build regularization matrix for this fault (for smoothing penalty?)
         L = np.zeros((0, Ns * Ds))
         indices = np.arange(Ns * Ds).reshape((Ns, Ds))
-        for i in range(Ds):
+        for i in range(Ds):  # for each dimension of the basis
             connectivity = indices[:, i].reshape((fault["Nlength"], fault["Nwidth"]))
             Li = slippy.tikhonov.tikhonov_matrix(connectivity, 2, column_no=Ns * Ds)
             L = np.vstack((Li, L))
 
-        L *= fault["penalty"]
-        L_array.append(L)
-        Ns_total = Ns_total + Ns
+        L *= fault["penalty"]   # multiplying by smoothing strength for this fault
+        L_array.append(L)   # collecting full smoothing matrix for each fault
 
-    L = scipy.linalg.block_diag(*L_array)  # Make the block diagonal matrix for tikhonov regularization
+    L = scipy.linalg.block_diag(*L_array)  # For 2+ faults: Make block diagonal matrix for tikhonov regularization
 
     # PARSE HOW MANY EPOCHS WE ARE USING
     # This will tell us how many epochs, model parameters total, and output files we need.
@@ -200,14 +259,14 @@ def beginning_calc(config):
         total_spans.append(config["epochs"][epoch]["name"]);
         span_output_files.append(config["output_dir"]+config["epochs"][epoch]["slip_output_file"]);
     n_model_params = np.shape(L)[0];
-    print("Finding fault model for %d epochs " % n_epochs);
+    print("Finding fault model for: %d epochs " % n_epochs);
     print("Number of fault model parameters per epoch: %d" % n_model_params);
     print("Total number of model parameters: %d" % (n_model_params * n_epochs + number_of_datasets));
 
     # INITIALIZING THE LARGE MATRICES
-    d_total = np.zeros((0,));
-    sig_total = np.zeros((0,));
-    weight_total = np.zeros((0,));
+    d_total = np.zeros((0,));         # data vector
+    sig_total = np.zeros((0,));       # uncertainties vector
+    weight_total = np.zeros((0,));    # weights vector
     G_total = np.zeros((0, n_epochs * n_model_params));  # does not contain leveling offsets
     G_nosmooth_total = np.zeros((0, n_epochs * n_model_params));  # for computing predicted displacements
     nums_obs = [];
@@ -335,36 +394,7 @@ def beginning_calc(config):
         count = count + (row_span_list[filenum][1] - row_span_list[filenum][0]);
         G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
 
-    # Now we have the big-G matrix for all times, all data
-    plt.figure(figsize=(12, 8), dpi=300);
-    plt.imshow(G_total, vmin=-0.02, vmax=0.02, aspect=1/10)
-    plt.savefig(config['output_dir']+"/image_of_G.png");
-
-    # Model Resolution Matrix:
-    Ggi = scipy.linalg.pinv(G_nosmooth_total);
-    Rmatrix = np.dot(Ggi, G_nosmooth_total);
-    for i in range(np.shape(Rmatrix)[0]):
-        for j in range(np.shape(Rmatrix)[1]):
-            if abs(Rmatrix[i][j]) < 1e-10:
-                Rmatrix[i][j] = np.nan;
-    plt.figure();
-    plt.plot(np.diag(Rmatrix));
-    plt.savefig('test_diagonal.png')
-
-    # Which ones are rows and columns? Assuming we go from shallow to deep.
-    plt.figure(figsize=(12, 8), dpi=300);
-    plt.imshow(np.log10(Rmatrix), aspect=1);
-    plt.colorbar();
-    plt.savefig(config['output_dir'] + "/model_resolution.png");
-
-    # Another way:
-    # how much displacement is caused by a unit displacement at each model cell?
-    # Similar to what Noel did. A possibility.
-    # Another way: invert 100 iterations of the data, and take the standard deviation of that distribution
-    # Can only do this once we have defined
-    # May also involve a different script.
-    # This would involve a somewhat refactor of this script (configure, input, compute, output)
-    # Or would do for only a single inversion, slippy-style. 
+    graph_resolution(config, G_nosmooth_total);
 
     # INVERT BIG-G
     #   ### estimate slip and compute predicted displacement
@@ -378,6 +408,7 @@ def beginning_calc(config):
     print("shape of weights      : ", np.shape(weight_total));
     pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;
 
+    Ns_total = len(patches);
     total_cardinal_slip, leveling_offsets = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis,
                                                                number_of_datasets);
     disp_models = parse_disp_outputs(pred_disp_f, nums_obs);
@@ -441,35 +472,6 @@ def beginning_calc(config):
                                        output_file_list[filenum])
             print("Writing file %s " % output_file_list[filenum]);
 
+    # MISC OUTPUTS: Graph of big G
+    graph_big_G(config, G_total);
     return;
-
-
-def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, number_of_datasets):
-    print("Parsing slip outputs from %d epochs " % n_epochs);
-    count = 0;
-    total_cardinal_slip = [];
-    for i in range(n_epochs):
-        n_params = int((len(slip_f) - number_of_datasets) / n_epochs);  # num fault params; ex: 200
-        start = count;
-        finish = count + n_params;
-        slip_during_epoch = slip_f[start:finish];
-        count = count + n_params;
-
-        slip = slip_during_epoch.reshape(
-            (Ns_total, Ds))  # THIS ASSUMES ALL FAULTS HAVE THE SAME NUMBER OF BASIS VECTORS
-        cardinal_slip = slippy.basis.cardinal_components(slip, total_fault_slip_basis)
-        total_cardinal_slip.append(cardinal_slip);
-
-    leveling_offsets = slip_f[-number_of_datasets:];
-
-    return total_cardinal_slip, leveling_offsets;
-
-
-def parse_disp_outputs(pred_disp_f, num_obs):
-    count = 0;
-    disp_segments = [];
-    for i in range(len(num_obs)):
-        disp_segment = pred_disp_f[count:count + num_obs[i]]
-        disp_segments.append(disp_segment);
-        count = count + num_obs[i];
-    return disp_segments;
