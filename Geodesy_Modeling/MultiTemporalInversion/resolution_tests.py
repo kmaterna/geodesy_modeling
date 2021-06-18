@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 import scipy
 
 def analyze_model_resolution_matrix(G, outdir):
-    """ Analyze the resolution matrix R (Menke, 1989) """
+    """
+    Simply analyze the resolution matrix R (Menke, 1989)
+    """
     Ggi = scipy.linalg.pinv(G);
     Rmatrix = np.dot(Ggi, G);
     for i in range(np.shape(Rmatrix)[0]):
@@ -25,19 +27,71 @@ def analyze_model_resolution_matrix(G, outdir):
     plt.savefig(outdir + '/model_resolution_diagonal.png');
 
     # Viewing the total picture of R: shows the model resolution along the diagonal.
-    # Which ones are rows and columns? Assuming we go from shallow to deep.
     plt.figure(figsize=(12, 8), dpi=300);
     plt.imshow(np.log10(Rmatrix), aspect=1);
     plt.colorbar();
-    plt.savefig(outdir + "/model_resolution.png");
+    plt.savefig(outdir + "/Rmatrix.png");
     return;
 
 
-def empirical_slip_resolution(G, m):
+def empirical_slip_resolution(G, total_fault_slip_basis):
     """
-    Analyze model resolution by putting unit slip on each model parameter and calculating average response
-    This function does not take into account observation uncertainties.
+    A relative measure of model resolution for strike slip and dip slip motion on faults.
+    Analyze model resolution by putting unit slip on each fault model parameter, calculating average geodetic response.
+    This function does not take into account observation uncertainties or smoothing parameters
     """
+    num_model_params = np.shape(G)[1];  # number of model parameters
+    resolution_vector = np.zeros((num_model_params, 1));
+    if len(total_fault_slip_basis[0]) != 2:
+        print("Error, I don't know how to do empirical uncertainties for 1 or 3 basis vectors yet.");
+        return resolution_vector;
+    # Reshaping the slip basis into a long list of vectors, one for each slip component
+    for i in range(len(total_fault_slip_basis)):   # for each fault patch in the model
+        mhat = np.zeros((num_model_params, 1));   # create a model vector of zeros
+        angle_with_reverse1 = np.arctan(total_fault_slip_basis[0][0][0] / total_fault_slip_basis[0][0][1]);
+        angle_with_reverse2 = np.arctan(total_fault_slip_basis[0][1][0] / total_fault_slip_basis[0][1][1]);
+        transform_matrix = np.array([[np.sin(angle_with_reverse1), -np.sin(angle_with_reverse1)],
+                                     [-np.cos(angle_with_reverse2), -np.cos(angle_with_reverse2)]]);  # transform
+        cardinal_strike_slip = np.dot(np.linalg.inv(transform_matrix), np.array([1, 0]));
+        cardinal_dip_slip = np.dot(np.linalg.inv(transform_matrix), np.array([0, -1]));  # coordinate transform
+        mhat[2*i] = cardinal_strike_slip[0];    # set particular model parameters to 1m strike slip
+        mhat[2*i + 1] = cardinal_strike_slip[1];
+        dhat = np.dot(G, mhat);    # predicted displacement from unit slip
+        resolution_vector[2*i] = np.nanmean(np.abs(dhat));   # measure a metric from unit strike slip
+        mhat[2*i] = cardinal_dip_slip[0];    # set particular model parameters to 1m dip slip
+        mhat[2*i + 1] = cardinal_dip_slip[1];
+        dhat = np.dot(G, mhat);    # predicted displacement from unit slip
+        resolution_vector[2*i + 1] = np.nanmean(np.abs(dhat));   # measure a metric from unit dip slip
+    return resolution_vector;
 
 
+def normalize_v(vector):
+    vector_norm = np.sqrt(np.square(vector[0]) + np.square(vector[1]) + np.square(vector[2]));
+    return np.divide(vector, vector_norm);
+
+
+def parse_empirical_res_outputs(res_f, Ns_total, Ds,  num_lev_offsets):
+    """
+    Rotate the resolution into dip slip and strike slip components.
+    res_f: resolution vector
+    Ns_total: number of segments
+    Ds: number of dimensions in the basis
+    total_fault_slip_basis:
+    num_lev_offsets: the last n model parameters are leveling offsets that don't get plotted on faults
+    """
+    n_params = int(len(res_f) - num_lev_offsets);  # num fault params; ex: 200
+    res = res_f[0:n_params].reshape((Ns_total, Ds))  # ASSUMES ALL FAULTS HAVE SAME NUMBER OF BASIS VECTORS
+    cardinal_res = np.hstack((res, np.zeros((len(res), 1))));  # adding the "tensile"
+    return cardinal_res;
+
+
+def bootstrapped_model_resolution(G_total, G_nosmooth, d, sig, weights):
+    """
+    An absolute measure (in mm) of model resolution on faults
+    Run the model a hundred times with random noise realizations. Get the noise floor.
+    We probably need G_total to have smoothing here, while G_nosmooth does not.
+    Useful lines:
+    slip_f = reg_nnls(G_total, d_total)   # slip_f is the model
+    pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;   # the forward prediction
+    """
     return;

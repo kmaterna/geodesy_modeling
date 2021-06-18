@@ -33,6 +33,11 @@ def G_with_smoothing(G, L, alpha, d):
     return Gext, dext;
 
 
+def normalized_vector(vector):
+    norm = np.sqrt(np.square(vector[0]) + np.square(vector[1]) + np.square(vector[2]));
+    return np.divide(vector, norm);
+
+
 def input_gps_file(filename):
     """
     obs_disp_f: list of obs (8 stations --> 24 obs)
@@ -104,7 +109,7 @@ def input_faults(config):
             basis_i = fault_i.pop(b, None)
             if basis_i is None:
                 continue
-            basis += [basis_i]
+            basis += [normalized_vector(basis_i)];
         fault_segment = {
             "strike": fault_i["strike"],
             "dip": fault_i["dip"],
@@ -130,13 +135,13 @@ def graph_big_G(config, G):
     return;
 
 
-def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, number_of_datasets):
-    """ simple utility function to reduce lines in the main program"""
+def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, num_lev_offsets):
+    """ simple utility function to reduce lines in the main program """
     print("Parsing slip outputs from %d epochs " % n_epochs);
     count = 0;
     total_cardinal_slip = [];
     for i in range(n_epochs):
-        n_params = int((len(slip_f) - number_of_datasets) / n_epochs);  # num fault params; ex: 200
+        n_params = int((len(slip_f) - num_lev_offsets) / n_epochs);  # num fault params; ex: 200
         start = count;
         finish = count + n_params;
         slip_during_epoch = slip_f[start:finish];
@@ -146,7 +151,10 @@ def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, n
         cardinal_slip = slippy.basis.cardinal_components(slip, total_fault_slip_basis)
         total_cardinal_slip.append(cardinal_slip);
 
-    leveling_offsets = slip_f[-number_of_datasets:];
+    if num_lev_offsets > 0:
+        leveling_offsets = slip_f[-num_lev_offsets:];
+    else:
+        leveling_offsets = [];  # if we're not using leveling in this inversion
 
     return total_cardinal_slip, leveling_offsets;
 
@@ -171,7 +179,6 @@ def beginning_calc(config):
     alpha = config['alpha']  # a parameter to produce Minimum norm solution (optional)
 
     # Setting up the basemap before we begin (using the first dataset as information)
-    number_of_datasets = len(config["data_files"].keys());   # integer
     first_dataset = list(config["data_files"].keys())[0]
     if config["data_files"][first_dataset]["type"] == "gps":
         first_input = slippy.io.read_gps_data(config["data_files"][first_dataset]["data_file"]);  # gps
@@ -241,8 +248,8 @@ def beginning_calc(config):
     n_model_params = np.shape(L)[0];    # model parameters that aren't leveling offset
     n_cols_bigG = n_model_params * n_epochs;  # the total number of fault-related model parameters across all time
     print("Finding fault model for: %d epochs " % n_epochs);
-    print("Number of fault model parameters per epoch: %d" % n_model_params);
-    print("Total number of model parameters: %d" % (n_model_params * n_epochs + number_of_datasets));  # seems singular?
+    print("Number of fault-model parameters per epoch: %d" % n_model_params);
+    print("Number of all fault-model parameters: %d" % (n_model_params * n_epochs));
 
     # INITIALIZING THE LARGE MATRICES
     d_total = np.zeros((0,));         # data vector
@@ -271,8 +278,7 @@ def beginning_calc(config):
         if config["data_files"][data_file]["type"] == "leveling":
             signs_list.append(config["data_files"][data_file]["sign"]);
         else:
-            signs_list.append(0.0);   # june 2021: does this result in a singular matrix? It might...
-            # we seem to have one parameter for each dataset, regardless of whether it needs it.
+            signs_list.append(0.0);   # if 0, we won't create a column for parameter
 
     # START THE MAJOR INVERSION LOOP
     for filenum in range(len(input_file_list)):
@@ -348,47 +354,48 @@ def beginning_calc(config):
 
     # End Read_Data and Build_G stage
 
-    # ADDING THE COLUMNS FOR LEVELING OFFSETS TO G_TOTAL MATRIX (Corresponding to the data lines only)
+    # ADDING COLUMNS FOR LEVELING OFFSETS TO G_TOTAL MATRIX (to corresponding data lines only)
+    num_leveling_params = 0;
     print("------\nBefore adding lines for leveling offsets, shape(G): ", np.shape(G_total));
     numrows = np.shape(G_total)[0];
     num_rows_nosmooth = np.shape(G_nosmooth_total)[0];
     count = 0;
     for filenum in range(len(input_file_list)):
         leveling_sign = signs_list[filenum];
-        newcol = np.zeros((numrows, 1));
-        for i in range(len(newcol)):
-            if row_span_list[filenum][0] < i < row_span_list[filenum][1]:
-                newcol[i] = leveling_sign;
-        G_total = np.hstack((G_total, newcol));
-        print("Adding column for %s " % input_file_list[filenum])
+        if leveling_sign != 0:
+            num_leveling_params += 1;
+            newcol = np.zeros((numrows, 1));
+            for i in range(len(newcol)):
+                if row_span_list[filenum][0] < i < row_span_list[filenum][1]:
+                    newcol[i] = leveling_sign;
+            G_total = np.hstack((G_total, newcol));  # adding column to G_total
+            print("Adding column for %s " % input_file_list[filenum])
 
-        # ADDING THE COLUMNS TO G_NOSMOOTH_TOTAL
-        newcol_nosmooth = np.zeros((num_rows_nosmooth, 1));
-        for i in range(len(newcol_nosmooth)):
-            if count <= i < count + (row_span_list[filenum][1] - row_span_list[filenum][0]):
-                newcol_nosmooth[i] = leveling_sign;
-        count = count + (row_span_list[filenum][1] - row_span_list[filenum][0]);
-        G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
-
-    # Running a resolution test if desired.
-    if int(config["resolution_test"]):
-        resolution_tests.analyze_model_resolution_matrix(G_nosmooth_total, config["output_dir"]);
+            # ADDING COLUMN TO G_NOSMOOTH_TOTAL
+            newcol_nosmooth = np.zeros((num_rows_nosmooth, 1));
+            for i in range(len(newcol_nosmooth)):
+                if count <= i < count + (row_span_list[filenum][1] - row_span_list[filenum][0]):
+                    newcol_nosmooth[i] = leveling_sign;
+            count = count + (row_span_list[filenum][1] - row_span_list[filenum][0]);
+            G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
+    print("After adding lines for leveling offsets, shape(G): ", np.shape(G_total), "\n------");
 
     # INVERT BIG-G
     #   ### estimate slip and compute predicted displacement
     #   #####################################################################
-    slip_f = reg_nnls(G_total, d_total)  # the model
+    slip_f = reg_nnls(G_total, d_total)   # the model
+    pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;   # the forward prediction
+    print("Results:  ");
     print("G_total:", np.shape(G_total));
     print("slip_f:", np.shape(slip_f))
     print("G_nosmooth_total:", np.shape(G_nosmooth_total));
     print("shape of data (G*slip): ", np.shape(G_nosmooth_total.dot(slip_f)))
     print("shape of sigmas       : ", np.shape(sig_total))
     print("shape of weights      : ", np.shape(weight_total));
-    pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;
 
     Ns_total = len(patches);
     total_cardinal_slip, leveling_offsets = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis,
-                                                               number_of_datasets);
+                                                               num_leveling_params);
     disp_models = parse_disp_outputs(pred_disp_f, nums_obs);
 
     # Defensive programming (Reporting errors)
@@ -447,6 +454,17 @@ def beginning_calc(config):
                                        pos_basis_list[filenum],
                                        output_file_list[filenum])
             print("Writing file %s " % output_file_list[filenum]);
+
+    # Running a resolution test if desired.
+    if int(config["resolution_test"]):
+        resolution_tests.analyze_model_resolution_matrix(G_nosmooth_total, config["output_dir"]);
+        model_resolution = resolution_tests.empirical_slip_resolution(G_nosmooth_total, total_fault_slip_basis);
+        total_cardinal_res = resolution_tests.parse_empirical_res_outputs(model_resolution, Ns_total, Ds,
+                                                                          num_leveling_params);
+        res_output_file = config["output_dir"]+'empirical_resolution.txt';
+        slippy.io.write_slip_data(patches_pos_geo, patches_strike, patches_dip, patches_length, patches_width,
+                                  total_cardinal_res, fault_names_array, res_output_file);
+        print("Writing file %s " % res_output_file);
 
     # MISC OUTPUTS: Graph of big G (with all smoothing parameters inside)
     graph_big_G(config, G_total);
