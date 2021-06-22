@@ -16,21 +16,28 @@ def reg_nnls(Gext, dext):
     return scipy.optimize.nnls(Gext, dext)[0]
 
 
-def G_with_smoothing(G, L, alpha, d):
+def G_with_smoothing(G, L, alpha, d, num_params, n_epochs):
     """
     L: Add smoothing regularization (tikhonov regularization)
     Alpha: Add minimum-norm regularization (Aster and Thurber, Equation 4.5)
     d: Expand the data vector to match the new size of G
-    WARNING: Only works for one time slice right now.
     """
-    dext = np.concatenate((d, np.zeros(L.shape[0])))
-    Gext = np.vstack((G, L))
-    if alpha > 0:  # Minimum norm solution. Aster and Thurber, Equation 4.5.
-        alphaI = alpha * np.identity(np.shape(Gext)[1])
-        alphaI[-1, -1] = 0;  # for leveling, we don't want the offset term to be constrained.
-        zero_vector = np.zeros((np.shape(Gext)[1],))
-        Gext = np.vstack((Gext, alphaI))
+    Gext = G.copy();
+    dext = d.copy();
+    for i in range(n_epochs):
+        new_l_rowblock = np.zeros((len(L), num_params*n_epochs));
+        new_l_rowblock[:, i*num_params:(i+1)*num_params] = L;
+        Gext = np.vstack((Gext, new_l_rowblock));
+        zero_vector = np.zeros((len(L),));
         dext = np.concatenate((dext, zero_vector))
+        if alpha > 0:  # Minimum norm solution. Aster and Thurber, Equation 4.5.
+            new_alpha_rowblock = np.zeros((len(L), num_params*n_epochs));
+            alphaI = alpha * np.identity(len(L));
+            alphaI[-1, -1] = 0;  # for leveling, we don't want the offset term to be constrained with smoothing.
+            new_alpha_rowblock[:, i * num_params:(i + 1) * num_params] = alphaI;
+            Gext = np.vstack((Gext, new_alpha_rowblock));
+            zero_vector = np.zeros((len(alphaI),));
+            dext = np.concatenate((dext, zero_vector))
     return Gext, dext;
 
 
@@ -361,7 +368,7 @@ def beginning_calc(config):
     # End Build_G stage
 
     # Smoothing and slip penalty for each epoch.  (L DEPENDS ON FAULT GEOMETRY ONLY)
-    G_ext, d_ext = G_with_smoothing(G_nosmooth, L, alpha, d_total);   # should build multi-T next
+    G_ext, d_ext = G_with_smoothing(G_nosmooth, L, alpha, d_total, n_model_params, n_epochs);
     print("Shape of G, L:", np.shape(G_nosmooth), " ", np.shape(L))
     print("Shape of Gext (G,L,alpha):", np.shape(G_ext));
 
