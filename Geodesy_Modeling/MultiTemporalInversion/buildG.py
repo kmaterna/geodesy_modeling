@@ -268,12 +268,12 @@ def beginning_calc(config):
         L_array.append(L)   # collecting full smoothing matrix for each fault
 
     L = scipy.linalg.block_diag(*L_array)  # For 2+ faults: Make block diagonal matrix for tikhonov regularization
+    Ns_total = len(patches);  # number of total patches (regardless of basis vectors)
 
     # PARSE HOW MANY EPOCHS WE ARE USING
     # Tell us how many epochs, model parameters total, and output files we need.
     n_epochs = 0;
     total_spans, span_output_files = [], [];
-    Ns_total = len(patches);   # number of patches (regardless of basis vectors)
     for epoch in config["epochs"].keys():
         n_epochs = n_epochs + 1;
         total_spans.append(config["epochs"][epoch]["name"]);
@@ -470,27 +470,36 @@ def beginning_calc(config):
         print("Writing file %s " % res_output_file);
         return;
 
-    if config["resolution_test"] == "R":
+    if config["resolution_test"] == "R" and n_epochs == 1:
         # Resolution Matrix form of analysis
         res_output_file = config["output_dir"] + 'diag_resolution.txt';
         r_diag, m_sig = resolution_tests.analyze_model_resolution_matrix(G_ext, len(G_nosmooth), config["output_dir"]);
         total_cardinal_res = resolution_tests.parse_empirical_res_outputs(m_sig, Ns_total, Ds, num_leveling_params);
         res_output_phase(total_cardinal_res, res_output_file);
-    if config["resolution_test"] == "avg_response":
+    if config["resolution_test"] == "avg_response" and n_epochs == 1:
         # Average geodetic response form of analysis
-        res_output_file = config["output_dir"]+'empirical_resolution.txt';
+        res_output_file = config["output_dir"] + 'empirical_resolution.txt';
         model_res = resolution_tests.empirical_slip_resolution(G_ext, total_fault_slip_basis);
         total_cardinal_res = resolution_tests.parse_empirical_res_outputs(model_res, Ns_total, Ds, num_leveling_params);
         res_output_phase(total_cardinal_res, res_output_file);
-    # if config["resolution_test"] == "checkerboard":
-        # res_output_file = config["output_dir"] = 'checkerboard_resolution.txt';
-        # checkerboard_model = resolution_tests.checkerboard_test(patches_f, num_leveling_params);
-        # pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model) * sig_total * weight_total;
-        # the forward prediction
-        # recovered_checkerboard = reg_nnls(G_ext, pred_disp_checkerboard);  # the inverse model.
-        # d doesn't have right rows for smoothing now.
-        # total_cardinal_res = resolution_tests.parse_empirical_res_outputs(recovered_checkerboard, Ns_total, Ds,
-        #                                                                   num_leveling_params);
+    if config["resolution_test"] == "checkerboard" and n_epochs == 1:
+        # checkerboard test for one fault segment
+        res_output_file = config["output_dir"] + 'checkerboard_resolution.txt';
+        res_input_file = config["output_dir"] + 'checkerboard_input.txt';
+        checkerboard_model = resolution_tests.checkerboard_test(patches_f, Ds, num_leveling_params,
+                                                                fault_list[0]["Nwidth"], checker_width=4);
+        pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model);  # forward prediction, not multiplied by sigmas
+        zero_vector = np.zeros((len(d_ext) - len(pred_disp_checkerboard),));  # adding zeros to pred_d, for smoothing
+        pred_d_ext = np.concatenate((pred_disp_checkerboard, zero_vector));
+        recovered_checkerboard = reg_nnls(G_ext, pred_d_ext);  # the inverse model.
+        total_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(recovered_checkerboard, Ns_total, Ds,
+                                                                             total_fault_slip_basis,
+                                                                             num_leveling_params);
+        res_output_phase(total_cardinal_res, res_output_file);
+        inp_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(checkerboard_model, Ns_total, Ds,
+                                                                           total_fault_slip_basis,
+                                                                           num_leveling_params);
+        res_output_phase(inp_cardinal_res, res_input_file);
 
     # MISC OUTPUTS: Graph of big G (with all smoothing parameters inside)
     graph_big_G(config, G_ext);

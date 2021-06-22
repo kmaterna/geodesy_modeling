@@ -9,6 +9,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
+import slippy.basis
 
 def analyze_model_resolution_matrix(G, num_obs, outdir):
     """
@@ -20,12 +21,13 @@ def analyze_model_resolution_matrix(G, num_obs, outdir):
     plt.imshow(G, vmin=-0.02, vmax=0.02, aspect=1);
     plt.savefig(outdir + "/G_resolution.png");
 
+    # Model Resolution Matrix
     Ggi = scipy.linalg.pinv(G);  # Replace all smoothing with zeros for second half of this expression
     G_nosmoothing = G.copy();
     G_nosmoothing[num_obs:, :] = 0;
     Rmatrix = np.dot(Ggi, G_nosmoothing);  # R matrix
 
-    # Model Covariance
+    # Model Covariance values
     covb_slip = np.dot(Ggi, Ggi.T);
     sig_slipb = np.sqrt(np.diag(covb_slip));
 
@@ -88,7 +90,22 @@ def parse_empirical_res_outputs(res_f, Ns_total, Ds,  num_lev_offsets):
     return cardinal_res;
 
 
-def bootstrapped_model_resolution(G_total, G_nosmooth, d, sig, weights):
+def parse_checkerboard_res_outputs(res_f, Ns_total, Ds, total_fault_slip_basis, num_lev_offsets):
+    """
+    Rotate the slip into dip slip and strike slip components.
+    res_f: resolution vector
+    Ns_total: number of segments
+    Ds: number of dimensions in the basis
+    total_fault_slip_basis:
+    num_lev_offsets: the last n model parameters are leveling offsets that don't get plotted on faults
+    """
+    n_params = int(len(res_f) - num_lev_offsets);  # num fault params
+    res_f = res_f[0:n_params].reshape((Ns_total, Ds))  # ASSUMES ALL FAULTS HAVE SAME NUMBER OF BASIS VECTORS
+    cardinal_res = slippy.basis.cardinal_components(res_f, total_fault_slip_basis)
+    return cardinal_res;
+
+
+def bootstrapped_model_resolution(_G_total, _G_nosmooth, _d, _sig, _weights):
     """
     An absolute measure (in mm) of model resolution on faults
     Run the model a hundred times with random noise realizations. Get the noise floor.
@@ -99,16 +116,36 @@ def bootstrapped_model_resolution(G_total, G_nosmooth, d, sig, weights):
     I'm now thinking this is an interesting problem - not as useful as I thought
     This depends on the input data
     """
-
     return;
 
 
-def checkerboard_test(patches_f, num_leveling_params):
+def checkerboard_test(patches_f, Ds, num_leveling_params, num_width, checker_width=3):
     """
-    Basic checkerboard test utility
+    Basic checkerboard utility to build checkers on a single fault. Making a checkerboard input pattern.
     """
     checkerboard_vector = np.zeros((len(patches_f)+num_leveling_params,));
-    checkerboard_vector[100] = 1;
-    checkerboard_vector[101] = 1;
-    checkerboard_vector[102] = 1;
+    num_patches = int(len(patches_f) / Ds);   # number of patches
+    patch_vector = np.zeros((num_patches,));
+
+    # Define the rows for checker-0 and checker-1
+    type0_slice = np.zeros((num_width,));
+    type1_slice = np.zeros((num_width,));
+    for i in range(len(type0_slice)):
+        if np.mod(i, checker_width*2) < checker_width:
+            type0_slice[i] = 0.4;
+    for i in range(len(type1_slice)):
+        if np.mod(i, checker_width*2) >= checker_width:
+            type1_slice[i] = 0.4;
+
+    # Fill in the rows for checker-0 and checker-1
+    for i in np.arange(len(patch_vector), step=num_width):
+        if np.mod(i, num_width*checker_width*2) < num_width*checker_width:
+            patch_vector[i:i+num_width] = type0_slice;
+        else:
+            patch_vector[i:i + num_width] = type1_slice;
+
+    for i in range(len(patch_vector)):
+        checkerboard_vector[i * Ds] = patch_vector[i];
+        checkerboard_vector[i * Ds + 1] = patch_vector[i];
+
     return checkerboard_vector;
