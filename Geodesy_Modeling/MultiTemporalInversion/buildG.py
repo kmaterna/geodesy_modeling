@@ -21,6 +21,7 @@ def G_with_smoothing(G, L, alpha, d):
     L: Add smoothing regularization (tikhonov regularization)
     Alpha: Add minimum-norm regularization (Aster and Thurber, Equation 4.5)
     d: Expand the data vector to match the new size of G
+    WARNING: Only works for one time slice right now.
     """
     dext = np.concatenate((d, np.zeros(L.shape[0])))
     Gext = np.vstack((G, L))
@@ -95,6 +96,36 @@ def input_insar_file(filename):
     return [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar];
 
 
+def input_all_obs_data(input_file_list, data_type_list, strengths_list):
+    nums_obs_list = [];    # list that holds number of data points in each dataset (3ngps, ninsar, etc.)
+    pos_obs_list = [];     # list of [llh] for each observation, (ninsar + nlev + 3ngps)
+    pos_basis_list = [];    # lists of look vectors or gps basis, (ninsar + nlev + 3ngps)
+    obs_disp_f_list, obs_sigma_f_list, obs_weighting_f_list = [], [], [];
+
+    # START THE INPUT LOOP
+    for filenum in range(len(input_file_list)):
+        filename = input_file_list[filenum];
+        if data_type_list[filenum] == 'gps':
+            [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ngps] = input_gps_file(filename);
+            obs_weighting_f = (1 / strengths_list[filenum]) * np.ones((Ngps * 3,));
+        elif data_type_list[filenum] == 'insar' or data_type_list[filenum] == "leveling":
+            [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar] = input_insar_file(filename);
+            obs_weighting_f = (1 / strengths_list[filenum]) * np.ones((Ninsar,));
+        else:
+            print("ERROR! Unrecognized data type %s " % data_type_list[filenum]);
+            continue;
+
+        # Data/Metadata collection about this input source
+        pos_obs_list.append(obs_pos_geo_f);  # lists of llh, for writing outputs later
+        pos_basis_list.append(obs_basis_f);   # lists of look vectors or gps basis, for writing outputs later
+        nums_obs_list.append(len(obs_disp_f));    # list append: number of obs in this dataset (ninsar, 3ngps, etc)
+        obs_disp_f_list.append(obs_disp_f);  # observed displacements
+        obs_sigma_f_list.append(obs_sigma_f);  # uncertainties
+        obs_weighting_f_list.append(obs_weighting_f);   # extra weighting factor
+    # End input loop
+    return [pos_obs_list, pos_basis_list, nums_obs_list, obs_disp_f_list, obs_sigma_f_list, obs_weighting_f_list];
+
+
 def input_faults(config):
     # Read Faults into a list of faults (each fault being a dict), starting from a filename for each fault
     print("Parsing faults from config file");
@@ -130,7 +161,8 @@ def input_faults(config):
 def graph_big_G(config, G):
     # Show big-G matrix for all times, all data
     plt.figure(figsize=(12, 8), dpi=300);
-    plt.imshow(G, vmin=-0.02, vmax=0.02, aspect=1/10);
+    plt.imshow(G, vmin=-0.2, vmax=0.2, aspect=1/5);
+    plt.colorbar();
     plt.savefig(config['output_dir']+"/image_of_G.png");
     return;
 
@@ -224,7 +256,7 @@ def beginning_calc(config):
         names_for_patch = np.array([fault["name"]]).repeat(Ns);   # patch names: an integer repeated Ns times
         fault_names_array = np.concatenate((fault_names_array, names_for_patch), axis=0);
 
-        ### build regularization matrix for this fault (for smoothing penalty?)
+        ### build regularization matrix for this fault (for smoothing penalty)
         L = np.zeros((0, Ns * Ds))
         indices = np.arange(Ns * Ds).reshape((Ns, Ds))
         for i in range(Ds):  # for each dimension of the basis
@@ -241,6 +273,7 @@ def beginning_calc(config):
     # Tell us how many epochs, model parameters total, and output files we need.
     n_epochs = 0;
     total_spans, span_output_files = [], [];
+    Ns_total = len(patches);   # number of patches (regardless of basis vectors)
     for epoch in config["epochs"].keys():
         n_epochs = n_epochs + 1;
         total_spans.append(config["epochs"][epoch]["name"]);
@@ -255,11 +288,7 @@ def beginning_calc(config):
     d_total = np.zeros((0,));         # data vector
     sig_total = np.zeros((0,));       # uncertainties vector
     weight_total = np.zeros((0,));    # weights vector
-    G_total = np.zeros((0, n_epochs * n_model_params));  # does not contain leveling offsets
-    G_nosmooth_total = np.zeros((0, n_epochs * n_model_params));  # for computing predicted displacements
-    nums_obs = [];    # list that holds number of data points in each dataset (3ngps, ninsar, etc.)
-    pos_obs_list = [];     # list of [llh] for each observation, (ninsar + nlev + 3ngps)
-    pos_basis_list = [];    # lists of look vectors or gps basis, (ninsar + nlev + 3ngps)
+    G_nosmooth = np.zeros((0, n_epochs * n_model_params));  # does not contain leveling offsets
 
     # INITIAL DATA SCOPING: HOW MANY FILES WILL NEED TO BE READ?
     input_file_list, output_file_list = [], [];
@@ -267,7 +296,7 @@ def beginning_calc(config):
     data_type_list, row_span_list = [], [];
     print("Available data indicated in json file: ")
 
-    # Unpacking metadata for later use
+    # Unpacking metadata from config file
     for data_file in config["data_files"].keys():
         input_file_list.append(config["data_files"][data_file]["data_file"]);  # 'infile' expected of all data files
         output_file_list.append(config["output_dir"]+config["data_files"][data_file]["outfile"]);  # predicted outfile
@@ -280,123 +309,101 @@ def beginning_calc(config):
         else:
             signs_list.append(0.0);   # if 0, we won't create a column for parameter
 
-    # START THE MAJOR INVERSION LOOP
-    for filenum in range(len(input_file_list)):
+    # Input many files of geodetic data
+    [pos_obs_list, pos_basis_list, nums_obs_list,
+     obs_disp_f_list, obs_sigma_f_list, obs_weighting_f_list] = input_all_obs_data(input_file_list, data_type_list,
+                                                                                   strengths_list);
 
-        # INPUT STAGE
-        filename = input_file_list[filenum];
-        if data_type_list[filenum] == 'gps':
-            [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ngps] = input_gps_file(filename);
-            obs_weighting_f = (1 / strengths_list[filenum]) * np.ones((Ngps * 3,));
-        elif data_type_list[filenum] == 'insar' or data_type_list[filenum] == "leveling":
-            [obs_disp_f, obs_sigma_f, obs_basis_f, obs_pos_geo_f, Ninsar] = input_insar_file(filename);
-            obs_weighting_f = (1 / strengths_list[filenum]) * np.ones((Ninsar,));
-        else:
-            print("ERROR! Unrecognized data type %s " % data_type_list[filenum]);
-            continue;
-
-        # Metadata collection about this input source
-        pos_obs_list.append(obs_pos_geo_f);  # lists of llh, for writing outputs later
-        pos_basis_list.append(obs_basis_f);   # lists of look vectors or gps basis, for writing outputs later
-        nums_obs.append(len(obs_disp_f));    # list append: number of obs in this dataset (ninsar, 3ngps, etc)
-        this_data_spans = spans_list[filenum];
-        print("This data spans:", this_data_spans);
-
+    # Building G for each dataset
+    for datanum, pos_obs in enumerate(pos_obs_list):
         # # Geodetic to Cartesian coordinates for this dataset
-        obs_pos_cart_f = plotting_library.geodetic_to_cartesian(obs_pos_geo_f, bm)
+        obs_pos_cart_f = plotting_library.geodetic_to_cartesian(pos_obs, bm);
 
-        # BUILD SYSTEM MATRIX
+        # BUILD SYSTEM MATRIX FOR THIS SET OF OBSERVATIONS
         # here, leveling=False because we'll add leveling manually later
         ###################################################################
         G = slippy.gbuild.build_system_matrix(obs_pos_cart_f,
                                               patches_f,
-                                              obs_basis_f,
+                                              pos_basis_list[datanum],
                                               slip_basis_f,
                                               leveling=False)
 
         # ### weigh system matrix and data by the uncertainty
         # ###################################################################
-        G /= obs_weighting_f[:, None]
-        obs_disp_f /= obs_weighting_f
-        G /= obs_sigma_f[:, None]
-        obs_disp_f /= obs_sigma_f
+        G /= obs_weighting_f_list[datanum][:, None]
+        obs_disp_f_list[datanum] /= obs_weighting_f_list[datanum]
+        G /= obs_sigma_f_list[datanum][:, None]
+        obs_disp_f_list[datanum] /= obs_sigma_f_list[datanum]
 
-        # BUILD THE G MATRIX FOR THIS SET OF OBSERVATIONS
-        # (L DEPENDS ON FAULT GEOMETRY ONLY)
-        G_ext, d_ext = G_with_smoothing(G, L, alpha, obs_disp_f);
-        print("Shape of G, L:", np.shape(G), " ", np.shape(L))
-        print("Shape of Gext (G,L,alpha):", np.shape(G_ext));
+        # Building useful lists
+        d_total = np.concatenate((d_total, obs_disp_f_list[datanum]));  # building up the total data vector
+        sig_total = np.concatenate((sig_total, obs_sigma_f_list[datanum]));  # building total sigma vector
+        weight_total = np.concatenate((weight_total, obs_weighting_f_list[datanum]));  # building total weighting vector
 
         # APPEND TO THE BIGGER MATRIX AND DATA VECTOR (WITH THE CORRECT SPANS)
-        G_rowblock_obs = np.zeros((np.shape(G_ext)[0], n_cols_bigG));  # one block per data file
-        G_nosmoothing_obs = np.zeros((np.shape(G)[0], n_cols_bigG));  # one block per data file, for forward modeling
+        G_rowblock_obs = np.zeros((np.shape(G)[0], n_cols_bigG));     # one block per data file
 
         # Which spans does the data cover? This is like the "1" in SBAS
         # One new "rowblock" for each data file (blocks that cross all the time spans)
         count = 0;
         for epoch in total_spans:
             col_limits = [count * n_model_params, (count + 1) * n_model_params];
-            if epoch in this_data_spans:
-                G_rowblock_obs[:, col_limits[0]:col_limits[1]] = G_ext;   # fill rowblock with copies of G_ext block
-                G_nosmoothing_obs[:, col_limits[0]:col_limits[1]] = G;  # fill nosmooth-rowblock with copies of G block
+            if epoch in spans_list[datanum]:
+                G_rowblock_obs[:, col_limits[0]:col_limits[1]] = G;   # fill rowblock with copies of G_ext block
             count = count + 1;
 
-        # APPEND NEW ROWBLOCK TO G_TOTAL AND G_NOSMOOTH_TOTAL
-        d_total = np.concatenate((d_total, d_ext));  # building up the total data vector
-        sig_total = np.concatenate((sig_total, obs_sigma_f));  # building up the total sigma vector
-        weight_total = np.concatenate((weight_total, obs_weighting_f));  # building up the total weighting vector
-        top_row_data = len(G_total);  # Where in the matrix rows is this data?
-        bottom_row_data = len(G_total) + len(G);  # Where in the matrix rows is this data?
+        # APPEND NEW ROWBLOCK TO G_TOTAL
+        top_row_data = len(G_nosmooth);  # Where in the matrix rows is this data?
+        bottom_row_data = len(G_nosmooth) + len(G);  # Where in the matrix rows is this data?
         row_span_list.append([top_row_data, bottom_row_data]);
-        G_total = np.concatenate((G_total, G_rowblock_obs));
+        G_nosmooth = np.concatenate((G_nosmooth, G_rowblock_obs));
         print("  Adding %d lines " % len(G_rowblock_obs))
-        G_nosmooth_total = np.concatenate((G_nosmooth_total, G_nosmoothing_obs));
+    # End Build_G stage
 
-    # End Read_Data and Build_G stage
+    # Smoothing and slip penalty for each epoch.  (L DEPENDS ON FAULT GEOMETRY ONLY)
+    G_ext, d_ext = G_with_smoothing(G_nosmooth, L, alpha, d_total);   # should build multi-T next
+    print("Shape of G, L:", np.shape(G_nosmooth), " ", np.shape(L))
+    print("Shape of Gext (G,L,alpha):", np.shape(G_ext));
 
     # ADDING COLUMNS FOR LEVELING OFFSETS TO G_TOTAL MATRIX (to corresponding data lines only)
     num_leveling_params = 0;
-    print("------\nBefore adding lines for leveling offsets, shape(G): ", np.shape(G_total));
-    numrows = np.shape(G_total)[0];
-    num_rows_nosmooth = np.shape(G_nosmooth_total)[0];
+    print("------\nBefore adding lines for leveling offsets, shape(G): ", np.shape(G_nosmooth));
+    numrows = np.shape(G_ext)[0];
+    num_rows_nosmooth = np.shape(G_nosmooth)[0];
     count = 0;
-    for filenum in range(len(input_file_list)):
-        leveling_sign = signs_list[filenum];
+    for datanum in range(len(pos_obs_list)):
+        leveling_sign = signs_list[datanum];
         if leveling_sign != 0:
             num_leveling_params += 1;
             newcol = np.zeros((numrows, 1));
             for i in range(len(newcol)):
-                if row_span_list[filenum][0] < i < row_span_list[filenum][1]:
+                if row_span_list[datanum][0] < i < row_span_list[datanum][1]:
                     newcol[i] = leveling_sign;
-            G_total = np.hstack((G_total, newcol));  # adding column to G_total
-            print("Adding column for %s " % input_file_list[filenum])
+            G_ext = np.hstack((G_ext, newcol));  # adding column to G
+            print("Adding column for %s " % input_file_list[datanum]);
 
             # ADDING COLUMN TO G_NOSMOOTH_TOTAL
             newcol_nosmooth = np.zeros((num_rows_nosmooth, 1));
             for i in range(len(newcol_nosmooth)):
-                if count <= i < count + (row_span_list[filenum][1] - row_span_list[filenum][0]):
+                if count <= i < count + (row_span_list[datanum][1] - row_span_list[datanum][0]):
                     newcol_nosmooth[i] = leveling_sign;
-            count = count + (row_span_list[filenum][1] - row_span_list[filenum][0]);
-            G_nosmooth_total = np.hstack((G_nosmooth_total, newcol_nosmooth));
-    print("After adding lines for leveling offsets, shape(G): ", np.shape(G_total), "\n------");
+            count = count + (row_span_list[datanum][1] - row_span_list[datanum][0]);
+            G_nosmooth = np.hstack((G_nosmooth, newcol_nosmooth));
+    print("After adding lines for leveling offsets, shape(G): ", np.shape(G_ext), "\n------");
 
-    # INVERT BIG-G
-    #   ### estimate slip and compute predicted displacement
-    #   #####################################################################
-    slip_f = reg_nnls(G_total, d_total)   # the model
-    pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;   # the forward prediction
+    # INVERT BIG-G: estimate slip and compute predicted displacement
+    #####################################################################
+    slip_f = reg_nnls(G_ext, d_ext)   # the model
+    pred_disp_f = G_nosmooth.dot(slip_f) * sig_total * weight_total;   # the forward prediction
     print("Results:  ");
-    print("G_total:", np.shape(G_total));
+    print("G_ext:", np.shape(G_ext));
     print("slip_f:", np.shape(slip_f))
-    print("G_nosmooth_total:", np.shape(G_nosmooth_total));
-    print("shape of data (G*slip): ", np.shape(G_nosmooth_total.dot(slip_f)))
+    print("shape of pred (G*slip): ", np.shape(G_nosmooth.dot(slip_f)))
     print("shape of sigmas       : ", np.shape(sig_total))
-    print("shape of weights      : ", np.shape(weight_total));
 
-    Ns_total = len(patches);
     total_cardinal_slip, leveling_offsets = parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis,
                                                                num_leveling_params);
-    disp_models = parse_disp_outputs(pred_disp_f, nums_obs);
+    disp_models = parse_disp_outputs(pred_disp_f, nums_obs_list);
 
     # Defensive programming (Reporting errors)
     for i in range(len(leveling_offsets)):
@@ -431,7 +438,7 @@ def beginning_calc(config):
     for filenum in range(len(input_file_list)):
 
         if data_type_list[filenum] == 'gps':  # write GPS
-            Ngps = int(nums_obs[filenum] / 3);
+            Ngps = int(nums_obs_list[filenum] / 3);
             pred_disp_gps = disp_models[filenum];
             pred_disp_gps = pred_disp_gps.reshape((Ngps, 3))
             slippy.io.write_gps_data(pos_obs_list[filenum][::3],
@@ -455,17 +462,36 @@ def beginning_calc(config):
                                        output_file_list[filenum])
             print("Writing file %s " % output_file_list[filenum]);
 
-    # Running a resolution test if desired.
-    if int(config["resolution_test"]):
-        resolution_tests.analyze_model_resolution_matrix(G_nosmooth_total, config["output_dir"]);
-        model_resolution = resolution_tests.empirical_slip_resolution(G_nosmooth_total, total_fault_slip_basis);
-        total_cardinal_res = resolution_tests.parse_empirical_res_outputs(model_resolution, Ns_total, Ds,
-                                                                          num_leveling_params);
-        res_output_file = config["output_dir"]+'empirical_resolution.txt';
+    # Running a resolution test if desired. Only works for a single time interval.
+    def res_output_phase(cardinal_res, res_output_file):
+        # Function to write resolution test outputs on faults
         slippy.io.write_slip_data(patches_pos_geo, patches_strike, patches_dip, patches_length, patches_width,
-                                  total_cardinal_res, fault_names_array, res_output_file);
+                                  cardinal_res, fault_names_array, res_output_file);
         print("Writing file %s " % res_output_file);
+        return;
+
+    if config["resolution_test"] == "R":
+        # Resolution Matrix form of analysis
+        res_output_file = config["output_dir"] + 'diag_resolution.txt';
+        r_diag, m_sig = resolution_tests.analyze_model_resolution_matrix(G_ext, len(G_nosmooth), config["output_dir"]);
+        total_cardinal_res = resolution_tests.parse_empirical_res_outputs(m_sig, Ns_total, Ds, num_leveling_params);
+        res_output_phase(total_cardinal_res, res_output_file);
+    if config["resolution_test"] == "avg_response":
+        # Average geodetic response form of analysis
+        res_output_file = config["output_dir"]+'empirical_resolution.txt';
+        model_res = resolution_tests.empirical_slip_resolution(G_ext, total_fault_slip_basis);
+        total_cardinal_res = resolution_tests.parse_empirical_res_outputs(model_res, Ns_total, Ds, num_leveling_params);
+        res_output_phase(total_cardinal_res, res_output_file);
+    # if config["resolution_test"] == "checkerboard":
+        # res_output_file = config["output_dir"] = 'checkerboard_resolution.txt';
+        # checkerboard_model = resolution_tests.checkerboard_test(patches_f, num_leveling_params);
+        # pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model) * sig_total * weight_total;
+        # the forward prediction
+        # recovered_checkerboard = reg_nnls(G_ext, pred_disp_checkerboard);  # the inverse model.
+        # d doesn't have right rows for smoothing now.
+        # total_cardinal_res = resolution_tests.parse_empirical_res_outputs(recovered_checkerboard, Ns_total, Ds,
+        #                                                                   num_leveling_params);
 
     # MISC OUTPUTS: Graph of big G (with all smoothing parameters inside)
-    graph_big_G(config, G_total);
+    graph_big_G(config, G_ext);
     return;

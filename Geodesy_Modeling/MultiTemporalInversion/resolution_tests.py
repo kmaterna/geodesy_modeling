@@ -10,16 +10,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 
-def analyze_model_resolution_matrix(G, outdir):
+def analyze_model_resolution_matrix(G, num_obs, outdir):
     """
     Simply analyze the resolution matrix R (Menke, 1989)
+    Before leveling offsets have been added.
     """
-    Ggi = scipy.linalg.pinv(G);
-    Rmatrix = np.dot(Ggi, G);
-    for i in range(np.shape(Rmatrix)[0]):
-        for j in range(np.shape(Rmatrix)[1]):
-            if abs(Rmatrix[i][j]) < 1e-10:  # cleaning up the really small entries
-                Rmatrix[i][j] = np.nan;
+    # Show big-G matrix for all times, all data
+    plt.figure(figsize=(12, 8), dpi=300);
+    plt.imshow(G, vmin=-0.02, vmax=0.02, aspect=1);
+    plt.savefig(outdir + "/G_resolution.png");
+
+    Ggi = scipy.linalg.pinv(G);  # Replace all smoothing with zeros for second half of this expression
+    G_nosmoothing = G.copy();
+    G_nosmoothing[num_obs:, :] = 0;
+    Rmatrix = np.dot(Ggi, G_nosmoothing);  # R matrix
+
+    # Model Covariance
+    covb_slip = np.dot(Ggi, Ggi.T);
+    sig_slipb = np.sqrt(np.diag(covb_slip));
 
     # Viewing the diagonal elements of R (might be helpful?)
     plt.figure();
@@ -28,10 +36,10 @@ def analyze_model_resolution_matrix(G, outdir):
 
     # Viewing the total picture of R: shows the model resolution along the diagonal.
     plt.figure(figsize=(12, 8), dpi=300);
-    plt.imshow(np.log10(Rmatrix), aspect=1);
+    plt.imshow(Rmatrix, aspect=1);
     plt.colorbar();
     plt.savefig(outdir + "/Rmatrix.png");
-    return;
+    return np.diag(Rmatrix), sig_slipb;
 
 
 def empirical_slip_resolution(G, total_fault_slip_basis):
@@ -65,11 +73,6 @@ def empirical_slip_resolution(G, total_fault_slip_basis):
     return resolution_vector;
 
 
-def normalize_v(vector):
-    vector_norm = np.sqrt(np.square(vector[0]) + np.square(vector[1]) + np.square(vector[2]));
-    return np.divide(vector, vector_norm);
-
-
 def parse_empirical_res_outputs(res_f, Ns_total, Ds,  num_lev_offsets):
     """
     Rotate the resolution into dip slip and strike slip components.
@@ -79,7 +82,7 @@ def parse_empirical_res_outputs(res_f, Ns_total, Ds,  num_lev_offsets):
     total_fault_slip_basis:
     num_lev_offsets: the last n model parameters are leveling offsets that don't get plotted on faults
     """
-    n_params = int(len(res_f) - num_lev_offsets);  # num fault params; ex: 200
+    n_params = int(len(res_f) - num_lev_offsets);  # num fault params
     res = res_f[0:n_params].reshape((Ns_total, Ds))  # ASSUMES ALL FAULTS HAVE SAME NUMBER OF BASIS VECTORS
     cardinal_res = np.hstack((res, np.zeros((len(res), 1))));  # adding the "tensile"
     return cardinal_res;
@@ -93,5 +96,19 @@ def bootstrapped_model_resolution(G_total, G_nosmooth, d, sig, weights):
     Useful lines:
     slip_f = reg_nnls(G_total, d_total)   # slip_f is the model
     pred_disp_f = G_nosmooth_total.dot(slip_f) * sig_total * weight_total;   # the forward prediction
+    I'm now thinking this is an interesting problem - not as useful as I thought
+    This depends on the input data
     """
+
     return;
+
+
+def checkerboard_test(patches_f, num_leveling_params):
+    """
+    Basic checkerboard test utility
+    """
+    checkerboard_vector = np.zeros((len(patches_f)+num_leveling_params,));
+    checkerboard_vector[100] = 1;
+    checkerboard_vector[101] = 1;
+    checkerboard_vector[102] = 1;
+    return checkerboard_vector;
