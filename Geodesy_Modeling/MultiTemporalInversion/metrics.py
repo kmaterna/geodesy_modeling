@@ -62,13 +62,21 @@ def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, da
     Want in both absolute numbers and relative to the respective uncertainties.
     """
     if data_type == 'all':
-        idx = [index for index, element in enumerate(obs_type) if
-               element != ''];  # take everything in the observation vector
+        idx = [index for index, element in enumerate(obs_type) if element != ''];  # take everything in obs vector
     else:
         idx = [index for index, element in enumerate(obs_type) if element == data_type];  # filter on data type
     npts = len(obs_disp[idx]);
-    abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
-    norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
+
+    # The L1 norm
+    # abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
+    # norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
+
+    # The L2 norm
+    abs_misfit = np.square(abs(obs_disp[idx] - pred_disp[idx]));
+    norm_misfit = np.divide(abs_misfit, np.square(obs_sigma[idx]));
+    abs_misfit = np.sqrt(abs_misfit);
+    norm_misfit = np.sqrt(norm_misfit);
+
     mean_average_misfit = np.nanmean(abs_misfit);
     mean_norm_average_misfit = np.nanmean(norm_misfit);
     return [mean_average_misfit, mean_norm_average_misfit, npts];
@@ -145,8 +153,10 @@ def brawley_misfit_driver(config):
     return;
 
 def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
-    """ This isn't being used right now. """
-    idx = np.where(obs_pos[0] > -115.58);
+    """ Ignore the western part of the domain, specific to Brawley. """
+    idx = np.where(obs_pos[:, 0] > -115.60);
+    idx = idx[0]
+    obs_type = np.array(obs_type);
     metrics = compute_simple_misfit(obs_pos[idx], obs_disp[idx], pred_disp[idx], obs_sigma[idx], obs_type[idx]);
     return metrics;
 
@@ -189,6 +199,6 @@ def write_slip_moments(moments, filename):
 def main_function(config):
     """Misfit can be defined in many ways. Here we point to them. """
     config["summary_file"] = config["output_dir"]+"summary_stats.txt";  # Creates an output file
-    simple_misfit_driver(config);
+    brawley_misfit_driver(config);
     slip_metrics_driver(config);   # for the amount of slip.
     return;

@@ -56,5 +56,5 @@ def iterate_many_inversions(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    # iterate_many_inversions(config);
+    iterate_many_inversions(config);
     MultiTemporalInversion.l_curve.main_driver(config);

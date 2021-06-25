@@ -318,8 +318,9 @@ def beginning_calc(config):
 
     # Input many files of geodetic data
     [pos_obs_list, pos_basis_list, nums_obs_list,
-     obs_disp_f_list, obs_sigma_f_list, obs_weighting_f_list] = input_all_obs_data(input_file_list, data_type_list,
-                                                                                   strengths_list);
+     obs_disp_f_list_pure, obs_sigma_f_list, obs_weighting_f_list] = input_all_obs_data(input_file_list, data_type_list,
+                                                                                        strengths_list);
+    obs_disp_f_list = obs_disp_f_list_pure.copy();  # keeping a copy without multiplying by sigma or weight
 
     # Building G for each dataset
     for datanum, pos_obs in enumerate(pos_obs_list):
@@ -337,8 +338,9 @@ def beginning_calc(config):
 
         # ### weigh system matrix and data by the uncertainty
         # ###################################################################
+        obs_disp_f_list[datanum] = obs_disp_f_list_pure[datanum].copy();
         G /= obs_weighting_f_list[datanum][:, None]
-        obs_disp_f_list[datanum] /= obs_weighting_f_list[datanum]
+        obs_disp_f_list[datanum] /= obs_weighting_f_list[datanum];
         G /= obs_sigma_f_list[datanum][:, None]
         obs_disp_f_list[datanum] /= obs_sigma_f_list[datanum]
 
@@ -452,6 +454,12 @@ def beginning_calc(config):
                                      pred_disp_gps, 0.0 * pred_disp_gps,
                                      output_file_list[filenum]);
             print("Writing file %s " % output_file_list[filenum]);
+            # Writing residuals
+            obs_disp_gps = obs_disp_f_list_pure[filenum].reshape((Ngps, 3));
+            slippy.io.write_gps_data(pos_obs_list[filenum][::3],
+                                     np.subtract(obs_disp_gps, pred_disp_gps),
+                                     obs_sigma_f_list[filenum].reshape((Ngps, 3)),
+                                     output_file_list[filenum]+'_residual');
 
         elif data_type_list[filenum] == 'insar':
             pred_disp_insar = disp_models[filenum];

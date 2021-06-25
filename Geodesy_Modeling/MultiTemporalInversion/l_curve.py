@@ -61,21 +61,20 @@ def plot_l_curve(params, misfits, outfile):
 
 def plot_1d_curve(param, misfit, axis_name, outfile):
     """ Making 1D plot for L-curve """
+    param = [1/x for x in param];
     # Linear scale
     plt.figure(figsize=(8, 8), dpi=300);
     plt.plot(param, misfit, '.', markersize=14);
-    plt.xlabel(axis_name, fontsize=14);
+    plt.xlabel("1/"+axis_name, fontsize=14);
     plt.ylabel('Misfit (mm)', fontsize=14);
-    plt.gca().invert_xaxis();
     plt.savefig(outfile);
     # Log scale
     plt.figure(figsize=(8, 8), dpi=300);
     plt.plot(param, misfit, '.', markersize=14);
     plt.gca().set_yscale('log');
     plt.gca().set_xscale('log');
-    plt.xlabel(axis_name, fontsize=14);
+    plt.xlabel("1/"+axis_name, fontsize=14);
     plt.ylabel('Log Misfit (mm)', fontsize=14);
-    plt.gca().invert_xaxis();
     plt.savefig(outfile.split('.')[0]+"_log.png");
     return;
 
