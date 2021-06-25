@@ -219,7 +219,7 @@ def write_s1_displacements(config):
         return;
     else:
         for interval_dict_key in config["s1_data"]:
-            new_interval_dict = config["s1_data"][interval_dict_key];  # for each interval in TSX
+            new_interval_dict = config["s1_data"][interval_dict_key];  # for each interval in S1
             print("\nStarting to extract S1 Cornell/OU-format from %s " % (new_interval_dict["s1_filename"]));
             InSAR_Data = InSAR_1D_Object.inputs.inputs_cornell_ou_velocities_hdf5(new_interval_dict["s1_filename"],
                                                                                   new_interval_dict["s1_lkv_filename"],
@@ -232,8 +232,7 @@ def write_s1_displacements(config):
             InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                   config["prep_inputs_dir"] + new_interval_dict[
                                                                    "s1_datafile"]);
-            InSAR_obj = InSAR_1D_Object.inputs.inputs_simplest_txt(config["prep_inputs_dir"] +
-                                                                   new_interval_dict["s1_datafile"]);
+            InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["s1_plot"]);
 
     return;

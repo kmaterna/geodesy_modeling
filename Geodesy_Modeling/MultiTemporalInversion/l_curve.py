@@ -40,8 +40,9 @@ def read_misfits_from_dir(dirname):
     ifile = dirname + "/summary_stats.txt";
     with open(ifile, 'r') as fp:
         for line in fp:
-            if 'Average misfit' in line:
-                misfit = float(line.split()[2]);  # misfit metric somehow
+            # if 'Average misfit' in line:
+            if 'Average normalized misfit' in line:   # Have found that misfit should consider sigmas
+                misfit = float(line.split()[-2]);  # misfit metric somehow
     return misfit;
 
 

@@ -119,13 +119,16 @@ def bootstrapped_model_resolution(_G_total, _G_nosmooth, _d, _sig, _weights):
     return;
 
 
-def checkerboard_test(patches_f, Ds, num_leveling_params, num_width, checker_width=3):
+def checkerboard_test(patches_f, Ds, num_leveling_params, num_width, fault_num_array, checker_width=3, fault_num=0):
     """
     Basic checkerboard utility to build checkers on a single fault. Making a checkerboard input pattern.
     """
+
     checkerboard_vector = np.zeros((len(patches_f)+num_leveling_params,));
-    num_patches = int(len(patches_f) / Ds);   # number of patches
+    is_target_patch = np.where(np.array(fault_num_array) == fault_num);
+    num_patches = len(is_target_patch[0]);   # ex: 169
     patch_vector = np.zeros((num_patches,));
+    start_patch_idx = is_target_patch[0][0];  # ex: 0
 
     # Define the rows for checker-0 and checker-1
     type0_slice = np.zeros((num_width,));
@@ -145,7 +148,7 @@ def checkerboard_test(patches_f, Ds, num_leveling_params, num_width, checker_wid
             patch_vector[i:i + num_width] = type1_slice;
 
     for i in range(len(patch_vector)):
-        checkerboard_vector[i * Ds] = patch_vector[i];
-        checkerboard_vector[i * Ds + 1] = patch_vector[i];
+        checkerboard_vector[start_patch_idx + (i*Ds)] = patch_vector[i];
+        checkerboard_vector[start_patch_idx + (i*Ds) + 1] = patch_vector[i];
 
     return checkerboard_vector;

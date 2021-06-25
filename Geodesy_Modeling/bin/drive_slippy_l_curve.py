@@ -26,7 +26,9 @@ def iterate_many_inversions(config):
     """
     A driver for looping multiple inversions depending on the experiment, testing the impact of alpha or smoothing.
     """
-    if config["switch_alpha"] and not config["switch_penalty"]:   # 1d search in slip penalty
+    if not config["switch_alpha"] and not config["switch_penalty"]:   # no search at all.
+        return;
+    elif config["switch_alpha"] and not config["switch_penalty"]:   # 1d search in slip penalty
         for alpha in config['range_alpha']:
             config["alpha"] = alpha;    # set the alpha
             config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";   # set the output dir

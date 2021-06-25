@@ -71,15 +71,13 @@ def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, da
     # abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
     # norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
 
-    # The L2 norm
-    abs_misfit = np.square(abs(obs_disp[idx] - pred_disp[idx]));
-    norm_misfit = np.divide(abs_misfit, np.square(obs_sigma[idx]));
-    abs_misfit = np.sqrt(abs_misfit);
-    norm_misfit = np.sqrt(norm_misfit);
+    # The L2 norm: RMS and Chi Squared Values
+    sq_misfit = np.square(abs(obs_disp[idx] - pred_disp[idx]));
+    norm_misfit = np.divide(sq_misfit, np.square(obs_sigma[idx]));
+    rms_misfit = np.sqrt(np.nanmean(sq_misfit));
+    chisquared = np.sqrt(np.nanmean(norm_misfit));
 
-    mean_average_misfit = np.nanmean(abs_misfit);
-    mean_norm_average_misfit = np.nanmean(norm_misfit);
-    return [mean_average_misfit, mean_norm_average_misfit, npts];
+    return [rms_misfit, chisquared, npts];
 
 
 def write_simple_misfit(metrics, outfile):
@@ -154,7 +152,7 @@ def brawley_misfit_driver(config):
 
 def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
     """ Ignore the western part of the domain, specific to Brawley. """
-    idx = np.where(obs_pos[:, 0] > -115.60);
+    idx = np.where(obs_pos[:, 0] > -115.7);
     idx = idx[0]
     obs_type = np.array(obs_type);
     metrics = compute_simple_misfit(obs_pos[idx], obs_disp[idx], pred_disp[idx], obs_sigma[idx], obs_type[idx]);

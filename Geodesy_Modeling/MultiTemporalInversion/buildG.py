@@ -485,24 +485,25 @@ def beginning_calc(config):
         print("Writing file %s " % res_output_file);
         return;
 
-    if config["resolution_test"] == "R" and n_epochs == 1:
+    if "R" in config["resolution_test"].split(',') and n_epochs == 1:
         # Resolution Matrix form of analysis
         res_output_file = config["output_dir"] + 'diag_resolution.txt';
         r_diag, m_sig = resolution_tests.analyze_model_resolution_matrix(G_ext, len(G_nosmooth), config["output_dir"]);
         total_cardinal_res = resolution_tests.parse_empirical_res_outputs(m_sig, Ns_total, Ds, num_leveling_params);
         res_output_phase(total_cardinal_res, res_output_file);
-    if config["resolution_test"] == "avg_response" and n_epochs == 1:
+    if 'avg_response' in config["resolution_test"].split(',') and n_epochs == 1:
         # Average geodetic response form of analysis
         res_output_file = config["output_dir"] + 'empirical_resolution.txt';
         model_res = resolution_tests.empirical_slip_resolution(G_ext, total_fault_slip_basis);
         total_cardinal_res = resolution_tests.parse_empirical_res_outputs(model_res, Ns_total, Ds, num_leveling_params);
         res_output_phase(total_cardinal_res, res_output_file);
-    if config["resolution_test"] == "checkerboard" and n_epochs == 1:
+    if "checkerboard" in config["resolution_test"].split(',') and n_epochs == 1:
         # checkerboard test for one fault segment
         res_output_file = config["output_dir"] + 'checkerboard_resolution.txt';
         res_input_file = config["output_dir"] + 'checkerboard_input.txt';
         checkerboard_model = resolution_tests.checkerboard_test(patches_f, Ds, num_leveling_params,
-                                                                fault_list[0]["Nwidth"], checker_width=4);
+                                                                fault_list[0]["Nwidth"], fault_names_array,
+                                                                checker_width=4, fault_num=0);
         pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model);  # forward prediction, not multiplied by sigmas
         zero_vector = np.zeros((len(d_ext) - len(pred_disp_checkerboard),));  # adding zeros to pred_d, for smoothing
         pred_d_ext = np.concatenate((pred_disp_checkerboard, zero_vector));

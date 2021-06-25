@@ -7,9 +7,11 @@ import datetime as dt
 
 
 def write_insar_invertible_format(InSAR_obj, unc_min, filename):
-    """This function uses InSAR displacements to make an insar file that can be inverted.
+    """
+    Writes InSAR displacements into insar file that can be inverted.
     Writes one header line and multiple data lines.
-    InSAR_obj is in mm, and written out is in meters"""
+    InSAR_obj is in mm, and written out is in meters
+    """
     print("Writing InSAR displacements into file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitN \n");
@@ -17,13 +19,15 @@ def write_insar_invertible_format(InSAR_obj, unc_min, filename):
         if np.isnan(InSAR_obj.LOS[i]):
             continue;
         else:
-            std = InSAR_obj.LOS_unc[i] * 0.001;  # in m
-            if std < unc_min:
+            if InSAR_obj.LOS_unc:
+                std = InSAR_obj.LOS_unc[i] * 0.001;  # in m
+                if std < unc_min:
+                    std = unc_min;
+            else:   # sometimes there's an error code in LOS_unc field
                 std = unc_min;
             ofile.write('%f %f ' % (InSAR_obj.lon[i], InSAR_obj.lat[i]));
-            ofile.write('%f %f ' % (0.001 * InSAR_obj.LOS[i], std));  # in m
+            ofile.write('%f %f ' % (0.001 * InSAR_obj.LOS[i], std));  # writing in m
             ofile.write('%f %f %f\n' % (InSAR_obj.lkv_E[i], InSAR_obj.lkv_N[i], InSAR_obj.lkv_U[i]));
-        # Writing in meters
     ofile.close();
     return;
 
