@@ -196,14 +196,11 @@ def write_tsx_tre_displacements(config):
                                                                             new_interval_dict[
                                                                                 "tsx_downsample_interval"],
                                                                             new_interval_dict["tsx_averaging_window"]);
-
             Total_InSAR = InSAR_1D_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
-
             InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
                                                                   config["prep_inputs_dir"] +
                                                                   new_interval_dict["tsx_datafile"]);
-            InSAR_obj = InSAR_1D_Object.inputs.inputs_simplest_txt(config["prep_inputs_dir"] +
-                                                                   new_interval_dict["tsx_datafile"]);
+            InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["tsx_plot"]);
 
     return;

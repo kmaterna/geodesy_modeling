@@ -371,6 +371,7 @@ def beginning_calc(config):
 
     # Smoothing and slip penalty for each epoch.  (L DEPENDS ON FAULT GEOMETRY ONLY)
     G_ext, d_ext = G_with_smoothing(G_nosmooth, L, alpha, d_total, n_model_params, n_epochs);
+    G_noa, d_noa = G_with_smoothing(G_nosmooth, L, 0, d_total, n_model_params, n_epochs);
     print("Shape of G, L:", np.shape(G_nosmooth), " ", np.shape(L))
     print("Shape of Gext (G,L,alpha):", np.shape(G_ext));
 
@@ -444,7 +445,7 @@ def beginning_calc(config):
         print("Writing file %s " % slip_output_file);
 
     # OUTPUT EACH PREDICTED DISPLACEMENT FIELD
-    for filenum in range(len(input_file_list)):
+    for filenum, filename in enumerate(input_file_list):
 
         if data_type_list[filenum] == 'gps':  # write GPS
             Ngps = int(nums_obs_list[filenum] / 3);
@@ -505,16 +506,14 @@ def beginning_calc(config):
                                                                 fault_list[0]["Nwidth"], fault_names_array,
                                                                 checker_width=4, fault_num=0);
         pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model);  # forward prediction, not multiplied by sigmas
-        zero_vector = np.zeros((len(d_ext) - len(pred_disp_checkerboard),));  # adding zeros to pred_d, for smoothing
+        zero_vector = np.zeros((len(d_noa) - len(pred_disp_checkerboard),));  # adding zeros to pred_d, for smoothing
         pred_d_ext = np.concatenate((pred_disp_checkerboard, zero_vector));
-        recovered_checkerboard = reg_nnls(G_ext, pred_d_ext);  # the inverse model.
+        recovered_checkerboard = reg_nnls(G_noa, pred_d_ext);  # the inverse model.
         total_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(recovered_checkerboard, Ns_total, Ds,
-                                                                             total_fault_slip_basis,
-                                                                             num_leveling_params);
+                                                                             total_fault_slip_basis, 0);
         res_output_phase(total_cardinal_res, res_output_file);
         inp_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(checkerboard_model, Ns_total, Ds,
-                                                                           total_fault_slip_basis,
-                                                                           num_leveling_params);
+                                                                           total_fault_slip_basis, num_leveling_params);
         res_output_phase(inp_cardinal_res, res_input_file);
 
     # MISC OUTPUTS: Graph of big G (with all smoothing parameters inside)

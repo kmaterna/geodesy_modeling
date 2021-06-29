@@ -67,9 +67,17 @@ def combine_objects(Obj1, Obj2):
     lat = np.hstack((Obj1.lat, Obj2.lat));
     LOS = np.hstack((Obj1.LOS, Obj2.LOS));
     LOS_unc = np.hstack((Obj1.LOS_unc, Obj2.LOS_unc));
+    if LOS_unc.all() is None:
+        LOS_unc = None;
     lkv_E = np.hstack((Obj1.lkv_E, Obj2.lkv_E));
+    if lkv_E.all() is None:
+        lkv_E = None;
     lkv_N = np.hstack((Obj1.lkv_N, Obj2.lkv_N));
+    if lkv_N.all() is None:
+        lkv_N = None;
     lkv_U = np.hstack((Obj1.lkv_U, Obj2.lkv_U));
+    if lkv_U.all() is None:
+        lkv_U = None;
     newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
                                    starttime=Obj1.starttime, endtime=Obj1.endtime);
     return newInSAR_obj;

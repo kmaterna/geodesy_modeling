@@ -19,7 +19,7 @@ def write_insar_invertible_format(InSAR_obj, unc_min, filename):
         if np.isnan(InSAR_obj.LOS[i]):
             continue;
         else:
-            if InSAR_obj.LOS_unc:
+            if InSAR_obj.LOS_unc is not None:
                 std = InSAR_obj.LOS_unc[i] * 0.001;  # in m
                 if std < unc_min:
                     std = unc_min;
