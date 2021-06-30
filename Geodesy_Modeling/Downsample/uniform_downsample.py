@@ -17,6 +17,7 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     InSAR_obj : an InSAR_1D_Object with 1D columns of data
     sampling_interval : degrees, float
     averaging_window : degrees, float
+    This will essentially return a regular grid of points, but it won't keep pixels with no data / NaNs.
     """
     print("Uniform downsampling: Starting with %d points " % (len(InSAR_obj.lon)));
 
