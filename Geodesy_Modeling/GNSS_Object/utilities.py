@@ -2,7 +2,6 @@
 import numpy as np
 from . import gnss_object
 
-
 def add_gps_constant_offset(displacement_object, enu_constant_offset):
     """
     In case your reference station undergoes some offset, you might want to put that back

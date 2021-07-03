@@ -14,7 +14,7 @@ def write_insar_invertible_format(InSAR_obj, unc_min, filename):
     """
     print("Writing InSAR displacements into file %s " % filename);
     ofile = open(filename, 'w');
-    ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitN \n");
+    ofile.write("# InSAR Displacements: Lon, Lat, disp(m), sigma, unitE, unitN, unitU \n");
     for i in range(len(InSAR_obj.lon)):
         if np.isnan(InSAR_obj.LOS[i]):
             continue;

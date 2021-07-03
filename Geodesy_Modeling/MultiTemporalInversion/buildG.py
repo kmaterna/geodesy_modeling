@@ -371,7 +371,7 @@ def beginning_calc(config):
 
     # Smoothing and slip penalty for each epoch.  (L DEPENDS ON FAULT GEOMETRY ONLY)
     G_ext, d_ext = G_with_smoothing(G_nosmooth, L, alpha, d_total, n_model_params, n_epochs);
-    G_noa, d_noa = G_with_smoothing(G_nosmooth, L, 0, d_total, n_model_params, n_epochs);
+    G_noa, d_noa = G_with_smoothing(G_nosmooth, L, 0, d_total, n_model_params, n_epochs);  # for resolution tests
     print("Shape of G, L:", np.shape(G_nosmooth), " ", np.shape(L))
     print("Shape of Gext (G,L,alpha):", np.shape(G_ext));
 
