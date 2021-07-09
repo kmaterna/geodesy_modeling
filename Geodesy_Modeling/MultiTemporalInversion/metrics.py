@@ -1,5 +1,6 @@
 # After you've done an inversion, what are the results?
-# How much moment is created, and how big is the misfit? 
+# How much moment is created, and how big is the misfit?
+# MultiT and SingleT
 # Writes into a summary text file, and prints to screen. 
 # Useful for L-curve analysis.
 
@@ -161,8 +162,8 @@ def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
 
 # -------- SLIP COMPUTE FUNCTIONS ----------- #
 def slip_metrics_driver(config):
-    moments = get_slip_moments(config["output_dir"]+config['epochs']['EpochA']["slip_output_file"]);  # fix this for T4
-    write_slip_moments(moments, config["summary_file"]);
+    moments = get_slip_moments(config["output_dir"]+config['epochs']['EpochA']["slip_output_file"], config["G"]);  # A
+    write_slip_moments(moments, config["G"], config["summary_file"]);
     return;
 
 
@@ -183,10 +184,11 @@ def get_slip_moments(slip_filename, mu=30e9):
     return [moment_total, mw];
 
 
-def write_slip_moments(moments, filename):
+def write_slip_moments(moments, G, filename):
     # moments
     ofile = open(filename, 'a');  # appending to the file
     scinot = "{:e}".format(moments[0]);
+    ofile.write("G = %f GPa\n" % (G/1e9));
     print("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );
     ofile.write("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );
     ofile.close();

@@ -19,6 +19,8 @@ def welcome_and_parse(argv):
     for i, key in enumerate(config1["faults"].keys()):
         fault_name = config1["faults"][key]["filename"]
         subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
+    if 'G' not in config1.keys():
+        config1['G'] = 30e9;  # default shear modulus is 30 GPa
     return config1;
 
 
