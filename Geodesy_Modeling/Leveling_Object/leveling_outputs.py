@@ -10,18 +10,32 @@ import matplotlib.cm as cm
 
 # -------------- WRITE FUNCTIONS ------------- #
 
-def plot_leveling_displacements(leveling_stations, outfile):
+def plot_leveling_displacements(leveling_stations, outfile, vmin=-0.25, vmax=0.15, scale=False, title=None):
     """
-    Plot a leveling object at the last time-step
-    Benchmarks without data at the last time-step are not shown.
+    Map the displacements of a leveling object at the last time-step
+    Benchmarks without data at last time-step are not shown.
+    Scaling the symbols by displacement size is possible.
     """
     disp = [item.leveling[-1] for item in leveling_stations];
     lon = [item.lon for item in leveling_stations];
     lat = [item.lat for item in leveling_stations];
-    plt.figure();
-    plt.scatter(lon, lat, c=disp, s=40, cmap='rainbow');
-    plt.plot(leveling_stations[0].reflon, leveling_stations[0].reflat, marker='*');
-    plt.colorbar(label="Leveling displacements (m)");
+    color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
+    custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='rainbow');
+    plt.figure(figsize=(8, 6), dpi=300);
+    if scale:
+        for i, item in enumerate(leveling_stations):
+            dot_color = custom_cmap.to_rgba(disp[i]);
+            plt.plot(item.lon, item.lat, marker='o', markersize=abs(disp[i]) * 60, color=dot_color, fillstyle="full");
+    else:
+        plt.scatter(lon, lat, c=disp, s=60, cmap='rainbow');
+    plt.plot(leveling_stations[0].reflon, leveling_stations[0].reflat, marker='*', markersize=20, color='black');
+    custom_cmap.set_array(np.arange(vmin, vmax))
+    cb = plt.colorbar(custom_cmap);
+    cb.set_label("Leveling displacements (m)");
+    if title:
+        plt.title(title, fontsize=20);
+    plt.xlabel('Longitude');
+    plt.ylabel('Latitude');
     plt.savefig(outfile);
     return;
 
@@ -29,7 +43,7 @@ def plot_leveling_displacements(leveling_stations, outfile):
 def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
     """
     One header line
-    One datum line (assuming the whole network is with respect to the same reference datum)
+    One datum line (assuming whole network is with respect to same reference datum)
     Lon, lat, disp, sigma, 0, 0, 1 (in m)
     """
     print("Writing leveling to file %s " % filename);
@@ -51,6 +65,7 @@ def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
 
 
 def plot_simple_leveling(txtfile, plotname):
+    """Read basic leveling displacements (one epoch) from a simple text file. Map them with colors."""
     print("Plotting leveling in file %s " % plotname);
     [lon, lat, disp] = np.loadtxt(txtfile, unpack=True, skiprows=1, usecols=(0, 1, 2));
     plt.figure(dpi=300);
@@ -61,6 +76,7 @@ def plot_simple_leveling(txtfile, plotname):
 
 
 def basic_ts_plot(leveling_object, plotname):
+    """Plot the traces of time-dependent position at each leveling benchmark"""
     plt.figure(figsize=(10, 7), dpi=300);
     for item in leveling_object:
         plt.plot(item.dtarray, item.leveling);
@@ -72,7 +88,7 @@ def basic_ts_plot(leveling_object, plotname):
 
 def plot_leveling_slopes(leveling_object, slopes, description, plotname):
     """
-    Plot a color map of leveling benchmark slopes
+    Plot a color map of leveling benchmark slopes (slopes calculated outside this function)
     """
     lon = [item.lon for item in leveling_object];
     lat = [item.lat for item in leveling_object];
@@ -85,10 +101,9 @@ def plot_leveling_slopes(leveling_object, slopes, description, plotname):
     return;
 
 
-def multi_panel_increment_plot2(leveling_object_list, plotname):
+def multi_panel_increment_plot_brawley(leveling_object_list, plotname):
     """
-    Incremental leveling plot
-    Currently used for Brawley
+    Incremental leveling plot for Brawley.  The annotations are specific to Brawley.
     """
     f, axarr = plt.subplots(3, 3, figsize=(30, 18));
 
@@ -131,8 +146,75 @@ def multi_panel_increment_plot2(leveling_object_list, plotname):
     return;
 
 
+def multi_panel_increment_plot(leveling_object, outname, vmin=-0.07, vmax=0.07):
+    """Incremental plot for leveling"""
+    f, axarr = plt.subplots(2, 5, figsize=(30, 18));
+
+    idx1, idx2 = 0, 0;
+    num_plots = len(leveling_object[0].leveling);
+    lons = [x.lon for x in leveling_object];
+    lats = [x.lat for x in leveling_object];
+
+    for i in range(1, num_plots):
+        later_data = [x.leveling[i] for x in leveling_object];
+        earlier_data = [x.leveling[i-1] for x in leveling_object];
+        data = [];
+        for j in range(len(earlier_data)):
+            data.append(later_data[j] - earlier_data[j]);
+        str1 = dt.datetime.strftime(leveling_object[0].dtarray[i-1], "%Y-%m");
+        str2 = dt.datetime.strftime(leveling_object[0].dtarray[i], "%Y-%m");
+        label = str1 + " to " + str2;
+        print(label)
+
+        single_panel_plot(axarr[idx2][idx1], lons, lats, data, vmin, vmax, label, 150);
+        idx1 = idx1 + 1;
+        if idx1 == 5:
+            idx1 = 0;
+            idx2 = 1;
+
+    axarr[1][4].set_visible(False)
+    color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
+    custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='jet');
+    custom_cmap.set_array(np.arange(vmin, vmax));
+    cb = plt.colorbar(custom_cmap, aspect=8, fraction=0.5);
+    cb.set_label('Incremental Displacement (m)', fontsize=25);
+    cb.ax.tick_params(labelsize=20);
+
+    plt.savefig(outname);
+    return;
+
+
+def cumulative_multi_panel_plot(leveling_object, outname, vmin=-0.30, vmax=0.20):
+    """Generalized cumulative multi-panel plot for leveling data"""
+    f, axarr = plt.subplots(2, 5, figsize=(30, 18));  # currently hard-coded to have these plot dimensions
+
+    idx1, idx2 = 0, 0;
+    num_plots = len(leveling_object[0].leveling);
+    lons = [x.lon for x in leveling_object];
+    lats = [x.lat for x in leveling_object];
+
+    for i in range(1, num_plots):
+        data = [x.leveling[i] for x in leveling_object];
+        label = dt.datetime.strftime(leveling_object[0].dtarray[i], "%Y-%m");
+        single_panel_plot(axarr[idx2][idx1], lons, lats, data, vmin, vmax, label, 80);
+        idx1 = idx1 + 1;
+        if idx1 == 5:   # 5 rows
+            idx1 = 0;
+            idx2 = 1;
+
+    axarr[1][4].set_visible(False)
+    color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
+    custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='jet');
+    custom_cmap.set_array(np.arange(vmin, vmax));
+    cb = plt.colorbar(custom_cmap, aspect=8, fraction=0.5);
+    cb.set_label('Cumulative Displacement (m)', fontsize=25);
+    cb.ax.tick_params(labelsize=20);
+    plt.savefig(outname);
+    return;
+
+
 def single_panel_plot(ax, lons, lats, data, vmin, vmax, label, plotting_multiplier=200):
-    #  A plot within a multi panel plot
+    """A plot within a multi-panel plot"""
     color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
     custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='RdYlBu_r');
 
