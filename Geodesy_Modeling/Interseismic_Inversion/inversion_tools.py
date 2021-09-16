@@ -2,6 +2,7 @@
 import numpy as np
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
+import Elastic_stresses_py.PyCoulomb.fault_slip_object.disp_points_object as disp_points
 
 
 def pair_obs_gf(obs_disp_points, model_disp_points):
@@ -16,6 +17,14 @@ def pair_obs_gf(obs_disp_points, model_disp_points):
                 paired_obs.append(obs_item);
                 break;
     return paired_obs, paired_gf;
+
+
+def add_all_csz_patches(one_patch_gfs):
+    """take n patches of the subduction interface and add their green's functions together """
+    new_pts = one_patch_gfs[0];
+    for i in range(1, len(one_patch_gfs)):
+        new_pts = disp_points.add_disp_points(new_pts, one_patch_gfs[i]);
+    return new_pts;
 
 
 def add_G_rotation_columns(G, obs_disp_points):

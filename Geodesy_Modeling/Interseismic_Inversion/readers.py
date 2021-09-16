@@ -28,9 +28,9 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
         x = line[20:33];
         y = line[33:46];
         z = line[46:59];
-        xdisps.append(float(x));
-        ydisps.append(float(y));
-        zdisps.append(float(z));
+        xdisps.append(float(x)/100);
+        ydisps.append(float(y)/100);
+        zdisps.append(float(z)/100);  # convert from cm to m
     ifile.close();
 
     counter = 0;
@@ -44,8 +44,8 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
         for j in range(len(gps_disp_locs)):
             # Build a list of GF disp_points for each patch in inversion
             disp_point = cc.Displacement_points(lon=gps_disp_locs[j].lon, lat=gps_disp_locs[j].lat,
-                                                dE_obs=xdisps[counter], dN_obs=ydisps[counter], dU_obs=zdisps[counter],
-                                                Se_obs=0, Sn_obs=0, Su_obs=0, name="");
+                                                dE_obs=-xdisps[counter], dN_obs=-ydisps[counter],
+                                                dU_obs=-zdisps[counter], Se_obs=0, Sn_obs=0, Su_obs=0, name="");
             counter = counter + 1;
             disp_points_one_patch.append(disp_point);
             if counter == len(gps_disp_locs):
