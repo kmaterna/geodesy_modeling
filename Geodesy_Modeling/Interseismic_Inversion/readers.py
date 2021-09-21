@@ -37,6 +37,9 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
     disp_points_all_patches = [];
     all_patches = [];
     for i in range(len(fault_patches)):
+        if fault_patches[i]["depth"] > 60:  # potentially skip the deep section because it's freely slipping
+            counter = counter + len(gps_disp_locs);
+            continue;
         if not inside_lonlat_box(latlonbox, [fault_patches[i]["lon"], fault_patches[i]["lat"]]):  # southern patches
             counter = counter + len(gps_disp_locs);
             continue;
