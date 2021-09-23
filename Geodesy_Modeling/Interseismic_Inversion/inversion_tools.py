@@ -3,6 +3,7 @@ import numpy as np
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.fault_slip_object.disp_points_object as disp_points
+import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 
 
 def pair_obs_gf(obs_disp_points, model_disp_points):
@@ -150,6 +151,23 @@ def unpack_model_pred_vector(model_pred, paired_obs):
     return disp_points_list;
 
 
+def unpack_model_of_rotation_only(M_vector):
+    # 1) Zeros out all model parameters except the rotation (leaving the last three)
+    # 2) Zeros out all the rotation (canceling the last three)
+    multiplier = np.zeros(np.shape(M_vector));
+    multiplier[-3:] = [1, 1, 1];
+    M_rot_only = np.multiply(M_vector, multiplier);
+    M_no_rot = np.zeros(np.shape(M_vector));
+    M_no_rot[0:-3] = M_vector[0:-3];
+    return M_rot_only, M_no_rot;
+
+def rms_from_model_pred_vector(pred_vector, obs_vector):
+    """Various ways to compute the RMS value"""
+    residuals = np.subtract(obs_vector, pred_vector);
+    rms_mm = np.multiply(np.sqrt(np.mean(np.square(residuals))), 1000);
+    return rms_mm;
+
+
 def write_model_params(v, residual, outfile, fault_names=None):
     print("Writing %s" % outfile);
     ofile = open(outfile, 'w');
@@ -161,4 +179,26 @@ def write_model_params(v, residual, outfile, fault_names=None):
         for item in fault_names:
             ofile.write(item+" ");
     ofile.close();
+    return;
+
+
+def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rotation_pts, norot_pts, title, region):
+    # Plot the data, model, and residual in separate plots
+    # Not plotting the fault patches because it takes a long time.
+    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/data_only.png",
+                                                         disp_points=paired_obs, region=region,
+                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/residuals.png",
+                                                         disp_points=residual_pts, region=region,
+                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001,
+                                                         title=title);
+    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/model_pred.png",
+                                                         disp_points=modeled_disp_points, region=region,
+                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/rotation_pred.png",
+                                                         disp_points=rotation_pts, region=region,
+                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/faults_only_pred.png",
+                                                         disp_points=norot_pts, region=region,
+                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
     return;
