@@ -13,15 +13,16 @@ def inputs_brawley_leveling(data_filename, errors_filename):
     """Read leveling from CEC Salton Trough North Brawley leveling data"""
     print("Reading in %s" % data_filename);
     df = pandas.read_excel(data_filename, engine='openpyxl');
-
-    # Fix typos
-    [rownum, colnum, _old_values, new_values] = read_errors(errors_filename);
-    df = implement_changes_dataframe(df, rownum, colnum, new_values);
-
-    # Reading name information
     column_names = df.columns[1:-1].tolist();
-    names = df['BENCHMARK'].values.tolist();
+
+    # Fix typos in metadata and data
+    [corrtype, _sheet, rownum, colnum, _old_val, new_values] = read_cec_leveling_errors(errors_filename, data_filename);
+    df = implement_changes_dataframe(df, corrtype, rownum, colnum, new_values);
+    column_names = implement_changes_colnames(column_names, corrtype, rownum, colnum, new_values);
+
+    # Reading name information, Fix Data and Metadata typos
     dtarray = get_datetimes(column_names);
+    names = df['BENCHMARK'].values.tolist();
 
     # Reading lat/lon information
     lonlat_sheet = pandas.read_excel(data_filename, engine='openpyxl', sheet_name=2);
@@ -40,32 +41,51 @@ def inputs_brawley_leveling(data_filename, errors_filename):
     return LevStationList;
 
 
-def read_errors(filename):
-    print("Reading documented errors in %s " % filename)
-    rownum, colnum = [], [];
-    old_values, new_values = [], [];
-    ifile = open(filename, 'r');
+def read_cec_leveling_errors(error_filename, data_filename):
+    """Read file that documents typos and errors"""
+    data_filename = data_filename.split('/')[-1];
+    print("Reading documented errors in %s " % error_filename)
+    corrtype, sheetnum, rownum, colnum, old_values, new_values = [], [], [], [], [], [];
+    ifile = open(error_filename, 'r');
     for line in ifile:
         temp = line.split("::");
         if temp[0] == "#":
             continue;
-        rownum.append(int(temp[0]));
-        colnum.append(int(temp[1]));
-        old_values.append(temp[2]);
-        new_values.append(temp[3]);
+        if temp[0] == data_filename:  # filter to errors that apply to a particular data file
+            if temp[4] == "nan":
+                continue;  # ignore a case for notes (not a real correction)
+            corrtype.append(temp[1]);  # data or metadata (basically: string or float?)
+            sheetnum.append(int(temp[2]))
+            rownum.append(int(temp[3]));
+            colnum.append(int(temp[4]));
+            old_values.append(temp[5]);
+            new_values.append(temp[6]);
     ifile.close();
-    return [rownum, colnum, old_values, new_values];
+    return [corrtype, sheetnum, rownum, colnum, old_values, new_values];
 
 
-def implement_changes_dataframe(df, rownum, colnum, new_values):
+def implement_changes_dataframe(df, corrtype, rownum, colnum, new_values):
+    """Implement Data changes to array of data"""
     print("Implementing changes to data:");
     for i in range(len(rownum)):
+        if corrtype[i] == 'Metadata':
+            continue;
         col_names = df.columns[0:-1].tolist();
         print("Finding error in column %s" % col_names[colnum[i]-1])  # get the right column
         old_value = df.iloc[rownum[i]-2, colnum[i]-1];
         df.iloc[rownum[i]-2, colnum[i]-1] = new_values[i];  # assignment
-        print("   Carefully replacing %s with %s" % (old_value, new_values[i]) );
+        print("   Carefully replacing data %s with %s" % (old_value, new_values[i]) );
     return df;
+
+
+def implement_changes_colnames(column_names, corrtype, rownum, colnum, new_values):
+    """Implement metadata changes to column names"""
+    print("Implementing changes to metadata:");
+    for i in range(len(rownum)):
+        if corrtype[i] == 'Metadata' and rownum[i] == 0:  # if using a column name
+            print("   Swapping \"%s\" for \"%s\"" % (column_names[colnum[i]-1], new_values[i]) );
+            column_names[colnum[i]-1] = new_values[i];   # one-indexed column numbers I guess
+    return column_names;
 
 
 def get_datetimes(timestrings):
@@ -76,11 +96,8 @@ def get_datetimes(timestrings):
             temp = timestrings[i].split(" 88 ");
             temp2 = temp[1].split();
             mmm = temp2[0];
-            if mmm == ')CT':
-                mmm = 'OCT';   # fixing a typo
             year = temp2[1];
-            dtarray.append(dt.datetime.strptime(year + "-" + mmm + "-01",
-                                                "%Y-%b-%d"));  # issue here, but not too bad.
+            dtarray.append(dt.datetime.strptime(year + "-" + mmm + "-01", "%Y-%b-%d"));  # issue here, but not too bad.
         else:  # For the special cases
             if "NOLTE 2008" in timestrings[i]:
                 dtarray.append(dt.datetime.strptime("2008-Nov-01", "%Y-%b-%d"));
