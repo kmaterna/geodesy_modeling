@@ -128,6 +128,11 @@ def multi_panel_increment_plot_brawley(leveling_object_list, plotname):
 
         single_panel_plot(axarr[idx2][idx1], lons, lats, data, vmin, vmax, annotations[i-1]+': '+label, 30);
 
+        if idx2 < 2:
+            axarr[idx2][idx1].set_xticklabels([]);
+        if idx1 > 0:
+            axarr[idx2][idx1].set_yticklabels([]);
+
         idx1 = idx1+1;
         if idx1 == 3 or idx1 == 6:
             idx2 = idx2+1;
@@ -229,7 +234,9 @@ def single_panel_plot(ax, lons, lats, data, vmin, vmax, label, plotting_multipli
         ax.plot(lons[i], lats[i], marker='o', markersize=markersize, color=dot_color, fillstyle="full");
         ax.plot(lons[0], lats[0], marker='*', markersize=25, color='black', fillstyle="full");
 
-    ax.set_xticklabels([]);
-    ax.set_yticklabels([]);
+    ax.xaxis.set_ticks(np.arange(-115.59, -115.50, 0.01));
+    ax.tick_params(axis='x', labelsize=16, rotation=45);
+    ax.yaxis.set_ticks(np.arange(33.00, 33.05, 0.01));
+    ax.tick_params(axis='y', labelsize=16);
     ax.set_title(label, fontsize=35);
     return;
