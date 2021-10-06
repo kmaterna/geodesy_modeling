@@ -18,6 +18,10 @@ def welcome_and_parse(argv):
     for i, key in enumerate(config1["faults"].keys()):
         fault_name = config1["faults"][key]["filename"]
         subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
+    if 'G' not in config1.keys():
+        config1['G'] = 30e9;  # default shear modulus is 30 GPa
+    if 'resolution_test' not in config1.keys():
+        config1['resolution_test'] = '';   # default resolution test is none
     with open(config1['output_dir_lcurve']+'/config.json', 'w') as fp:
         json.dump(config1, fp, indent="  ");   # save master config file, record-keeping
     return config1;

@@ -145,7 +145,7 @@ def write_compound_misfit(metrics, outfile):
 # -------- COMPOUND MISFIT FUNCTIONS ----------- #
 def brawley_misfit_driver(config):
     # Compute three metrics for gps, insar, and leveling respectively
-    print("Calculating metrics for inversion results.");
+    print("Calculating metrics for Brawley inversion results.");
     [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
     metrics = compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
     write_simple_misfit(metrics, config["summary_file"]);  # matching write function
@@ -199,6 +199,6 @@ def write_slip_moments(moments, G, filename):
 def main_function(config):
     """Misfit can be defined in many ways. Here we point to them. """
     config["summary_file"] = config["output_dir"]+"summary_stats.txt";  # Creates an output file
-    brawley_misfit_driver(config);
+    simple_misfit_driver(config);
     slip_metrics_driver(config);   # for the amount of slip.
     return;
