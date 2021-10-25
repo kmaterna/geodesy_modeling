@@ -10,12 +10,12 @@ def inside_lonlat_box(bbox, lonlat):
         return 0;
 
 
-def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 43)):
+def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 43), unit_slip=False):
     """
     Read the results of Fred's Static1D file
     For example: stat2C.outCascadia
     We also restrict the range of fault elements using a bounding box
-    NEXT: Here we should divide by the imposed slip rate to get a 1cm/yr Green's Function
+    If unit_slip, we divide by the imposed slip rate to get a 1 cm/yr Green's Function.
     Returns a list of lists of disp_point objects, and a matching list of fault patches
     """
     fault_patches = fso.io_static1d.read_stat2C_geometry(geom_file);
@@ -34,6 +34,7 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
     ifile.close();
 
     counter = 0;
+    norm_factor = 1;
     disp_points_all_patches = [];
     all_patches = [];
     for i in range(len(fault_patches)):
@@ -46,14 +47,33 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
         disp_points_one_patch = [];
         for j in range(len(gps_disp_locs)):
             # Build a list of GF disp_points for each patch in inversion
+            if unit_slip:
+                norm_factor = 0.010 / fault_patches[i]["slip"];  # normalizing to 1 cm/yr Green's Function
+            else:
+                norm_factor = 1;
             disp_point = cc.Displacement_points(lon=gps_disp_locs[j].lon, lat=gps_disp_locs[j].lat,
-                                                dE_obs=-xdisps[counter], dN_obs=-ydisps[counter],
-                                                dU_obs=-zdisps[counter], Se_obs=0, Sn_obs=0, Su_obs=0, name="");
+                                                dE_obs=-xdisps[counter] * norm_factor,
+                                                dN_obs=-ydisps[counter] * norm_factor,
+                                                dU_obs=-zdisps[counter] * norm_factor,
+                                                Se_obs=0, Sn_obs=0, Su_obs=0, name="");
             counter = counter + 1;
             disp_points_one_patch.append(disp_point);
             if counter == len(gps_disp_locs):
                 break;
         disp_points_all_patches.append(disp_points_one_patch);
-        all_patches.append(fault_patches[i]);
+        [fault_slip_patch] = fso.fault_slip_object.change_fault_slip([fault_patches[i]],
+                                                                     fault_patches[i]["slip"] * norm_factor);
+        all_patches.append(fault_slip_patch);
 
     return disp_points_all_patches, all_patches;
+
+
+def write_csz_dist_fault_patches(all_fault_patches, model_vector, outfile):
+    """Write out the slip results for a distributed CSZ model into GMT format"""
+    modeled_slip_patches = [];
+    for i in range(len(all_fault_patches)):
+        if len(all_fault_patches[i]) == 1:
+            [new_patch] = fso.fault_slip_object.change_fault_slip(all_fault_patches[i], model_vector[i]*10);  # mm/yr
+            modeled_slip_patches.append(new_patch);
+    fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile);
+    return;
