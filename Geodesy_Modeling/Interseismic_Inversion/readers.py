@@ -72,8 +72,9 @@ def write_csz_dist_fault_patches(all_fault_patches, model_vector, outfile):
     """Write out the slip results for a distributed CSZ model into GMT format"""
     modeled_slip_patches = [];
     for i in range(len(all_fault_patches)):
-        if len(all_fault_patches[i]) == 1:
+        if len(all_fault_patches[i]) == 1:   # CSZ patches are 1 patch per model element.
             [new_patch] = fso.fault_slip_object.change_fault_slip(all_fault_patches[i], model_vector[i]*10);  # mm/yr
             modeled_slip_patches.append(new_patch);
-    fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile);
+    if len(modeled_slip_patches) > 0:
+        fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile);
     return;
