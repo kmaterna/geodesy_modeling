@@ -95,7 +95,7 @@ def get_displacement_directions(obs_disp_point, model_point):
     """
     if obs_disp_point.meas_type == "continuous":
         disps = np.array([model_point.dE_obs, model_point.dN_obs, model_point.dU_obs]);
-        sigmas = np.array([model_point.Se_obs, model_point.Sn_obs, model_point.Sn_obs]);
+        sigmas = np.array([model_point.Se_obs, model_point.Sn_obs, model_point.Su_obs]);
     elif obs_disp_point.meas_type == "survey":
         disps = np.array([model_point.dE_obs, model_point.dN_obs]);
         sigmas = np.array([model_point.Se_obs, model_point.Sn_obs]);
@@ -107,7 +107,7 @@ def get_displacement_directions(obs_disp_point, model_point):
         sigmas = np.array([model_point.Su_obs]);
     else:
         disps = np.array([model_point.dE_obs, model_point.dN_obs, model_point.dU_obs]);
-        sigmas = np.array([model_point.Se_obs, model_point.Sn_obs, model_point.Sn_obs]);
+        sigmas = np.array([model_point.Se_obs, model_point.Sn_obs, model_point.Su_obs]);
     return disps, sigmas;
 
 
@@ -132,7 +132,7 @@ def build_obs_vector(obs_disp_points):
     for item in obs_disp_points:
         new_values, new_sigmas = get_displacement_directions(item, item);
         obs = np.concatenate((obs, new_values), axis=0);
-        sigmas = np.concatenate((sigmas, new_values), axis=0);
+        sigmas = np.concatenate((sigmas, new_sigmas), axis=0);
     return obs, sigmas;
 
 
@@ -182,11 +182,20 @@ def unpack_model_of_rotation_only(M_vector):
     M_no_rot[0:-3] = M_vector[0:-3];
     return M_rot_only, M_no_rot;
 
-def rms_from_model_pred_vector(pred_vector, obs_vector):
-    """Various ways to compute the RMS value"""
+
+def rms_from_model_pred_vector(pred_vector, obs_vector, sigma_vector):
+    """
+    Various ways to compute the RMS value
+    All inputs are expected to be vectors with the same length.
+    """
     residuals = np.subtract(obs_vector, pred_vector);
     rms_mm = np.multiply(np.sqrt(np.mean(np.square(residuals))), 1000);
-    return rms_mm;
+    added_sum = 0;
+    for i in range(len(pred_vector)):
+        chi2 = np.square(obs_vector[i]-pred_vector[i]) / np.square(sigma_vector[i]);
+        added_sum = added_sum + chi2
+    reported_chi2 = added_sum / len(sigma_vector);
+    return rms_mm, reported_chi2;
 
 
 def write_model_params(v, residual, outfile, GF_elements=None):
