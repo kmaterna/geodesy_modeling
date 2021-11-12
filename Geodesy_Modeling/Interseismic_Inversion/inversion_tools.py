@@ -56,7 +56,7 @@ def add_all_csz_patches(one_patch_gfs):
     return new_pts;
 
 
-def get_G_rotation_elements(obs_disp_points):
+def get_GF_rotation_elements(obs_disp_points):
     """
     Build 3 GF_elements for horizontal rotation of GNSS velocities due to reference frames
     X rotation: [0, 0, 1] Euler Pole
@@ -87,6 +87,31 @@ def get_G_rotation_elements(obs_disp_points):
     yresponse = GF_element(disp_points=y_disp_p, fault_name='y_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1);
     zresponse = GF_element(disp_points=z_disp_p, fault_name='z_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1);
     return [xresponse, yresponse, zresponse];
+
+
+def get_GF_leveling_offset_element(obs_disp_points):
+    """
+    Build a GF_element for a reference frame leveling offset column of the GF matrix
+    Input: a list of disp_points
+    Output: a list of 1 GF_element, or an empty list if there is no leveling in this dataset
+    """
+    total_response_pts = [];
+    lev_count = 0;
+    for item in obs_disp_points:
+        if item.meas_type == "leveling":
+            response = cc.Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=1,
+                                              Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
+            lev_count += 1;
+        else:
+            response = cc.Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=0,
+                                              Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
+        total_response_pts.append(response);
+    lev_offset_gf = GF_element(disp_points=total_response_pts, fault_name='lev_offset', fault_dict_list=[],
+                               upper_bound=1, lower_bound=-1);
+    if lev_count == 0:
+        return [];
+    else:
+        return [lev_offset_gf];
 
 
 def get_displacement_directions(obs_disp_point, model_point):
