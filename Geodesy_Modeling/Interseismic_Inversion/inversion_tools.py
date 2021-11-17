@@ -196,16 +196,24 @@ def unpack_model_pred_vector(model_pred, paired_obs):
     return disp_points_list;
 
 
-def unpack_model_of_rotation_only(M_vector):
+def unpack_model_of_rotation_only(M_vector, parameter_names):
     """
     1) Zeros out all model parameters except the rotation (leaving the last three)
     2) Zeros out all the rotation (canceling the last three)
+    :parameter M_vector: vector of model parameters
+    :parameter parameter_names: list of strings, derived from fault_name of a GF_element
     """
-    multiplier = np.zeros(np.shape(M_vector));
-    multiplier[-3:] = [1, 1, 1];
-    M_rot_only = np.multiply(M_vector, multiplier);
-    M_no_rot = np.zeros(np.shape(M_vector));
-    M_no_rot[0:-3] = M_vector[0:-3];
+    rot_multiplier = np.zeros(np.shape(M_vector));
+    fault_multiplier = np.zeros(np.shape(M_vector));
+    for i in range(len(parameter_names)):
+        if parameter_names[i] == 'lev_offset':
+            continue;
+        elif parameter_names[i] in ["x_rot", "y_rot", "z_rot"]:
+            rot_multiplier[i] = 1;
+        else:
+            fault_multiplier[i] = 1;
+    M_rot_only = np.multiply(M_vector, rot_multiplier);
+    M_no_rot = np.multiply(M_vector, fault_multiplier);
     return M_rot_only, M_no_rot;
 
 
@@ -305,6 +313,12 @@ def rms_from_model_pred_vector(pred_vector, obs_vector, sigma_vector):
 
 
 def write_model_params(v, residual, outfile, GF_elements=None):
+    """
+    :param v: vector of model parameters, floats
+    :param residual: float, mm/yr
+    :param outfile: string
+    :param GF_elements: optional, list of GF_element objects
+    """
     print("Writing %s" % outfile);
     ofile = open(outfile, 'w');
     for item in v:
@@ -314,6 +328,27 @@ def write_model_params(v, residual, outfile, GF_elements=None):
     if GF_elements:
         for item in GF_elements:
             ofile.write(item.fault_name+" ");
+    ofile.close();
+    return;
+
+def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=()):
+    """
+    Write a human-readable results file, with the potential to ignore faults with distributed models for clarity
+    :param v: vector of model parameters, floats
+    :param residual: float, mm/yr
+    :param outfile: string
+    :param GF_elements: list of GF_element objects
+    :param ignore_faults: list of strings
+    """
+    print("Writing %s" % outfile);
+    ofile = open(outfile, 'w');
+    for i in range(len(v)):
+        if GF_elements[i].fault_name in ignore_faults:
+            continue;
+        ofile.write(GF_elements[i].fault_name + ": ");
+        ofile.write(str(v[i])+" cm/yr \n");
+    report_string = "\nRMS: %f mm/yr, on %d observations\n" % (residual, len(GF_elements[0].disp_points));
+    ofile.write(report_string);
     ofile.close();
     return;
 
