@@ -2,6 +2,7 @@
 import numpy as np
 import collections
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
+from Tectonic_Utilities.Tectonic_Utils.geodesy import haversine
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.fault_slip_object.disp_points_object as disp_points
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
@@ -208,11 +209,91 @@ def unpack_model_of_rotation_only(M_vector):
     return M_rot_only, M_no_rot;
 
 
+def get_fault_element_distance(fault_dict1, fault_dict2):
+    distance = haversine.distance([fault_dict1["lat"], fault_dict1["lon"]], [fault_dict2["lat"], fault_dict2["lon"]]);
+    return distance;
+
+
+def build_smoothing(gf_elements, fault_name, strength, G, obs, sigmas):
+    """
+    Make a weighted connectivity matrix that has the same number of columns as G, that can be appended to the bottom.
+    Any element within gf_element that has fault_name will have its immediate neighbors subtracted for smoothing.
+    Append the matching number of zeros to the obs_vector.
+    Assumes similar-sized patches throughout the slip distribution
+
+    :param gf_elements: list of gf_element objects
+    :type gf_elements: list
+    :param fault_name: which fault elements are we smoothing, string
+    :param strength: lambda parameter in smoothing equation
+    :param G: already existing G matrix
+    :param obs: already existing obs vector
+    :param sigmas: already existing sigma vector
+    """
+    print("G and obs before smoothing:", np.shape(G), np.shape(obs));
+    if strength == 0:
+        print("No change, smoothing set to 0");
+        return G, obs, sigmas;   # returning unaltered G if there is no smoothing
+
+    G_smoothing = np.zeros((len(gf_elements), len(gf_elements)));
+
+    # Get critical distance, a typical small distance between neighboring fault patches.
+    # Operates on the first patch that it finds.
+    distances = [];
+    for i in range(len(gf_elements)):
+        if gf_elements[i].fault_name == fault_name:
+            for j in range(i+1, len(gf_elements)):
+                if gf_elements[j].fault_name == fault_name:
+                    distances.append(get_fault_element_distance(gf_elements[i].fault_dict_list[0],
+                                                                gf_elements[j].fault_dict_list[0]));
+            break;
+    critical_distance = sorted(distances)[2] + 5;  # take adjacent patches with some wiggle room
+
+    # Build the parts of the matrix for smoothing
+    for i in range(len(gf_elements)):
+        if gf_elements[i].fault_name == fault_name:
+            G_smoothing[i][i] = 1;
+            for j in range(len(gf_elements)):
+                if gf_elements[j].fault_name == fault_name:
+                    if i != j and get_fault_element_distance(gf_elements[i].fault_dict_list[0],
+                                                             gf_elements[j].fault_dict_list[0]) < critical_distance:
+                        G_smoothing[i][j] = -1/4;
+
+    G_smoothing = G_smoothing * strength;  # multiplying by lambda factor
+
+    # observation vector of zeros
+    zero_vector = np.zeros((len(gf_elements),));
+
+    G_smoothing = np.vstack((G, G_smoothing));    # appending smoothing matrix
+    smoothed_obs = np.concatenate((obs, zero_vector));   # appending smoothing components to data
+    smoothed_sigmas = np.concatenate((sigmas, zero_vector));  # appending smoothing components to sigmas
+    print("G and obs after smoothing:", np.shape(G_smoothing), np.shape(smoothed_obs));
+    return G_smoothing, smoothed_obs, smoothed_sigmas;
+
+def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
+    """
+    Remove lines of zeros automatically added for smoothing parameters.
+    All inputs are expected to be vectors with the same length.
+    """
+    tol = 1e-9;
+    new_pred_vector, new_obs_vector, new_sigma_vector = [], [], [];
+    for i in range(len(pred_vector)):
+        if abs(pred_vector[i]) < tol and abs(obs_vector[i]) < tol and abs(sigma_vector[i]) < tol:
+            continue;
+        else:
+            new_pred_vector.append(pred_vector[i]);
+            new_obs_vector.append(obs_vector[i]);
+            new_sigma_vector.append(sigma_vector[i]);
+    print("During RMS calc., filter vectors from %d to %d for smoothing" % (len(pred_vector), len(new_pred_vector)) );
+    return new_pred_vector, new_obs_vector, new_sigma_vector;
+
+
 def rms_from_model_pred_vector(pred_vector, obs_vector, sigma_vector):
     """
     Various ways to compute the RMS value
     All inputs are expected to be vectors with the same length.
     """
+    # Filter out lines added for smoothing
+    pred_vector, obs_vector, sigma_vector = filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector);
     residuals = np.subtract(obs_vector, pred_vector);
     rms_mm = np.multiply(np.sqrt(np.mean(np.square(residuals))), 1000);
     added_sum = 0;
