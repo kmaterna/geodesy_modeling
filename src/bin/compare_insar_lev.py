@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
-# Compare InSAR Displacements with Leveling:
-# TSX from 2012-2013
-# S1 from 2014-2018
-# S1 from 2018-2019
-# S1 from OU/Cornell
-# Individual UAVSAR intfs
-# UAVSAR time series slices
-# Holy Cow I reproduced Mariana's results.
+"""
+Driver for Brawley Project, 2020-2021
+Compare InSAR Displacements with Leveling:
+TSX from 2012-2013
+S1 from 2014-2018
+S1 from 2018-2019
+S1 from OU/Cornell
+Individual UAVSAR intfs
+UAVSAR time series slices
+Holy Cow I reproduced Mariana's results.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,10 +18,7 @@ import matplotlib
 import matplotlib.cm as cm
 import datetime as dt
 import sys
-from Geodesy_Modeling import multiSAR_utilities
-from Geodesy_Modeling import InSAR_1D_Object
-from Geodesy_Modeling import Leveling_Object
-from Geodesy_Modeling import UAVSAR
+from Geodesy_Modeling.src import multiSAR_utilities, InSAR_1D_Object, Leveling_Object, UAVSAR
 
 def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None,
                           gps_names=None, label="LOS", graph_scale=80):

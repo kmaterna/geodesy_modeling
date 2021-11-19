@@ -1,6 +1,5 @@
 *.png
 *.pdf
-*.txt
 *.pyc
 .idea/*
 isce.log

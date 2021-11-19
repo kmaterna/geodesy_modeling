@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-# Run Slippy across multiple choices of parameters, for l-curve analysis
+
+"""
+A generic driver for multiple projects
+Run Slippy across multiple choices of parameters, for l-curve analysis
+"""
 
 import sys, json, subprocess
-from Geodesy_Modeling import MultiTemporalInversion
+from Geodesy_Modeling.src import MultiTemporalInversion
 
 
 def welcome_and_parse(argv):

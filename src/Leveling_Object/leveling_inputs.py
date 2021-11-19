@@ -1,16 +1,21 @@
-# A series of functions for io of leveling data, including CEC Salton Trough Leveling Data
+"""
+A series of functions (research code) for io of leveling data, including CEC Salton Trough Leveling Data
+Some input functions also exist in specific project directories instead of being consolidated here
+"""
 
-import collections
+import collections, pandas
 import datetime as dt
 import numpy as np
-import pandas
 
 LevStation = collections.namedtuple("LevStation", ["name", "lat", "lon", "dtarray", "leveling", "reflon", "reflat"]);
 # LevStation: list-of-objects format, one object for each station. Units of meters.
 
 
 def inputs_brawley_leveling(data_filename, errors_filename):
-    """Read leveling from CEC Salton Trough North Brawley leveling data"""
+    """
+    Read leveling from CEC Salton Trough North Brawley leveling data
+    Yes this is research code, but I'll keep this inside in case the leveing data type changes.
+    """
     print("Reading in %s" % data_filename);
     df = pandas.read_excel(data_filename, engine='openpyxl');
     column_names = df.columns[1:-1].tolist();

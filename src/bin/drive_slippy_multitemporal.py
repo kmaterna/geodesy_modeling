@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-# Run Slippy with multiple time intervals in the input
-# (A really big G matrix)
+
+"""
+Generic Driver for multiple projects
+Run Slippy with multiple time intervals in the input (a really big G matrix)
+"""
 
 import sys, json, subprocess
-from Geodesy_Modeling import MultiTemporalInversion
+from Geodesy_Modeling.src import MultiTemporalInversion
 
 
 def welcome_and_parse(argv):

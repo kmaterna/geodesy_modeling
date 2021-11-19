@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
-# Prepare data for a multi-datasource, multi-time-step inversion
-# GNSS: make relative to benchmark
-# INSAR: make relative to chosen benchmark; solve for ramps; downsample
-# Leveling: write out
+"""
+Brawley Project, 2020-2021
+Experiment Driver
+Prepare data for a multi-datasource, multi-time-step inversion
+GNSS: make relative to benchmark
+INSAR: make relative to chosen benchmark; solve for ramps; downsample
+Leveling: write out
+"""
 
-from Geodesy_Modeling import Leveling_Object
 import numpy as np
-import sys, json
-import subprocess
+import sys, json, subprocess
 import datetime as dt
-from Geodesy_Modeling import Downsample
-from Geodesy_Modeling import InSAR_1D_Object
-from Geodesy_Modeling import GNSS_Object
+from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, GNSS_Object, Leveling_Object
 from read_write_insar_utilities import isce_read_write
 
 
@@ -29,9 +29,10 @@ def welcome_and_parse(argv):
 
 
 def get_starttime_endtime(epochs_dict, select_interval_dict):
-    """Given a dictionary of epochs and a list called span, extract the starttime and endtime for that interval"""
-    start_time_candidates = [];
-    end_time_candidates = [];
+    """
+    Given a dictionary of epochs and a list called span, extract the starttime and endtime for that interval
+    """
+    start_time_candidates, end_time_candidates = [], [];
     span = select_interval_dict["span"];  # a list of intervals, such as ["A","B"];
     for item in span:
         for interval_key in epochs_dict:
