@@ -1,11 +1,12 @@
-# A small project to take a fault trace (lon/lat paris) and mesh it into chunks
-# The result will be a series of rectangular mesh elements.
-# The format will be the internal format used in PyCoulomb, a dictionary with geometry and slip for each patch.
+"""
+A small project to take a fault trace (lon/lat paris) and mesh it into chunks
+The result will be a series of rectangular mesh elements.
+The format will be the internal format used in PyCoulomb, a dictionary with geometry and slip for each patch.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
-from Tectonic_Utils.geodesy import haversine
-from Tectonic_Utils.geodesy import fault_vector_functions
+from Tectonic_Utils.geodesy import haversine, fault_vector_functions
 
 
 def read_surface_fault_trace(infile):
@@ -62,8 +63,7 @@ def split_fault_trace(fault_trace, typical_spacing_km):
     return all_fault_segments;
 
 
-def convert_2d_segments_to_internal_fault_dictionary(fault_segments, dip, dip_direction, top_depth, bottom_depth,
-                                                     slip_cm, rake):
+def convert_2d_segments_to_fault_dictionary(fault_segments, dip, dip_direction, top_depth, bottom_depth, slip_cm, rake):
     """
     fault_segment includes: (starting lon, starting_lat, strike, length, ending_lon, ending_lat)
     where starting_lon is probably south of ending_lon.
