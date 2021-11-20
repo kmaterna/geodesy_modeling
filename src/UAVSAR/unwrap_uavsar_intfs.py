@@ -11,11 +11,9 @@ and writes los.rdr.geo in isce format too.  Useful for Kite downsampling next.
 import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
-from read_write_insar_utilities import jpl_uav_read_write   # refactor coming for these imports, from S1 library
-from read_write_insar_utilities import isce_read_write
-from read_write_insar_utilities import netcdf_plots
-from intf_generating import isce_geocode_tools
-from math_tools import mask_and_interpolate
+from S1_batches.read_write_insar_utilities import jpl_uav_read_write, isce_read_write, netcdf_plots
+from S1_batches.intf_generating import isce_geocode_tools
+from S1_batches.math_tools import mask_and_interpolate
 from Tectonic_Utils.read_write import netcdf_read_write
 
 

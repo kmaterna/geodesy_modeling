@@ -5,7 +5,7 @@ Input functions for 1D InSAR format
 import numpy as np
 import datetime as dt
 import sys, pandas, h5py
-from read_write_insar_utilities import isce_read_write   # refactor coming when I change paths to this S1 library
+from S1_batches.read_write_insar_utilities import isce_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from .class_model import InSAR_1D_Object
 
