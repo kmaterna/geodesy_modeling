@@ -1,20 +1,22 @@
 #!/usr/bin/env python
-# July 2020
-# Manipulate a UAVSAR file from the jpl website into a properly unwrapped and geocoded data file. 
-# It takes .ann, .int.grd, and .cor.grd files. 
-# This is a complicated multi-step process that needs both ISCE and GMTSAR functions. 
-# It writes the filtered, unwrapped, masked, geocoded interferograms in isce format, 
-# and writes los.rdr.geo in isce format too.  Useful for Kite downsampling next. 
+"""
+July 2020
+Manipulate a UAVSAR file from the jpl website into a properly unwrapped and geocoded data file.
+It takes .ann, .int.grd, and .cor.grd files.
+This is a complicated multi-step process that needs both ISCE and GMTSAR functions.
+It writes the filtered, unwrapped, masked, geocoded interferograms in isce format,
+and writes los.rdr.geo in isce format too.  Useful for Kite downsampling next.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
-from read_write_insar_utilities import jpl_uav_read_write
-from Tectonic_Utils.read_write import netcdf_read_write
+from read_write_insar_utilities import jpl_uav_read_write   # refactor coming for these imports, from S1 library
 from read_write_insar_utilities import isce_read_write
 from read_write_insar_utilities import netcdf_plots
 from intf_generating import isce_geocode_tools
 from math_tools import mask_and_interpolate
+from Tectonic_Utils.read_write import netcdf_read_write
 
 
 def read_jpl_ground_range_data(data_file_slant, corr_file_slant, ann_file):

@@ -1,5 +1,6 @@
-# June 2020
-# A series of functions to help get GPS TS into downsampled format
+"""
+Functions to get GPS TS into downsampled format
+"""
 
 import numpy as np
 import datetime as dt

@@ -1,8 +1,10 @@
-# After you've done an inversion, what are the results?
-# How much moment is created, and how big is the misfit?
-# MultiT and SingleT
-# Writes into a summary text file, and prints to screen. 
-# Useful for L-curve analysis.
+"""
+After you've done an inversion, what are the results?
+How much moment is created, and how big is the misfit?
+MultiT and SingleT
+Writes into a summary text file, and prints to screen.
+Useful for L-curve analysis.
+"""
 
 import numpy as np
 from Tectonic_Utils.seismo import moment_calculations

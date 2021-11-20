@@ -1,10 +1,12 @@
-# Tools for resolution tests on inversions
-# Option 1: View model resolution matrix, R
-# Option 2: how much displacement is caused by a unit displacement at each model cell?
-# Option 3: invert 100 iterations of the data, and take the standard deviation of that distribution
-#     Can only do this once we have defined G, obs, etc.
-#     This would involve a somewhat refactor of this script (configure, input, compute, output)
-#     Or would do for only a simple inversion, slippy-style, not a compound inversion
+"""
+Tools for resolution tests on inversions
+Option 1: View model resolution matrix, R
+Option 2: how much displacement is caused by a unit displacement at each model cell?
+Option 3: invert 100 iterations of the data, and take the standard deviation of that distribution
+     Can only do this once we have defined G, obs, etc.
+     This would involve a somewhat refactor of this script (configure, input, compute, output)
+     Or would do for only a simple inversion, slippy-style, not a compound inversion
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt

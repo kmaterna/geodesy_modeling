@@ -1,5 +1,6 @@
-# Definition of InSAR-format data
-# Write and output functions for the InSAR data format
+"""
+# Write and output functions for InSAR 2D data format
+"""
 
 import pygmt
 import numpy as np

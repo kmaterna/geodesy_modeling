@@ -1,5 +1,6 @@
-# Takes a geojson file from downsampled pixels (see Tectonic_Utils.geodesy)
-# and makes a patches plot.
+"""
+Take a geojson file from downsampled pixels (e.g. from Kite) and makes plot of patches
+"""
 
 import numpy as np
 import matplotlib

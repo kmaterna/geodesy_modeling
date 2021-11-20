@@ -1,5 +1,6 @@
-# A series of functions for io of leveling data
-# LEVELING OUTPUT FUNCTIONS
+"""
+Functions for plotting/output of leveling data
+"""
 
 import datetime as dt
 import numpy as np

@@ -1,5 +1,6 @@
-# Definition of InSAR-format data
-# Write and output functions for the InSAR data format
+"""
+Write and output functions for 1D InSAR data format
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt

@@ -1,14 +1,16 @@
-# Downsample a geocoded interferogram with quadtree;
-# Write the outputs to a geojson.
-# The script below is the equivalent of fiddling with the file using the gui:
-# spool --load unwrap_ll.grd
-# Notes: The data files and los files should be in the directory where this is called. 
-# Notes for GMTSAR LOS BINARY:
-# If there's a .los.enu file in the directory, it will be assumed as the valid one for this experiment
-# Be careful what's in your directory. 
-# example: gmt grd2xyz unwrap_ll.grd | gmt grdtrack -Gdsdem.grd | awk {'print $1, $2, $4'} |
-#      SAT_look S1A20170330_165508_F3.PRM -bos > bot2017.los.enu
-# Not used: fig = qt.plot()  # this will open a plot.show(), won't save it. 
+"""
+Downsample a geocoded interferogram with quadtree;
+Write the outputs to a geojson.
+The script below is the equivalent of fiddling with the file using the gui:
+spool --load unwrap_ll.grd
+Notes: The data files and los files should be in the directory where this is called.
+Notes for GMTSAR LOS BINARY:
+If there's a .los.enu file in the directory, it will be assumed as the valid one for this experiment
+Be careful what's in your directory.
+example: gmt grd2xyz unwrap_ll.grd | gmt grdtrack -Gdsdem.grd | awk {'print $1, $2, $4'} |
+     SAT_look S1A20170330_165508_F3.PRM -bos > bot2017.los.enu
+Not used: fig = qt.plot()  # this will open a plot.show(), won't save it.
+"""
 
 from kite import Scene
 from Tectonic_Utils.geodesy import geojson2txt

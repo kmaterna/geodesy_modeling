@@ -1,4 +1,6 @@
-# Some useful functions for comparing pixels across object types
+"""
+Some useful functions for comparing pixels across object types
+"""
 
 import numpy as np
 from Tectonic_Utils.geodesy import haversine

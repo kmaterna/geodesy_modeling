@@ -34,8 +34,7 @@ def find_trend(LevList, start_time, end_time):
     """
     slope_solutions = [];
     for item in LevList:
-        dtarray_limited = [];
-        lev_obs_limited = [];
+        dtarray_limited, lev_obs_limited = [], [];
         for i in range(len(item.dtarray)):
             if start_time < item.dtarray[i] < end_time and ~np.isnan(item.leveling[i]):
                 dtarray_limited.append(item.dtarray[i]);

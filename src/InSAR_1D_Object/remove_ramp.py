@@ -1,5 +1,7 @@
-# June 2020
-# Remove a ramp or a constant, either naturally or by GPS
+"""
+June 2020
+Remove a ramp or a constant from 1D InSAR object, either naturally or by GPS
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt

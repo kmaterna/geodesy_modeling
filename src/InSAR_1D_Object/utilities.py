@@ -1,6 +1,8 @@
-# July 2020
-# Perform uniform downsampling on an InSAR_Obj
-# Impose Bounding Box
+"""
+July 2020
+Perform uniform downsampling on 1D InSAR_Obj
+Impose Bounding Box
+"""
 
 import numpy as np
 from .class_model import InSAR_1D_Object

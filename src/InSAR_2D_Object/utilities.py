@@ -1,6 +1,8 @@
-# July 2020
-# Perform uniform downsampling on an InSAR_Obj
-# Impose Bounding Box
+"""
+July 2020
+Perform uniform downsampling on 2D InSAR_Obj
+Impose Bounding Box
+"""
 
 import numpy as np
 from .class_model import InSAR_2D_Object
@@ -11,7 +13,7 @@ from .class_model import InSAR_2D_Object
 # ['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
 # where LOS is in mm
 
-def impose_InSAR_bounding_box(InSAR_obj, bbox=(-180, 180, -90, 90)):
+def impose_InSAR_bounding_box(_InSAR_obj, _bbox=(-180, 180, -90, 90)):
     """Impose a bounding box on some InSAR data. Not written yet. """
     return [];
 

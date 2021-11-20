@@ -1,4 +1,7 @@
-# Some useful functions for comparing pixels across object types
+"""
+Operations on GNSS objects
+"""
+
 import numpy as np
 from . import gnss_object
 

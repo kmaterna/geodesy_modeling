@@ -1,4 +1,4 @@
-# InSAR_Obj uniform downsampling algorithm
+"""InSAR_Obj 1D uniform downsampling algorithm"""
 
 
 import numpy as np

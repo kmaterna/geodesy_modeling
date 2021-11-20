@@ -1,5 +1,5 @@
 """
-A series of functions (research code) for io of leveling data, including CEC Salton Trough Leveling Data
+Several functions (research code) for io of leveling data, including CEC Salton Trough Leveling Data
 Some input functions also exist in specific project directories instead of being consolidated here
 """
 

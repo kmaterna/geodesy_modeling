@@ -1,5 +1,7 @@
-# InSAR_Obj spatial filtering algorithm
-# These functions do not appear to be implemented or used yet.
+"""
+InSAR_Obj spatial filtering algorithm
+These functions do not appear to be implemented or used yet.
+"""
 
 
 from ..InSAR_1D_Object import class_model

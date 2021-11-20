@@ -1,6 +1,8 @@
-# Remove coseismic model relative to a reference pixel. 
-# Most of the subtraction math is here. 
-# June 2020
+"""
+Remove coseismic model relative to a reference pixel.
+Most of the subtraction math is here.
+June 2020
+"""
 
 import numpy as np
 

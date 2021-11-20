@@ -1,14 +1,11 @@
-# August 12, 2020
-# Definition of InSAR-format data
-# Input functions for InSAR-format data
-
+"""
+Input functions for 1D InSAR format
+"""
 
 import numpy as np
 import datetime as dt
-import sys
-import pandas
-import h5py
-from read_write_insar_utilities import isce_read_write
+import sys, pandas, h5py
+from read_write_insar_utilities import isce_read_write   # refactor coming when I change paths to this S1 library
 from Tectonic_Utils.geodesy import insar_vector_functions
 from .class_model import InSAR_1D_Object
 
