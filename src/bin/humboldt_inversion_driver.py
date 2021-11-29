@@ -38,10 +38,10 @@ def correct_for_far_field_terms(exp_dict, obs_disp_points):
     """
     Velocity corrections, Pollitz & Evans, 2017
     """
-    csz_correction_disp_points = HR.read_correction_data_table(exp_dict["csz_correction"]);
+    # csz_correction_disp_points = HR.read_correction_data_table(exp_dict["csz_correction"]);
     ridge_correction_disp_points = HR.read_correction_data_table(exp_dict["ridge_correction"]);  # Fred correction
     ssaf_correction_disp_points = HR.read_correction_data_table(exp_dict["ssaf_correction"]);  # Fred correction
-    obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, csz_correction_disp_points);
+    # obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, csz_correction_disp_points);
     obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, ridge_correction_disp_points);
     obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, ssaf_correction_disp_points);
     return obs_disp_points;
@@ -65,17 +65,20 @@ def read_fault_gf_elements(exp_dict):
             one_gf_element = inv_tools.GF_element(disp_points=collective_csz_gf, fault_name=fault_name,
                                                   fault_dict_list=csz_patches,
                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
-                                                  upper_bound=exp_dict["faults"][fault_name]["slip_max"]);
+                                                  upper_bound=exp_dict["faults"][fault_name]["slip_max"],
+                                                  slip_penalty_flag=0);
             gf_elements.append(one_gf_element);
         elif fault_name == "CSZ_dist":  # Reading for distributed CSZ patches as unit slip.
             one_patch_gfs, csz_patches = readers.read_distributed_GF(exp_dict["faults"]["CSZ"]["GF"],
                                                                      exp_dict["faults"]["CSZ"]["geometry"],
-                                                                     exp_dict["lonlatfile"], unit_slip=True);
+                                                                     exp_dict["lonlatfile"], unit_slip=True,
+                                                                     latlonbox=(-127, -120, 38, 46));
             for gf_disp_points, patch in zip(one_patch_gfs, csz_patches):
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],
                                                       lower_bound=exp_dict["faults"]["CSZ"]["slip_min"],
-                                                      upper_bound=exp_dict["faults"]["CSZ"]["slip_max"]);
+                                                      upper_bound=exp_dict["faults"]["CSZ"]["slip_max"],
+                                                      slip_penalty_flag=1);
                 gf_elements.append(one_gf_element);
         else:  # Reading for LSF, MRF, other fault cases
             fault_gf = exp_dict["faults"][fault_name]["GF"];
@@ -85,7 +88,8 @@ def read_fault_gf_elements(exp_dict):
             one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, fault_name=fault_name,
                                                   fault_dict_list=temp,
                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
-                                                  upper_bound=exp_dict["faults"][fault_name]["slip_max"]);
+                                                  upper_bound=exp_dict["faults"][fault_name]["slip_max"],
+                                                  slip_penalty_flag=0);
             gf_elements.append(one_gf_element);
     return gf_elements;
 
@@ -98,7 +102,7 @@ def run_humboldt_inversion(config_file):
     obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);
     obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
     # Experimental options:
-    obs_disp_points = HR.filter_to_continuous_only(obs_disp_points);  # an experimental design step.
+    # obs_disp_points = HR.filter_to_continuous_only(obs_disp_points);  # an experimental design step.
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
@@ -133,6 +137,10 @@ def run_humboldt_inversion(config_file):
     if 'smoothing' in exp_dict.keys():
         G, weighted_obs, sigmas = inv_tools.build_smoothing(paired_gf_elements, 'CSZ_dist',
                                                             exp_dict["smoothing"], G, weighted_obs, sigmas);
+    # Add optional slip weighting penalty, overwriting old variables
+    if 'slip_penalty' in exp_dict.keys():
+        G, weighted_obs, sigmas = inv_tools.build_slip_penalty(paired_gf_elements,
+                                                               exp_dict["slip_penalty"], G, weighted_obs, sigmas);
 
     # Money line: Constrained inversion
     lower_bound = [x.lower_bound for x in paired_gf_elements];

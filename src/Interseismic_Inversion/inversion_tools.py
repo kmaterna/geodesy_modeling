@@ -1,8 +1,7 @@
 
 import numpy as np
 import collections
-from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
-from Tectonic_Utilities.Tectonic_Utils.geodesy import haversine
+from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole, haversine
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.fault_slip_object.disp_points_object as disp_points
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
@@ -11,7 +10,8 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 GF_element is everything you would need to make a column of the Green's matrix and plot the impulse response function. 
 """
 GF_element = collections.namedtuple('GF_element', ['disp_points', 'fault_name',
-                                                   'fault_dict_list', 'upper_bound', 'lower_bound']);
+                                                   'fault_dict_list', 'upper_bound', 'lower_bound',
+                                                   'slip_penalty_flag']);
 
 
 def pair_obs_gf(obs_disp_points, model_disp_points):
@@ -30,7 +30,7 @@ def pair_obs_gf(obs_disp_points, model_disp_points):
 
 def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
     """
-    Take a list of GF_elements, and a list of obs_disp_points. Pare them down to a matching set of points.
+    Take list of GF_elements, and list of obs_disp_points. Pare them down to a matching set of points in same order.
     The assumption is that all gf_elements have same points inside them (because we take first one as representative)
     Returns:
         paired_obs (list of disp_points)
@@ -43,7 +43,8 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
         _, paired_gf = pair_obs_gf(obs_disp_points, gf_model.disp_points);  # one fault or CSZ patch
         paired_gf_elements.append(GF_element(disp_points=paired_gf, fault_name=gf_model.fault_name,
                                              fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
-                                             upper_bound=gf_model.upper_bound));
+                                             upper_bound=gf_model.upper_bound,
+                                             slip_penalty_flag=gf_model.slip_penalty_flag));
         if len(paired_gf) != target_len:
             raise ValueError("ERROR! Not all points have green's functions.");
     return paired_obs, paired_gf_elements;
@@ -84,9 +85,12 @@ def get_GF_rotation_elements(obs_disp_points):
                                           Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
         z_disp_p.append(response);
 
-    xresponse = GF_element(disp_points=x_disp_p, fault_name='x_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1);
-    yresponse = GF_element(disp_points=y_disp_p, fault_name='y_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1);
-    zresponse = GF_element(disp_points=z_disp_p, fault_name='z_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1);
+    xresponse = GF_element(disp_points=x_disp_p, fault_name='x_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
+                           slip_penalty_flag=0);
+    yresponse = GF_element(disp_points=y_disp_p, fault_name='y_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
+                           slip_penalty_flag=0);
+    zresponse = GF_element(disp_points=z_disp_p, fault_name='z_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
+                           slip_penalty_flag=0);
     return [xresponse, yresponse, zresponse];
 
 
@@ -108,7 +112,7 @@ def get_GF_leveling_offset_element(obs_disp_points):
                                               Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
         total_response_pts.append(response);
     lev_offset_gf = GF_element(disp_points=total_response_pts, fault_name='lev_offset', fault_dict_list=[],
-                               upper_bound=1, lower_bound=-1);
+                               upper_bound=1, lower_bound=-1, slip_penalty_flag=0);
     if lev_count == 0:
         return [];
     else:
@@ -277,9 +281,38 @@ def build_smoothing(gf_elements, fault_name, strength, G, obs, sigmas):
     print("G and obs after smoothing:", np.shape(G_smoothing), np.shape(smoothed_obs));
     return G_smoothing, smoothed_obs, smoothed_sigmas;
 
+def build_slip_penalty(gf_elements, penalty, G, obs, sigmas):
+    """
+    Minimum-norm smoothing constraint.
+    Build a square diagonal matrix to go at the bottom of G, with 1's along the elements that will be slip-penalized.
+    Zeros along obs and sigmas.
+    Overwrites old G, obs, and sigma variables.
+    """
+    print("G and obs before slip penalty:", np.shape(G), np.shape(obs));
+    if penalty == 0:
+        print("No change, slip penalty set to 0");
+        return G, obs, sigmas;   # returning unaltered G if there is no smoothing
+
+    G_penalty = np.zeros((len(gf_elements), len(gf_elements)));
+    for i in range(len(gf_elements)):
+        if gf_elements[i].slip_penalty_flag == 1:
+            G_penalty[i][i] = 1;
+
+    G_penalty = G_penalty * penalty;  # multiplying by lambda factor
+
+    # observation vector of zeros
+    zero_vector = np.zeros((len(gf_elements),));
+
+    G_penalty = np.vstack((G, G_penalty));    # appending smoothing matrix
+    smoothed_obs = np.concatenate((obs, zero_vector));   # appending smoothing components to data
+    smoothed_sigmas = np.concatenate((sigmas, zero_vector));  # appending smoothing components to sigmas
+    print("G and obs after penalty:", np.shape(G_penalty), np.shape(smoothed_obs));
+    return G_penalty, smoothed_obs, smoothed_sigmas;
+
+
 def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
     """
-    Remove lines of zeros automatically added for smoothing parameters.
+    Remove lines of zeros automatically added to obs/sigma vectors for smoothing and slip penalty parameters.
     All inputs are expected to be vectors with the same length.
     """
     tol = 1e-9;
@@ -291,7 +324,8 @@ def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
             new_pred_vector.append(pred_vector[i]);
             new_obs_vector.append(obs_vector[i]);
             new_sigma_vector.append(sigma_vector[i]);
-    print("During RMS calc., filter vectors from %d to %d for smoothing" % (len(pred_vector), len(new_pred_vector)) );
+    print("During RMS calc., filter vectors from %d to %d for "
+          "smoothing and penalty" % (len(pred_vector), len(new_pred_vector)) );
     return new_pred_vector, new_obs_vector, new_sigma_vector;
 
 
@@ -345,8 +379,12 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=()):
     for i in range(len(v)):
         if GF_elements[i].fault_name in ignore_faults:
             continue;
+        if GF_elements[i].fault_name in ["x_rot", "y_rot", "z_rot"]:
+            unit = "deg/Ma"
+        else:
+            unit = "cm/yr"
         ofile.write(GF_elements[i].fault_name + ": ");
-        ofile.write(str(v[i])+" cm/yr \n");
+        ofile.write(str(v[i])+" "+unit+"\n");
     report_string = "\nRMS: %f mm/yr, on %d observations\n" % (residual, len(GF_elements[0].disp_points));
     ofile.write(report_string);
     ofile.close();
