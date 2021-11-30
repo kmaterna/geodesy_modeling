@@ -377,6 +377,7 @@ def write_model_params(v, residual, outfile, GF_elements=None):
     ofile.close();
     return;
 
+
 def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), message=''):
     """
     Write a human-readable results file, with the potential to ignore faults with distributed models for clarity
@@ -394,6 +395,8 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
             continue;
         if GF_elements[i].fault_name in ["x_rot", "y_rot", "z_rot"]:
             unit = "deg/Ma"
+        elif GF_elements[i].fault_name == 'lev_offset':
+            unit = "m/yr"
         else:
             unit = "cm/yr"
         ofile.write(GF_elements[i].fault_name + ": ");

@@ -55,7 +55,7 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
                                                 dE_obs=-xdisps[counter] * norm_factor,
                                                 dN_obs=-ydisps[counter] * norm_factor,
                                                 dU_obs=-zdisps[counter] * norm_factor,
-                                                Se_obs=0, Sn_obs=0, Su_obs=0, name="");
+                                                Se_obs=0, Sn_obs=0, Su_obs=0, name="");  # negative means backslip
             counter = counter + 1;
             disp_points_one_patch.append(disp_point);
             if counter == len(gps_disp_locs):

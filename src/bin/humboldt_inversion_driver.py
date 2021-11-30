@@ -15,6 +15,7 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Interseismic_Inversion.readers as readers
+import Geodesy_Modeling.src.Interseismic_Inversion.disp_points_tools as disp_point_tools
 sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
 # Also had to add into pycharm project settings.
 import humboldt_readers as HR
@@ -102,7 +103,11 @@ def run_humboldt_inversion(config_file):
     obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);
     obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
     # Experimental options:
-    # obs_disp_points = HR.filter_to_continuous_only(obs_disp_points);  # an experimental design step.
+    # obs_disp_points = disp_point_tools.filter_to_continuous_only(obs_disp_points);  # an experimental design step.
+    maacama_pts = np.loadtxt(exp_dict["faults"]["Maacama"]["points"]);
+    bartlett_springs_pts = np.loadtxt(exp_dict["faults"]["BSF"]["points"]);
+    obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, maacama_pts, radius_km=5);
+    obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, bartlett_springs_pts, radius_km=5);
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
