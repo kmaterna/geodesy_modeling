@@ -221,6 +221,18 @@ def unpack_model_of_rotation_only(M_vector, parameter_names):
     return M_rot_only, M_no_rot;
 
 
+def unpack_model_of_particular_fault(M_vector, parameter_names, target_fault):
+    """
+    Simplify a model vector into only those components from particular target_fault (string), such as 'CSZ_dist'
+    Useful for investigating a forward model.
+    """
+    fault_params_vector = np.zeros(np.shape(M_vector));
+    for i in range(len(parameter_names)):
+        if parameter_names[i] == target_fault:
+            fault_params_vector[i] = 1;
+    M_fault = np.multiply(M_vector, fault_params_vector);
+    return M_fault;
+
 def get_fault_element_distance(fault_dict1, fault_dict2):
     distance = haversine.distance([fault_dict1["lat"], fault_dict1["lon"]], [fault_dict2["lat"], fault_dict2["lon"]]);
     return distance;
@@ -365,7 +377,7 @@ def write_model_params(v, residual, outfile, GF_elements=None):
     ofile.close();
     return;
 
-def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=()):
+def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), message=''):
     """
     Write a human-readable results file, with the potential to ignore faults with distributed models for clarity
     :param v: vector of model parameters, floats
@@ -373,6 +385,7 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=()):
     :param outfile: string
     :param GF_elements: list of GF_element objects
     :param ignore_faults: list of strings
+    :param message: optional message from inverse routine about solution quality
     """
     print("Writing %s" % outfile);
     ofile = open(outfile, 'w');
@@ -387,11 +400,13 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=()):
         ofile.write(str(v[i])+" "+unit+"\n");
     report_string = "\nRMS: %f mm/yr, on %d observations\n" % (residual, len(GF_elements[0].disp_points));
     ofile.write(report_string);
+    ofile.write("Message: "+message+"\n");
     ofile.close();
     return;
 
 
-def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rotation_pts, norot_pts, title, region):
+def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rotation_pts, norot_pts, title, region,
+                      special_pts=()):
     # Plot the data, model, and residual in separate plots
     # Not plotting the fault patches because it takes a long time.
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/data_only.png",
@@ -410,6 +425,11 @@ def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, r
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/faults_only_pred.png",
                                                          disp_points=norot_pts, region=region,
                                                          scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+    if special_pts:
+        library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/csz_only_pred.png",
+                                                             disp_points=special_pts, region=region,
+                                                             scale_arrow=(1.0, 0.010, "1 cm/yr"),
+                                                             v_labeling_interval=0.001)
     return;
 
 

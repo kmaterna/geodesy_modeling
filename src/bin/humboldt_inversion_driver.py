@@ -15,7 +15,6 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Interseismic_Inversion.readers as readers
-
 sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
 # Also had to add into pycharm project settings.
 import humboldt_readers as HR
@@ -38,10 +37,11 @@ def correct_for_far_field_terms(exp_dict, obs_disp_points):
     """
     Velocity corrections, Pollitz & Evans, 2017
     """
-    # csz_correction_disp_points = HR.read_correction_data_table(exp_dict["csz_correction"]);
+    csz_correction_disp_points = HR.read_addcp_correction_table(exp_dict["lonlatfile"], exp_dict["csz_correction"]);
     ridge_correction_disp_points = HR.read_correction_data_table(exp_dict["ridge_correction"]);  # Fred correction
     ssaf_correction_disp_points = HR.read_correction_data_table(exp_dict["ssaf_correction"]);  # Fred correction
-    # obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, csz_correction_disp_points);
+    obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, csz_correction_disp_points,
+                                                                      target='horizontal');   # horizontal only
     obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, ridge_correction_disp_points);
     obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, ssaf_correction_disp_points);
     return obs_disp_points;
@@ -72,7 +72,7 @@ def read_fault_gf_elements(exp_dict):
             one_patch_gfs, csz_patches = readers.read_distributed_GF(exp_dict["faults"]["CSZ"]["GF"],
                                                                      exp_dict["faults"]["CSZ"]["geometry"],
                                                                      exp_dict["lonlatfile"], unit_slip=True,
-                                                                     latlonbox=(-127, -120, 38, 46));
+                                                                     latlonbox=(-127, -120, 38, 44.5));
             for gf_disp_points, patch in zip(one_patch_gfs, csz_patches):
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],
@@ -161,9 +161,11 @@ def run_humboldt_inversion(config_file):
 
     # Make forward predictions
     M_rot_only, M_no_rot = inv_tools.unpack_model_of_rotation_only(M_opt, [x.fault_name for x in paired_gf_elements]);
+    M_csz = inv_tools.unpack_model_of_particular_fault(M_opt, [x.fault_name for x in paired_gf_elements], 'CSZ_dist');
     modeled_disp_points = forward_disp_points_predictions(G, M_opt, sigmas, paired_obs);
     rot_modeled_pts = forward_disp_points_predictions(G, M_rot_only, sigmas, paired_obs);
     norot_modeled_pts = forward_disp_points_predictions(G, M_no_rot, sigmas, paired_obs);
+    csz_modeled_pts = forward_disp_points_predictions(G, M_csz, sigmas, paired_obs);
 
     # Output stage
     fault_dict_lists = [item.fault_dict_list for item in paired_gf_elements];
@@ -178,10 +180,11 @@ def run_humboldt_inversion(config_file):
                                  paired_gf_elements);
     inv_tools.write_summary_params(M_opt, rms_mm, exp_dict["outdir"] + '/model_results_human.txt',
                                    paired_gf_elements,
-                                   ignore_faults=['CSZ_dist']);
+                                   ignore_faults=['CSZ_dist'], message=response.message);
     readers.write_csz_dist_fault_patches(fault_dict_lists, M_opt, exp_dict["outdir"] + '/csz_model.gmt');
     inv_tools.view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rot_modeled_pts,
-                                norot_modeled_pts, rms_title, region=[-127, -119.7, 37.7, 43.5]);
+                                norot_modeled_pts, rms_title, region=[-127, -119.7, 37.7, 43.5],
+                                special_pts=csz_modeled_pts);
     library.plot_fault_slip.plot_data_model_residual(exp_dict["outdir"] + "/results.png", paired_obs,
                                                      modeled_disp_points, residual_pts, [-126, -119.7, 37.7, 43.3],
                                                      scale_arrow=(0.5, 0.020, "2 cm"), v_labeling_interval=0.001,
