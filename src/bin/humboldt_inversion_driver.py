@@ -104,10 +104,10 @@ def run_humboldt_inversion(config_file):
     obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
     # Experimental options:
     # obs_disp_points = disp_point_tools.filter_to_continuous_only(obs_disp_points);  # an experimental design step.
-    maacama_pts = np.loadtxt(exp_dict["faults"]["Maacama"]["points"]);
-    bartlett_springs_pts = np.loadtxt(exp_dict["faults"]["BSF"]["points"]);
-    obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, maacama_pts, radius_km=5);
-    obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, bartlett_springs_pts, radius_km=5);
+    # maacama_pts = np.loadtxt(exp_dict["faults"]["Maacama"]["points"]);
+    # bartlett_springs_pts = np.loadtxt(exp_dict["faults"]["BSF"]["points"]);
+    # obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, maacama_pts, radius_km=5);
+    # obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, bartlett_springs_pts, radius_km=5);
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
@@ -192,7 +192,7 @@ def run_humboldt_inversion(config_file):
                                 special_pts=csz_modeled_pts);
     library.plot_fault_slip.plot_data_model_residual(exp_dict["outdir"] + "/results.png", paired_obs,
                                                      modeled_disp_points, residual_pts, [-126, -119.7, 37.7, 43.3],
-                                                     scale_arrow=(0.5, 0.020, "2 cm"), v_labeling_interval=0.001,
+                                                     scale_arrow=(0.5, 0.020, "2 cm"), v_labeling_interval=0.003,
                                                      fault_dict_list=[], rms=rms_mm);
     return;
 

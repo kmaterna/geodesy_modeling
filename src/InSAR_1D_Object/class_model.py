@@ -7,6 +7,7 @@ InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object', ['lon', 'lat', 'LOS'
 A generalized 1D InSAR format
 displacements in mm
 lon, lat, LOS, and LOS_unc are vectors
-Look vector is which direction? Ground to satellite
+Look vector is Ground to Satellite
 starttime and endtime are just for metadata
+lkv_E, lkv_N, lkv_U are vectors
 """

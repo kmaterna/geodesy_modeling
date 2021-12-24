@@ -5,11 +5,11 @@ InSAR_2D_Object = collections.namedtuple('InSAR_2D_Object', ['lon', 'lat', 'LOS'
                                                              'lkv_U', 'starttime', 'endtime']);
 
 """
-A generalized InSAR format
+A generalized grid InSAR format
 displacements in mm
-lon, lat, LOS, and LOS_unc are vectors
-Look vector is which direction? Ground to satellite.
+Look vector is Ground to Satellite.
 starttime and endtime are just for metadata
 lon, lat are 1D arrays
-LOS is a 2D array
+LOS, LOS_unc are a 2D arrays
+lkv_E, lkv_N, lkv_U are 2D arrays. 
 """

@@ -1,18 +1,14 @@
 """
-July 2020
-Perform uniform downsampling on 1D InSAR_Obj
-Impose Bounding Box
+Utilities on 1D InSAR_Obj
+InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object',
+['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime'])
+LOS is in mm
 """
 
 import numpy as np
 from .class_model import InSAR_1D_Object
 from Tectonic_Utils.geodesy import insar_vector_functions
 
-
-# InSAR Object is my standard format:
-# InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object',
-# ['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']);
-# where LOS is in mm
 
 def impose_InSAR_bounding_box(InSAR_obj, bbox=(-180, 180, -90, 90)):
     """Impose a bounding box on some InSAR data"""
