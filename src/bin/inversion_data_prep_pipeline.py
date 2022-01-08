@@ -13,7 +13,7 @@ import numpy as np
 import sys, json, subprocess
 import datetime as dt
 from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, GNSS_Object, Leveling_Object
-from read_write_insar_utilities import isce_read_write
+from S1_batches.read_write_insar_utilities import isce_read_write
 
 
 def welcome_and_parse(argv):
@@ -188,7 +188,7 @@ def write_tsx_tre_displacements(config):
             Vert_InSAR = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box vertical
             East_InSAR = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(East_InSAR, new_interval_dict[
-                "tsx_bbox"]);  # bounding box vertical
+                "tsx_bbox"]);  # bounding box east
             Vert_InSAR = Downsample.uniform_downsample.uniform_downsampling(Vert_InSAR,
                                                                             new_interval_dict[
                                                                                 "tsx_downsample_interval"],
@@ -197,12 +197,19 @@ def write_tsx_tre_displacements(config):
                                                                             new_interval_dict[
                                                                                 "tsx_downsample_interval"],
                                                                             new_interval_dict["tsx_averaging_window"]);
+
             Total_InSAR = InSAR_1D_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
             InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
                                                                   config["prep_inputs_dir"] +
-                                                                  new_interval_dict["tsx_datafile"]);
-            InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"]+new_interval_dict["tsx_datafile"]);
-            InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["tsx_plot"]);
+                                                                  new_interval_dict["tsx_datafile"]);  # combined vert+east
+            InSAR_1D_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
+                                                                  config["prep_inputs_dir"] +
+                                                                  new_interval_dict["tsx_vertical_datafile"]);
+            InSAR_1D_Object.outputs.write_insar_invertible_format(East_InSAR, new_interval_dict["tsx_unc"],
+                                                                  config["prep_inputs_dir"] +
+                                                                  new_interval_dict["tsx_horiz_datafile"]);
+            InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"]+new_interval_dict["tsx_vertical_datafile"]);
+            InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["tsx_vertical_plot"]);
 
     return;
 
@@ -238,8 +245,8 @@ def write_s1_displacements(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    write_uavsar_displacements(config);
-    write_leveling_displacements(config);
-    write_gps_displacements(config);
+    # write_uavsar_displacements(config);
+    # write_leveling_displacements(config);
+    # write_gps_displacements(config);
     write_tsx_tre_displacements(config);
-    write_s1_displacements(config);
+    # write_s1_displacements(config);

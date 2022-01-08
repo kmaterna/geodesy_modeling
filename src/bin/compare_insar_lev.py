@@ -19,6 +19,7 @@ import matplotlib.cm as cm
 import datetime as dt
 import sys
 from Geodesy_Modeling.src import multiSAR_utilities, InSAR_1D_Object, Leveling_Object, UAVSAR
+from Tectonic_Utils.read_write import general_python_io_functions
 
 def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None,
                           gps_names=None, label="LOS", graph_scale=80):
@@ -145,7 +146,9 @@ def drive_tre_comparison(myLev, los_filename, lev_slice, outfile):
     VertTSXData, EastTSXData = InSAR_1D_Object.inputs.inputs_TRE_vert_east(los_filename);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
     one_to_one_comparison(myLev, VertTSXData, "TSX", outfile, label="Vertical", graph_scale=50);
-    InSAR_1D_Object.outputs.plot_insar(VertTSXData, outfile + "InSAR_velo.png");
+    field_file = "/Users/kmaterna/Documents/B_Research/Salton/Brawley/_Project_Data/Mapping_Data_Files/Fields_Boundaries.txt"
+    fields = general_python_io_functions.read_gmt_multisegment_latlon(field_file, split_delimiter=',');
+    InSAR_1D_Object.outputs.plot_insar(VertTSXData, outfile + "InSAR_velo.png", lons_annot=fields[0][0], lats_annot=fields[1][0]);
     return;
 
 
@@ -208,27 +211,27 @@ if __name__ == "__main__":
     # output_dir = "SNT2/"
     # drive_tre_comparison(myLev, file_dict["snt2"], lev_slice=[8, 9], outfile=output_dir+"one_to_one_89.png");
 
-    # Individual UAVSAR experiments, starting with 2011-2012, leveling slice 2-3
-    # Should set vmin/vmax to -150/150 for this one.
-    output_dir = "UAVSAR_intfs/"
-    bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"));
-    drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2011_2012_unw"],
-                                        file_dict["uavsar_08508_2011_2012_los"], lev_slice=[2, 3],
-                                        outfile=output_dir+"one_to_one_23.png");
-
-    # Individual UAVSAR experiments, 2010-2011, leveling slice 1-2
-    output_dir = "UAVSAR_intfs/"
-    bounds = (dt.datetime.strptime("20101215", "%Y%m%d"), dt.datetime.strptime("20111110", "%Y%m%d"));
-    drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2010_2011_unw"],
-                                        file_dict["uavsar_08508_2010_2011_los"], lev_slice=[1, 2],
-                                        outfile=output_dir+"one_to_one_12.png");
-
-    # Individual UAVSAR experiments, 2009-2010, leveling slice 0-1
-    output_dir = "UAVSAR_intfs/"
-    bounds = (dt.datetime.strptime("20091015", "%Y%m%d"), dt.datetime.strptime("20101215", "%Y%m%d"));
-    drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2009_2010_unw"],
-                                        file_dict["uavsar_08508_2009_2010_los"], lev_slice=[0, 1],
-                                        outfile=output_dir+"one_to_one_01.png");
+    # # Individual UAVSAR experiments, starting with 2011-2012, leveling slice 2-3
+    # # Should set vmin/vmax to -150/150 for this one.
+    # output_dir = "UAVSAR_intfs/"
+    # bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"));
+    # drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2011_2012_unw"],
+    #                                     file_dict["uavsar_08508_2011_2012_los"], lev_slice=[2, 3],
+    #                                     outfile=output_dir+"one_to_one_23.png");
+    #
+    # # Individual UAVSAR experiments, 2010-2011, leveling slice 1-2
+    # output_dir = "UAVSAR_intfs/"
+    # bounds = (dt.datetime.strptime("20101215", "%Y%m%d"), dt.datetime.strptime("20111110", "%Y%m%d"));
+    # drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2010_2011_unw"],
+    #                                     file_dict["uavsar_08508_2010_2011_los"], lev_slice=[1, 2],
+    #                                     outfile=output_dir+"one_to_one_12.png");
+    #
+    # # Individual UAVSAR experiments, 2009-2010, leveling slice 0-1
+    # output_dir = "UAVSAR_intfs/"
+    # bounds = (dt.datetime.strptime("20091015", "%Y%m%d"), dt.datetime.strptime("20101215", "%Y%m%d"));
+    # drive_single_uavsar_intf_comparison(myLev, bounds, file_dict["uavsar_08508_2009_2010_unw"],
+    #                                     file_dict["uavsar_08508_2009_2010_los"], lev_slice=[0, 1],
+    #                                     outfile=output_dir+"one_to_one_01.png");
 
     # outdir = "UAVSAR_Apr29/";
     # gps_lons = [-115.510, -115.628392, -115.581895, -115.613, -115.735];  # Stations P506, P495, WMDG, WMCA and CRRS

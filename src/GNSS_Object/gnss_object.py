@@ -1,4 +1,4 @@
-import gps_io_functions
+import GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions as gps_io_functions
 
 # Global variables
 Timeseries = gps_io_functions.Timeseries;

@@ -33,13 +33,16 @@ def write_insar_invertible_format(InSAR_obj, unc_min, filename):
     return;
 
 
-def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None):
+def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_annot=None):
+    """lons_annot and lat_annot are for lines to annotate the plot, such as faults or field boundaries"""
     print("Plotting insar in file %s " % plotname);
     plt.figure(dpi=300, figsize=(8, 8));
     if vmin is not None:
         plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow', vmin=vmin, vmax=vmax);
     else:
         plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow');
+    if lons_annot:
+        plt.plot(lons_annot, lats_annot, color='darkred');
     cb = plt.colorbar();
     cb.set_label('Displacement (mm)', fontsize=16);
     starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m");
