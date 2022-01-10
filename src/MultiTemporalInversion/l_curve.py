@@ -1,8 +1,7 @@
 # Tools for L-curve analysis.
 
 import matplotlib.pyplot as plt
-import json
-import glob, os
+import json, glob, os
 import numpy as np
 
 

@@ -18,8 +18,8 @@ def reg_nnls(Gext, dext):
 
 def G_with_smoothing(G, L, alpha, d, num_params, n_epochs):
     """
-    L: Add smoothing regularization (tikhonov regularization)
-    Alpha: Add minimum-norm regularization (Aster and Thurber, Equation 4.5)
+    L: Add smoothing regularization
+    Alpha: Add minimum-norm regularization (Aster and Thurber, Equation 4.5) (0th order tikhonov regularization)
     d: Expand the data vector to match the new size of G
     """
     Gext = G.copy();

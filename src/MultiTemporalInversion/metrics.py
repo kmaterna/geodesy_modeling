@@ -49,16 +49,33 @@ def read_obs_vs_predicted_object(config):
     return [obs_pos_column, obs_disp_column, pred_disp_column, obs_sigma_column, obs_type_column];
 
 
-# -------- SIMPLE MISFIT FUNCTIONS ----------- #
-def simple_misfit_driver(config):
-    # Compute simple misfit - one column for each data.
+# -------- DRIVERS ----------- #
+def simple_misfit_driver(config, outfile):
+    """Compute simple misfit - one column for each data."""
     [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
     metrics = compute_simple_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
-    write_simple_misfit(metrics, config["summary_file"]);
+    write_simple_misfit(metrics, outfile);
+    return;
+
+def compound_misfit_driver(config, outfile):
+    """Compute three metrics for gps, insar, and leveling respectively"""
+    print("Calculating metrics for inversion results.");
+    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
+    metrics = compute_compound_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
+    write_compound_misfit(metrics, outfile);  # matching write function
+    return;
+
+def brawley_misfit_driver(config, outfile):
+    """Compute three metrics for gps, insar, and leveling respectively"""
+    print("Calculating metrics for Brawley inversion results.");
+    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
+    metrics = compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
+    write_simple_misfit(metrics, outfile);  # matching write function
     return;
 
 
-def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, data_type='all'):
+# -------- SIMPLE MISFIT FUNCTIONS ----------- #
+def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, data_type='all', norm="L2"):
     """
     The simplest misfit calculation, from any or all types of data
     Options for data_type: ['all', 'gps', 'insar', 'leveling'];
@@ -70,15 +87,20 @@ def compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type, da
         idx = [index for index, element in enumerate(obs_type) if element == data_type];  # filter on data type
     npts = len(obs_disp[idx]);
 
-    # The L1 norm
-    # abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
-    # norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
-
-    # The L2 norm: RMS and Chi Squared Values
-    sq_misfit = np.square(abs(obs_disp[idx] - pred_disp[idx]));
-    norm_misfit = np.divide(sq_misfit, np.square(obs_sigma[idx]));
-    rms_misfit = np.sqrt(np.nanmean(sq_misfit));
-    chisquared = np.sqrt(np.nanmean(norm_misfit));
+    if norm == "L2":
+        # The L2 norm: RMS and Chi Squared Values
+        sq_misfit = np.square(abs(obs_disp[idx] - pred_disp[idx]));
+        norm_misfit = np.divide(sq_misfit, np.square(obs_sigma[idx]));
+        rms_misfit = np.sqrt(np.nanmean(sq_misfit));
+        chisquared = np.sqrt(np.nanmean(norm_misfit));
+    elif norm == "L1":
+        # The L1 norm
+        abs_misfit = np.abs(obs_disp[idx]-pred_disp[idx]);
+        _norm_misfit = np.divide(abs_misfit, obs_sigma[idx]);  # divide by sigma
+        rms_misfit = np.zeros(np.shape(obs_disp[idx]));  # not really used in L1 case
+        chisquared = np.zeros(np.shape(obs_disp[idx]));  # not really used in L1 case
+    else:
+        raise ValueError("Norm " + norm + "not recognized. Should be L1 or L2.");
 
     return [rms_misfit, chisquared, npts];
 
@@ -96,15 +118,6 @@ def write_simple_misfit(metrics, outfile):
 
 
 # -------- COMPOUND MISFIT FUNCTIONS ----------- #
-def compound_misfit_driver(config):
-    # Compute three metrics for gps, insar, and leveling respectively
-    print("Calculating metrics for inversion results.");
-    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
-    metrics = compute_compound_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
-    write_compound_misfit(metrics, config["summary_file"]);  # matching write function
-    return;
-
-
 def compute_compound_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
     [gps_misfit, gps_x2, gps_npts] = compute_simple_misfit(_obs_pos, obs_disp, pred_disp, obs_sigma, obs_type,
                                                            data_type='gps');
@@ -124,38 +137,30 @@ def write_compound_misfit(metrics, outfile):
         print("Average normalized GPS misfit: %f sigma \n" % (metrics[1]) );
         ofile.write("Average GPS misfit: %f mm\n" % (1000*metrics[0]) );
         ofile.write("Average normalized GPS misfit: %f sigma \n" % (metrics[1]) );
-        ofile.write("GPS npts: %d \n" % metrics[2]);
+        ofile.write("GPS npts: %d \n\n" % metrics[2]);
 
     if metrics[3]:
         print("Average InSAR misfit: %f mm" % (1000*metrics[3]) );
         print("Average normalized InSAR misfit: %f sigma \n" % (metrics[4]) );
         ofile.write("Average InSAR misfit: %f mm\n" % (1000*metrics[3]) );
         ofile.write("Average normalized InSAR misfit: %f sigma \n" % (metrics[4]) );
-        ofile.write("InSAR npts: %d \n" % metrics[5]);
+        ofile.write("InSAR npts: %d \n\n" % metrics[5]);
 
     if metrics[6]:
         print("Average Leveling misfit: %f mm" % (1000*metrics[6]) );
         print("Average normalized Leveling misfit: %f sigma \n" % (metrics[7]) );
         ofile.write("Average Leveling misfit: %f mm\n" % (1000*metrics[6]) );
         ofile.write("Average normalized Leveling misfit: %f sigma \n" % (metrics[7]) );
-        ofile.write("Leveling npts: %d \n" % metrics[8]);
+        ofile.write("Leveling npts: %d \n\n" % metrics[8]);
 
     ofile.close();
     return;
 
 
-# -------- COMPOUND MISFIT FUNCTIONS ----------- #
-def brawley_misfit_driver(config):
-    # Compute three metrics for gps, insar, and leveling respectively
-    print("Calculating metrics for Brawley inversion results.");
-    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
-    metrics = compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
-    write_simple_misfit(metrics, config["summary_file"]);  # matching write function
-    return;
-
+# -------- BRAWLEY EXPT MISFIT FUNCTIONS ----------- #
 def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
     """ Ignore the western part of the domain, specific to Brawley. """
-    idx = np.where(obs_pos[:, 0] > -115.7);
+    idx = np.where(obs_pos[:, 0] > -115.7);  # -116 is pretty global for Brawley
     idx = idx[0]
     obs_type = np.array(obs_type);
     metrics = compute_simple_misfit(obs_pos[idx], obs_disp[idx], pred_disp[idx], obs_sigma[idx], obs_type[idx]);
@@ -163,17 +168,17 @@ def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
 
 
 # -------- SLIP COMPUTE FUNCTIONS ----------- #
-def slip_metrics_driver(config):
+def slip_metrics_driver(config, outfile):
     moments = get_slip_moments(config["output_dir"]+config['epochs']['EpochA']["slip_output_file"], config["G"]);  # A
-    write_slip_moments(moments, config["G"], config["summary_file"]);
+    write_slip_moments(moments, config["G"], outfile);
     return;
 
 
 def get_slip_moments(slip_filename, mu=30e9):
-    # From the inversion results, what is the moment of the slip distribution?
-    # Later, it might be important to describe how much of this slip is strike-slip vs reverse.
-    # Question for a later time.
-    # mu is shear modulus, in Pa.
+    """
+    From inversion results, what is the moment of the slip distribution?
+    mu is shear modulus, in Pa.
+    """
     moment_total = 0;
     length, width, leftlat, thrust, _ = np.loadtxt(slip_filename, skiprows=1, unpack=True, usecols=(5, 6, 7, 8, 9));
     for i in range(len(length)):
@@ -200,7 +205,7 @@ def write_slip_moments(moments, G, filename):
 # -------- ACCESS FUNCTIONS ----------- # 
 def main_function(config):
     """Misfit can be defined in many ways. Here we point to them. """
-    config["summary_file"] = config["output_dir"]+"summary_stats.txt";  # Creates an output file
-    simple_misfit_driver(config);
-    slip_metrics_driver(config);   # for the amount of slip.
+    compound_misfit_driver(config, config["output_dir"]+"summary_stats_compound.txt");  # Separate each data type
+    simple_misfit_driver(config, config["output_dir"] + "summary_stats_simple.txt");  # Combine data into one stack
+    slip_metrics_driver(config, config["output_dir"] + "summary_moments.txt");   # for the amount of slip.
     return;
