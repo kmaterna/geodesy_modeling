@@ -193,7 +193,7 @@ def get_slip_moments(slip_filename, mu=30e9):
 
 def write_slip_moments(moments, G, filename):
     # moments
-    ofile = open(filename, 'a');  # appending to the file
+    ofile = open(filename, 'w');  # appending to the file
     scinot = "{:e}".format(moments[0]);
     ofile.write("G = %f GPa\n" % (G/1e9));
     print("Total Slip Moment is %s N-m, equivalent to mw=%f \n" % (scinot, moments[1]) );

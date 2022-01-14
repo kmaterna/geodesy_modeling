@@ -11,6 +11,7 @@ from .. import multiSAR_utilities
 from .class_model import InSAR_1D_Object
 from .inputs import inputs_txt
 from .outputs import write_insar_invertible_format
+from . import utilities
 
 
 def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
@@ -19,7 +20,7 @@ def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
     Then write out the data again.
     """
     InSAR_Obj = inputs_txt(insar_textfile);
-    noplane_Obj = remove_ramp_insarformat(InSAR_Obj, ref_coord);
+    noplane_Obj = remove_ramp(InSAR_Obj, ref_coord);
     print("Writing ramp-removed data into file %s " % ramp_removed_file);
     plotting_ramp_results(InSAR_Obj, noplane_Obj, insar_textfile+".png");
     write_insar_invertible_format(noplane_Obj, 0.0, ramp_removed_file);
@@ -57,7 +58,7 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
     return new_InSAR_Obj;
 
 
-def remove_ramp_insarformat(InSAR_Obj, ref_coord=None):
+def remove_ramp(InSAR_Obj, ref_coord=None):
     """"
     Plane equation: ax + by + c = z
     Solving Ax = B
@@ -67,11 +68,12 @@ def remove_ramp_insarformat(InSAR_Obj, ref_coord=None):
     :param ref_coord: [lon, lat] of point constrained to be zero.
     :returns: 1D insar object
     """
+    nonan_obj = utilities.remove_nans(InSAR_Obj);
     Z = [];
-    A = np.zeros((len(InSAR_Obj.lon), 3));
-    for i in range(len(InSAR_Obj.lon)):
-        A[i, :] = [InSAR_Obj.lon[i], InSAR_Obj.lat[i], 1];
-        Z.append(InSAR_Obj.LOS[i]);
+    A = np.zeros((len(nonan_obj.lon), 3));
+    for i in range(len(nonan_obj.lon)):
+        A[i, :] = [nonan_obj.lon[i], nonan_obj.lat[i], 1];
+        Z.append(nonan_obj.LOS[i]);
     model = np.linalg.lstsq(A, Z);
     model = model[0];
 

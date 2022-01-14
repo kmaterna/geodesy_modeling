@@ -59,9 +59,15 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
+        # due to the stopping of the PBO solution on 9-15-2018:
+        if starttime > dt.datetime.strptime("20170915", "%Y%m%d"):
+            network = 'cwu'
+        else:
+            network = 'pbo'  # due to the stopping of the PBO solution on 9-15-2018
         stations = GNSS_Object.read_gnss.read_station_ts(new_interval_dict["gps_bbox"],
                                                          new_interval_dict["gps_reference"],
-                                                         remove_coseismic=new_interval_dict["remove_coseismic"]);
+                                                         remove_coseismic=new_interval_dict["remove_coseismic"],
+                                                         network=network);
         displacement_objects = Downsample.downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime,
                                                                                       gps_sigma,
                                                                                       prep_dir);
@@ -245,8 +251,8 @@ def write_s1_displacements(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    # write_uavsar_displacements(config);
-    # write_leveling_displacements(config);
-    # write_gps_displacements(config);
+    write_uavsar_displacements(config);
+    write_leveling_displacements(config);
+    write_gps_displacements(config);
     write_tsx_tre_displacements(config);
-    # write_s1_displacements(config);
+    write_s1_displacements(config);
