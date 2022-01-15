@@ -10,7 +10,7 @@ from .class_model import InSAR_2D_Object
 
 def inputs_grd(los_grdfile):
     """
-    Input function for netcdf file.
+    Read netcdf file.
     :param los_grdfile: string, filename
     :returns InSAR_Obj: InSAR_2D_Object
     """
@@ -23,7 +23,7 @@ def inputs_grd(los_grdfile):
 
 def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angle, constant_incidence_angle=None):
     """
-    For synthetic models with three deformation components calculated.
+    Read synthetic models with three deformation components.
     If constant_incidence_angle is provided, it uses one simple incidence angle and flight angle for the field.
     Future: Options for non-constant incidence angle have not yet been written. Range depends on track/orbit.
 

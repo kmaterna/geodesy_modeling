@@ -50,6 +50,7 @@ def write_gps_displacements(config):
     """
     # For each interval in gps:
     prep_dir = config["prep_inputs_dir"];
+    network = 'pbo';
     if "gps_data" not in config.keys():
         print("\nNo GPS in this inversion");
         return;
@@ -59,11 +60,6 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
-        # due to the stopping of the PBO solution on 9-15-2018:
-        if starttime > dt.datetime.strptime("20170915", "%Y%m%d"):
-            network = 'cwu'
-        else:
-            network = 'pbo'  # due to the stopping of the PBO solution on 9-15-2018
         stations = GNSS_Object.read_gnss.read_station_ts(new_interval_dict["gps_bbox"],
                                                          new_interval_dict["gps_reference"],
                                                          remove_coseismic=new_interval_dict["remove_coseismic"],

@@ -9,8 +9,8 @@ import datetime as dt
 
 def write_insar_invertible_format(InSAR_obj, unc_min, filename):
     """
-    Writes InSAR displacements into insar file that can be inverted.
-    Writes one header line and multiple data lines.
+    Write InSAR displacements into insar file that can be inverted.
+    Write one header line and multiple data lines.
     InSAR_obj is in mm, and written out is in meters
     """
     print("Writing InSAR displacements into file %s " % filename);

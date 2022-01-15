@@ -15,8 +15,8 @@ def write_InSAR2D(InSAR_Obj, filename):
 
 def write_insar2D_invertible_format(_InSAR_obj, _unc_min, filename):
     """
-    Writes InSAR 2D displacements into insar text file that can be inverted.
-    Writes one header line and multiple data lines, with different look vectors for each pixel.
+    Write InSAR 2D displacements into insar text file that can be inverted.
+    Write one header line and multiple data lines, with different look vectors for each pixel.
     InSAR_2D_obj is in mm, and written out is in meters
     """
     print("Writing InSAR displacements into file %s - function not yet written!" % filename);
