@@ -62,13 +62,26 @@ def find_pixels_idxs_in_InSAR_Obj(InSAR_Data, target_lons, target_lats):
     return closest_index, close_indices;
 
 
+def compute_difference_metrics_on_same_pixels(list1, list2):
+    """
+    :param list1: a list of LOS data from platform 1 (like Leveling)
+    :param list2: a matching list of LOS data from platform 2 (like UAVSAR)
+    :returns: average misfit value, and r^2 coefficient.
+    """
+    misfit_metric = np.nanmean(np.abs(np.subtract(list1, list2)));  # average deviation from 1-to-1
+    corr_matrix = np.corrcoef(list1, list2)
+    corr = corr_matrix[0, 1]
+    r2 = corr ** 2
+    return misfit_metric, r2;
+
+
 def get_file_dictionary(config_filename):
     """GET FILE NAMES"""
     this_dict = {};
     ifile = open(config_filename);
     for line in ifile:
         data_type = line.split(':')[0];
-        total_data_files = line.split()[1];  #  assuming one file per list entry
+        total_data_files = line.split()[1];  # assuming one file per list entry
         this_dict[data_type] = total_data_files;
     ifile.close();
     return this_dict;

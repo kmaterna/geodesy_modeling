@@ -168,3 +168,23 @@ def decompose_asc_desc_vert_horizontal(asc_obj, desc_obj):
                                lkv_N=np.zeros(np.shape(vert)),
                                lkv_U=np.zeros(np.shape(vert)), starttime=asc_obj.starttime, endtime=asc_obj.endtime);
     return Vert_obj, Horz_obj;
+
+
+def proj_los_into_vertical_no_horiz(InSAR_obj, const_lkv=None):
+    """
+    Project LOS deformation into psudo-vertical, assuming no horizontal motion.
+    The look vector can be a constant approximation applied to all pixels, or it can be derived from
+    pixel-by-pixel look vectors.
+    """
+    new_los = [];
+    for i in range(len(InSAR_obj.lon)):
+        if const_lkv is None:
+            specific_lkv = [InSAR_obj.lkv_E[i], InSAR_obj.lkv_N[i], InSAR_obj.lkv_U[i]];
+            new_los.append(insar_vector_functions.proj_los_into_vertical_no_horiz(InSAR_obj.LOS[i], specific_lkv));
+        else:
+            new_los.append(insar_vector_functions.proj_los_into_vertical_no_horiz(InSAR_obj.LOS[i], const_lkv));
+    newInSAR_obj = InSAR_1D_Object(lon=InSAR_obj.lon, lat=InSAR_obj.lat, LOS=new_los, LOS_unc=InSAR_obj.LOS_unc,
+                                   lkv_E=np.zeros(np.shape(InSAR_obj.lon)), lkv_N=np.zeros(np.shape(InSAR_obj.lon)),
+                                   lkv_U=np.ones(np.shape(InSAR_obj.lon)),
+                                   starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    return newInSAR_obj;
