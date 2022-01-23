@@ -48,7 +48,7 @@ def get_starttime_endtime(epochs_dict, select_interval_dict):
 def loop_removing_constant(ts_obj_list, enu_offset):
     new_gps_ts_list = [];
     for one_object in ts_obj_list:
-        newobj = gps_tools.gps_ts_functions.remove_constant(one_object, enu_offset[0], enu_offset[1], enu_offset[2]);
+        newobj = gps_tools.gps_ts_functions.remove_constant(one_object, -enu_offset[0], -enu_offset[1], -enu_offset[2]);
         new_gps_ts_list.append(newobj);
     return new_gps_ts_list;
 
@@ -77,9 +77,8 @@ def write_gps_displacements(config):
                                                                                       gps_sigma, prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
             displacement_objects = loop_removing_constant(displacement_objects, new_interval_dict["gps_add_offset_mm"]);
-            #### CHECK T3: CORRECT SIGN AFTER CHANGE?????
-        GNSS_Object.utilities.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
-                                                          + new_interval_dict["gps_textfile"]);
+        GNSS_Object.outputs.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
+                                                        + new_interval_dict["gps_textfile"]);
     return;
 
 
@@ -256,8 +255,8 @@ def write_s1_displacements(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    # write_uavsar_displacements(config);
-    # write_leveling_displacements(config);
+    write_uavsar_displacements(config);
+    write_leveling_displacements(config);
     write_gps_displacements(config);
-    # write_tsx_tre_displacements(config);
-    # write_s1_displacements(config);
+    write_tsx_tre_displacements(config);
+    write_s1_displacements(config);

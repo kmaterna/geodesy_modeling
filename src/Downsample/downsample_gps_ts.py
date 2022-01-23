@@ -2,10 +2,9 @@
 Functions to get GPS TS into downsampled format
 """
 
-import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt
-from ..GNSS_Object import gnss_object
+import GNSS_TimeSeries_Viewers.gps_tools as gps_tools
 
 
 def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir):
@@ -18,10 +17,11 @@ def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir)
         [start_pos, end_pos] = subsample_ts_start_end(station, starttime, endtime);
         E0, N0, U0 = start_pos[0], start_pos[1], start_pos[2];
         E1, N1, U1 = end_pos[0], end_pos[1], end_pos[2];
-        one_object = gnss_object.Timeseries(name=station.name, coords=station.coords, dtarray=[starttime, endtime],
-                                            dN=[0, N1 - N0], dE=[0, E1 - E0], dU=[0, U1 - U0],
-                                            Sn=[gps_sigma, gps_sigma], Se=[gps_sigma, gps_sigma],
-                                            Su=[3 * gps_sigma, 3 * gps_sigma], EQtimes=station.EQtimes);
+        one_object = gps_tools.gps_io_functions.Timeseries(name=station.name, coords=station.coords,
+                                                           dtarray=[starttime, endtime], dN=[0, N1 - N0],
+                                                           dE=[0, E1 - E0], dU=[0, U1 - U0], Sn=[gps_sigma, gps_sigma],
+                                                           Se=[gps_sigma, gps_sigma], Su=[3 * gps_sigma, 3 * gps_sigma],
+                                                           EQtimes=station.EQtimes);
         gps_displacements_object.append(one_object);
 
         f, axarr = plt.subplots(3, 1, figsize=(12, 8), dpi=300);
@@ -47,27 +47,7 @@ def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir)
     return gps_displacements_object;
 
 
-def subsample_in_time(station, starttime, window_days=30):
-    """
-    Downsample TS: return position corresponding a given time by averaging over a month around target date.
-    return E0, N0, U0
-    """
-    dE_start, dN_start, dU_start = [], [], [];
-    for i in range(len(station.dtarray)):
-        if abs((station.dtarray[i] - starttime).days) < window_days:
-            dE_start.append(station.dE[i]);
-            dN_start.append(station.dN[i]);
-            dU_start.append(station.dU[i]);
-    if len(dE_start) > 2:
-        E0 = np.nanmean(dE_start);
-        N0 = np.nanmean(dN_start);
-        U0 = np.nanmean(dU_start);
-    else:
-        E0, N0, U0 = np.nan, np.nan, np.nan;
-    return [E0, N0, U0];
-
-
 def subsample_ts_start_end(station, starttime, endtime, window_days=30):
-    start_pos = subsample_in_time(station, starttime, window_days);
-    end_pos = subsample_in_time(station, endtime, window_days);
-    return [start_pos, end_pos];
+    start_pos = gps_tools.gps_ts_functions.subsample_in_time(station, starttime, window_days);
+    end_pos = gps_tools.gps_ts_functions.subsample_in_time(station, endtime, window_days);
+    return start_pos, end_pos;

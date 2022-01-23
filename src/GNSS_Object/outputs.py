@@ -1,14 +1,14 @@
 """
-Operations on GNSS objects. These mostly are pushed into GNSS repo.
+A few rare operations on GNSS objects. Utilities are mostly pushed into GNSS repo.
 """
 
 import numpy as np
 
 
 def write_gps_invertible_format(gps_object_list, filename):
-    """Write a special format of displacements associated with an interval
+    """Write displacements from a special format associated with an interval
     (i.e., disp object has only 2 elements, start=0 and finish=finish).
-    Format has one header line. GPS displacements are in meters"""
+    Format has one header line. GPS displacements are in meters."""
     print("Writing GPS displacements into file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# Header: lon, lat, dE, dN, dU, Se, Sn, Su (m)\n");

@@ -1,26 +1,36 @@
+"""
+Research-specific read functions to preprocess GNSS time series.
+NOTE: We use the Timeseries object from the GNSS repo for all uses of this object.
+import GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions as gps_io_functions
+Timeseries = GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions.Timeseries;
+Reference: Timeseries = collections.namedtuple("Timeseries",
+['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su', 'EQtimes']);  # in mm
+"""
+
+
 import GNSS_TimeSeries_Viewers.gps_tools as gpstools
 import datetime as dt
-from . import gnss_object
 
 
 def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='pbo', blacklist=()):
     """
     Read a set of GNSS stations. Specific to North Brawley Geothermal Field.
     Good to have around as an example.
+    The Methods section of the paper can basically be read straight from this function.
     """
+    gps_data_config_file = "/Users/kmaterna/Documents/B_Research/GEOPHYS_DATA/GPS_POS_DATA/config.txt"  # sys path
     starttime1 = dt.datetime.strptime("20100403", "%Y%m%d");
     endtime1 = dt.datetime.strptime("20100405", "%Y%m%d");
     starttime2 = dt.datetime.strptime("20200328", "%Y%m%d");
     endtime2 = dt.datetime.strptime("20200330", "%Y%m%d");  # parameters for removal of EMC postseismic transient
-    station_names, _, _ = gpstools.stations_within_radius.get_stations_within_box(gnss_object.gps_data_config_file,
+    station_names, _, _ = gpstools.stations_within_radius.get_stations_within_box(gps_data_config_file,
                                                                                   coord_box=gps_bbox, network=network);
     print(station_names);
     [dataobj_list, offsetobj_list, eqobj_list, _] = \
         gpstools.gps_input_pipeline.multi_station_inputs(station_names, blacklist, network, "NA",
-                                                         gnss_object.gps_data_config_file);
+                                                         gps_data_config_file);
     # Next 5 lines: Importing BRAW from UNR
-    [myData, offset_obj, eq_obj] = gpstools.gps_input_pipeline.get_station_data("BRAW", "unr",
-                                                                                gnss_object.gps_data_config_file,
+    [myData, offset_obj, eq_obj] = gpstools.gps_input_pipeline.get_station_data("BRAW", "unr", gps_data_config_file,
                                                                                 refframe="NA")
     myData = gpstools.gps_ts_functions.impose_time_limits(myData, dt.datetime.strptime("20080505", "%Y%m%d"),
                                                           dt.datetime.strptime("20200101", "%Y%m%d"));
@@ -36,12 +46,12 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
 
         if newobj.name == 'BRAW':
             newobj = gpstools.gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=1, seasonals_type="lssq",
-                                                                      data_config_file=gnss_object.gps_data_config_file,
+                                                                      data_config_file=gps_data_config_file,
                                                                       remove_trend=0);
         else:
             newobj = gpstools.gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=1,
                                                                       seasonals_type="nldas",
-                                                                      data_config_file=gnss_object.gps_data_config_file,
+                                                                      data_config_file=gps_data_config_file,
                                                                       remove_trend=0);
 
         if remove_coseismic:
@@ -59,7 +69,7 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
         north_params = [north_slope, 0, 0, 0, 0];
         vert_params = [vert_slope, 0, 0, 0, 0];
         # Remove postseismic transient by Hines model
-        model_obj = gpstools.gps_postseismic_remove.get_station_hines(newobj.name, gnss_object.gps_data_config_file);
+        model_obj = gpstools.gps_postseismic_remove.get_station_hines(newobj.name, gps_data_config_file);
         newobj = gpstools.gps_postseismic_remove.remove_by_model(newobj, model_obj, starttime1, endtime1, starttime2,
                                                                  endtime2);
         # Remove coseismic offset if within window
