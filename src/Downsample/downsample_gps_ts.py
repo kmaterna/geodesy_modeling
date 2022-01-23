@@ -15,7 +15,9 @@ def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir)
     gps_displacements_object = [];
 
     for station in stations:
-        E0, N0, U0, E1, N1, U1 = subsample_in_time(station, starttime, endtime);
+        [start_pos, end_pos] = subsample_ts_start_end(station, starttime, endtime);
+        E0, N0, U0 = start_pos[0], start_pos[1], start_pos[2];
+        E1, N1, U1 = end_pos[0], end_pos[1], end_pos[2];
         one_object = gnss_object.Timeseries(name=station.name, coords=station.coords, dtarray=[starttime, endtime],
                                             dN=[0, N1 - N0], dE=[0, E1 - E0], dU=[0, U1 - U0],
                                             Sn=[gps_sigma, gps_sigma], Se=[gps_sigma, gps_sigma],
@@ -45,33 +47,27 @@ def get_displacements_show_ts(stations, starttime, endtime, gps_sigma, prep_dir)
     return gps_displacements_object;
 
 
-def subsample_in_time(station, starttime, endtime):
+def subsample_in_time(station, starttime, window_days=30):
     """
-    Downsample a TS: give us the data points corresponding to the starttime and endtime
-    By averaging over a month around each target date.
-    return E0, N0, U0, E1, N1, U1
+    Downsample TS: return position corresponding a given time by averaging over a month around target date.
+    return E0, N0, U0
     """
     dE_start, dN_start, dU_start = [], [], [];
-    dE_end, dN_end, dU_end = [], [], [];
     for i in range(len(station.dtarray)):
-        if abs((station.dtarray[i] - starttime).days) < 30:
+        if abs((station.dtarray[i] - starttime).days) < window_days:
             dE_start.append(station.dE[i]);
             dN_start.append(station.dN[i]);
             dU_start.append(station.dU[i]);
-        if abs((station.dtarray[i] - endtime).days) < 30:
-            dE_end.append(station.dE[i]);
-            dN_end.append(station.dN[i]);
-            dU_end.append(station.dU[i]);
     if len(dE_start) > 2:
         E0 = np.nanmean(dE_start);
         N0 = np.nanmean(dN_start);
         U0 = np.nanmean(dU_start);
     else:
         E0, N0, U0 = np.nan, np.nan, np.nan;
-    if len(dE_end) > 2:
-        E1 = np.nanmean(dE_end);
-        N1 = np.nanmean(dN_end);
-        U1 = np.nanmean(dU_end);
-    else:
-        E1, N1, U1 = np.nan, np.nan, np.nan;
-    return E0, N0, U0, E1, N1, U1;
+    return [E0, N0, U0];
+
+
+def subsample_ts_start_end(station, starttime, endtime, window_days=30):
+    start_pos = subsample_in_time(station, starttime, window_days);
+    end_pos = subsample_in_time(station, endtime, window_days);
+    return [start_pos, end_pos];

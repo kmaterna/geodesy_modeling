@@ -12,6 +12,7 @@ Leveling: write out
 import numpy as np
 import sys, json, subprocess
 import datetime as dt
+from GNSS_TimeSeries_Viewers import gps_tools
 from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, GNSS_Object, Leveling_Object
 from S1_batches.read_write_insar_utilities import isce_read_write
 
@@ -44,6 +45,14 @@ def get_starttime_endtime(epochs_dict, select_interval_dict):
     return starttime, endtime
 
 
+def loop_removing_constant(ts_obj_list, enu_offset):
+    new_gps_ts_list = [];
+    for one_object in ts_obj_list:
+        newobj = gps_tools.gps_ts_functions.remove_constant(one_object, enu_offset[0], enu_offset[1], enu_offset[2]);
+        new_gps_ts_list.append(newobj);
+    return new_gps_ts_list;
+
+
 def write_gps_displacements(config):
     """
     For GPS, we have to write the proper format text file, and sometimes we make other corrections.
@@ -60,17 +69,15 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
-        stations = GNSS_Object.read_gnss.read_station_ts(new_interval_dict["gps_bbox"],
-                                                         new_interval_dict["gps_reference"],
-                                                         remove_coseismic=new_interval_dict["remove_coseismic"],
-                                                         network=network);
+        stations = GNSS_Object.read_gnss.read_station_ts_NBGF(new_interval_dict["gps_bbox"],
+                                                              new_interval_dict["gps_reference"],
+                                                              remove_coseismic=new_interval_dict["remove_coseismic"],
+                                                              network=network);
         displacement_objects = Downsample.downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime,
-                                                                                      gps_sigma,
-                                                                                      prep_dir);
+                                                                                      gps_sigma, prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
-            displacement_objects = GNSS_Object.utilities.add_gps_constant_offset(displacement_objects,
-                                                                                 new_interval_dict[
-                                                                                     "gps_add_offset_mm"]);
+            displacement_objects = loop_removing_constant(displacement_objects, new_interval_dict["gps_add_offset_mm"]);
+            #### CHECK T3: CORRECT SIGN AFTER CHANGE?????
         GNSS_Object.utilities.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
                                                           + new_interval_dict["gps_textfile"]);
     return;
@@ -203,15 +210,17 @@ def write_tsx_tre_displacements(config):
             Total_InSAR = InSAR_1D_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
             InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
                                                                   config["prep_inputs_dir"] +
-                                                                  new_interval_dict["tsx_datafile"]);  # combined vert+east
+                                                                  new_interval_dict["tsx_datafile"]);  # vert+east
             InSAR_1D_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
                                                                   config["prep_inputs_dir"] +
                                                                   new_interval_dict["tsx_vertical_datafile"]);
             InSAR_1D_Object.outputs.write_insar_invertible_format(East_InSAR, new_interval_dict["tsx_unc"],
                                                                   config["prep_inputs_dir"] +
                                                                   new_interval_dict["tsx_horiz_datafile"]);
-            InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"]+new_interval_dict["tsx_vertical_datafile"]);
-            InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["tsx_vertical_plot"]);
+            InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"] +
+                                                          new_interval_dict["tsx_vertical_datafile"]);
+            InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] +
+                                               new_interval_dict["tsx_vertical_plot"]);
 
     return;
 
@@ -238,7 +247,7 @@ def write_s1_displacements(config):
 
             InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                   config["prep_inputs_dir"] + new_interval_dict[
-                                                                   "s1_datafile"]);
+                                                                      "s1_datafile"]);
             InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["s1_plot"]);
 
@@ -247,8 +256,8 @@ def write_s1_displacements(config):
 
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
-    write_uavsar_displacements(config);
-    write_leveling_displacements(config);
+    # write_uavsar_displacements(config);
+    # write_leveling_displacements(config);
     write_gps_displacements(config);
-    write_tsx_tre_displacements(config);
-    write_s1_displacements(config);
+    # write_tsx_tre_displacements(config);
+    # write_s1_displacements(config);
