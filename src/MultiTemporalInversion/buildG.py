@@ -502,21 +502,31 @@ def beginning_calc(config):
         res_output_phase(total_cardinal_res, res_output_file);
     if "checkerboard" in config["resolution_test"].split(',') and n_epochs == 1:
         # checkerboard test for one fault segment
+        use_slip_penalty = 1;   # do we impose a zeroth-order minimum-norm penalty?
         res_output_file = config["output_dir"] + 'checkerboard_resolution.txt';
         res_input_file = config["output_dir"] + 'checkerboard_input.txt';
-        checkerboard_model = resolution_tests.checkerboard_test(patches_f, Ds, num_leveling_params,
-                                                                fault_list[0]["Nwidth"], fault_names_array,
-                                                                checker_width=4, fault_num=0);
-        pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model);  # forward prediction, not multiplied by sigmas
-        zero_vector = np.zeros((len(d_noa) - len(pred_disp_checkerboard),));  # adding zeros to pred_d, for smoothing
-        pred_d_ext = np.concatenate((pred_disp_checkerboard, zero_vector));
-        recovered_checkerboard = reg_nnls(G_noa, pred_d_ext);  # the inverse model.
-        total_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(recovered_checkerboard, Ns_total, Ds,
-                                                                             total_fault_slip_basis, 0);
-        res_output_phase(total_cardinal_res, res_output_file);
+        checkerboard_model = resolution_tests.checkerboard_vector(patches_f, Ds, num_leveling_params,
+                                                                  fault_list[0]["Nwidth"], fault_names_array,
+                                                                  checker_width=4, fault_num=0);
         inp_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(checkerboard_model, Ns_total, Ds,
                                                                            total_fault_slip_basis, num_leveling_params);
         res_output_phase(inp_cardinal_res, res_input_file);
+
+        pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model) * sig_total;  # forward prediction
+
+        if use_slip_penalty:  # reviewer asked what happens if we impose regularization
+            zero_vector = np.zeros((len(d_ext) - len(pred_disp_checkerboard),));  # add zeros to pred_d for smoothing
+            pred_d_ext = np.concatenate((pred_disp_checkerboard/sig_total, zero_vector));
+            recovered_checkerboard = reg_nnls(G_ext, pred_d_ext);  # the inverse model.
+        else:
+            zero_vector = np.zeros((len(d_noa) - len(pred_disp_checkerboard),));  # add zeros to pred_d for smoothing
+            pred_d_ext = np.concatenate((pred_disp_checkerboard/sig_total, zero_vector));
+            recovered_checkerboard = reg_nnls(G_noa, pred_d_ext);  # the inverse model.
+            num_leveling_params = 0;
+        total_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(recovered_checkerboard, Ns_total, Ds,
+                                                                             total_fault_slip_basis,
+                                                                             num_leveling_params);
+        res_output_phase(total_cardinal_res, res_output_file);
 
     # MISC OUTPUTS: Graph of big G (with all smoothing parameters inside)
     graph_big_G(config, G_ext);

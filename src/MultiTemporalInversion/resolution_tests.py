@@ -121,36 +121,94 @@ def bootstrapped_model_resolution(_G_total, _G_nosmooth, _d, _sig, _weights):
     return;
 
 
-def checkerboard_test(patches_f, Ds, num_leveling_params, num_width, fault_num_array, checker_width=3, fault_num=0):
+def checkerboard_vector(patches_f, Ds, num_extra_params, num_width, fault_num_array, checker_width=3, fault_num=0):
     """
     Basic checkerboard utility to build checkers on a single fault. Making a checkerboard input pattern.
-    """
 
-    checkerboard_vector = np.zeros((len(patches_f)+num_leveling_params,));
-    is_target_patch = np.where(np.array(fault_num_array) == fault_num);
-    num_patches = len(is_target_patch[0]);   # ex: 169
-    patch_vector = np.zeros((num_patches,));
-    start_patch_idx = is_target_patch[0][0];  # ex: 0
+    :param patches_f: vector of slip-direction-on-patches (aka model parameters),
+        might be on multiple faults and multiple directions.
+        For Ds=2 and npatches = 169, this is 338 patches long.
+    :param Ds: dimensions of slip (usually 1 or 2)
+    :param num_extra_params: number of non-fault model parameters, like leveling
+    :param num_width: int, width of the fault plane in patches
+    :param fault_num_array: array of length "number of patches", telling which fault segment has each patch
+    :param checker_width: size of checker
+    :param fault_num: the index of fault we're making checkers over. Other faults will be zero.
+    :returns: vector of checkers
+    """
+    checkerboard_vector = np.zeros((len(patches_f)+num_extra_params,));  # model vector containing checker pattern
+    is_target_fault = np.where(np.array(fault_num_array) == fault_num);  # boolean array
+    num_patches = len(is_target_fault[0]);   # ex: 169
+    patch_vector = np.zeros((num_patches,));  # one element for each patch in target fault
+    start_patch_idx = is_target_fault[0][0];  # ex: 0
 
     # Define the rows for checker-0 and checker-1
-    type0_slice = np.zeros((num_width,));
-    type1_slice = np.zeros((num_width,));
+    type0_slice = np.zeros((num_width,));   # rows starting with black checkers
+    type1_slice = np.zeros((num_width,));   # rows starting with white checkers
     for i in range(len(type0_slice)):
         if np.mod(i, checker_width*2) < checker_width:
-            type0_slice[i] = 0.4;
+            type0_slice[i] = .4;
     for i in range(len(type1_slice)):
         if np.mod(i, checker_width*2) >= checker_width:
-            type1_slice[i] = 0.4;
+            type1_slice[i] = .4;
 
-    # Fill in the rows for checker-0 and checker-1
+    # Fill in rows for checker-0 and checker-1
     for i in np.arange(len(patch_vector), step=num_width):
         if np.mod(i, num_width*checker_width*2) < num_width*checker_width:
             patch_vector[i:i+num_width] = type0_slice;
         else:
             patch_vector[i:i + num_width] = type1_slice;
 
-    for i in range(len(patch_vector)):
-        checkerboard_vector[start_patch_idx + (i*Ds)] = patch_vector[i];
-        checkerboard_vector[start_patch_idx + (i*Ds) + 1] = patch_vector[i];
+    if Ds == 1:
+        for i in range(len(patch_vector)):   # copy checkerboard into return vector for Ds = 1
+            checkerboard_vector[start_patch_idx + (i*Ds)] = patch_vector[i];  # only slip direction
+    if Ds == 2:
+        for i in range(len(patch_vector)):   # copy checkerboard into return vector for Ds = 2
+            checkerboard_vector[start_patch_idx + (i*Ds)] = patch_vector[i];  # second slip direction
+            checkerboard_vector[start_patch_idx + (i*Ds) + 1] = patch_vector[i];  # second slip direction
+
+    return checkerboard_vector;
+
+
+def corner_checker_vector(patches_f, Ds, num_extra_params, num_width, fault_num_array, checker_width=3, fault_num=0):
+    """
+    Basic utility to build 1 checker on a single fault. Making a checkerboard input pattern.
+
+    :param patches_f: vector of slip-direction-on-patches (aka model parameters),
+        might be on multiple faults and multiple directions.
+        For Ds=2 and npatches = 169, this is 338 patches long.
+    :param Ds: dimensions of slip (usually 1 or 2)
+    :param num_extra_params: number of non-fault model parameters, like leveling
+    :param num_width: int, width of the fault plane in patches
+    :param fault_num_array: array of length "number of patches", telling which fault segment has each patch
+    :param checker_width: size of checker
+    :param fault_num: the index of fault we're making checkers over. Other faults will be zero.
+    :returns: vector of checkers
+    """
+    checkerboard_vector = np.zeros((len(patches_f)+num_extra_params,));  # model vector containing checker pattern
+    is_target_fault = np.where(np.array(fault_num_array) == fault_num);  # boolean array
+    num_patches = len(is_target_fault[0]);   # ex: 169
+    patch_vector = np.zeros((num_patches,));  # one element for each patch in target fault
+    start_patch_idx = is_target_fault[0][0];  # ex: 0
+
+    # Define the rows for checker-0 and checker-1
+    type0_slice = np.zeros((num_width,));   # rows starting with black checkers
+    type1_slice = np.zeros((num_width,));   # rows starting with white checkers
+    type1_slice[0:5] = 1
+
+    # Fill in rows for checker-0 and checker-1
+    for i in np.arange(len(patch_vector), step=num_width):
+        if i > 9*num_width:
+            patch_vector[i:i+num_width] = type1_slice;
+        else:
+            patch_vector[i:i + num_width] = type0_slice;
+
+    if Ds == 1:
+        for i in range(len(patch_vector)):   # copy checkerboard into return vector for Ds = 1
+            checkerboard_vector[start_patch_idx + (i*Ds)] = patch_vector[i];  # only slip direction
+    if Ds == 2:
+        for i in range(len(patch_vector)):   # copy checkerboard into return vector for Ds = 2
+            checkerboard_vector[start_patch_idx + (i*Ds)] = patch_vector[i];  # second slip direction
+            checkerboard_vector[start_patch_idx + (i*Ds) + 1] = patch_vector[i];  # second slip direction
 
     return checkerboard_vector;

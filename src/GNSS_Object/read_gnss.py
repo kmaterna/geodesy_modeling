@@ -45,7 +45,7 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
         newobj = gpstools.offsets.remove_offsets(one_object, offsetobj_list[i]);  # remove antenna offsets
 
         if newobj.name == 'BRAW':
-            newobj = gpstools.gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=1, seasonals_type="lssq",
+            newobj = gpstools.gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=0, seasonals_type="lssq",
                                                                       data_config_file=gps_data_config_file,
                                                                       remove_trend=0);
         else:
@@ -76,11 +76,14 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
         newobj = gpstools.gps_ts_functions.detrend_data_by_value(newobj, east_params, north_params, vert_params);
         cleaned_objects.append(newobj)
 
-    # Subtracting the reference GPS station.
-    ref_dataobjlist = [];
-    reference_station = [x for x in cleaned_objects if x.name == gps_reference][0];
-    for one_object in cleaned_objects:
-        refobj = gpstools.gps_ts_functions.get_referenced_data(one_object, reference_station);
-        ref_dataobjlist.append(refobj);
+    # Subtracting the reference GPS station, if desired.
+    if gps_reference == "NO_REF":
+        ref_dataobjlist = cleaned_objects;
+    else:
+        ref_dataobjlist = [];
+        reference_station = [x for x in cleaned_objects if x.name == gps_reference][0];
+        for one_object in cleaned_objects:
+            refobj = gpstools.gps_ts_functions.get_referenced_data(one_object, reference_station);
+            ref_dataobjlist.append(refobj);
 
     return ref_dataobjlist;
