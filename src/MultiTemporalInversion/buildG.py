@@ -513,6 +513,7 @@ def beginning_calc(config):
         res_output_phase(inp_cardinal_res, res_input_file);
 
         pred_disp_checkerboard = G_nosmooth.dot(checkerboard_model) * sig_total;  # forward prediction
+        pred_disp_checkerboard = pred_disp_checkerboard + resolution_tests.get_random_error_vector(sig_total);
 
         if use_slip_penalty:  # reviewer asked what happens if we impose regularization
             zero_vector = np.zeros((len(d_ext) - len(pred_disp_checkerboard),));  # add zeros to pred_d for smoothing

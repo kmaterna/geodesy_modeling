@@ -212,3 +212,11 @@ def corner_checker_vector(patches_f, Ds, num_extra_params, num_width, fault_num_
             checkerboard_vector[start_patch_idx + (i*Ds) + 1] = patch_vector[i];  # second slip direction
 
     return checkerboard_vector;
+
+
+def get_random_error_vector(sigma_vector):
+    """Generate a vector of random numbers drawn from distributions with sigma from sigma vector"""
+    error_vector = np.zeros(np.shape(sigma_vector));
+    for i in range(len(sigma_vector)):
+        error_vector[i] = np.random.normal(scale=sigma_vector[i]);
+    return error_vector;
