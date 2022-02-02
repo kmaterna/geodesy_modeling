@@ -175,7 +175,10 @@ def graph_big_G(config, G):
 
 
 def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, num_lev_offsets):
-    """ simple utility function to reduce lines in the main program """
+    """
+    Simple utility function to reduce lines in the main program.
+    Returns leveling_offsets as a list.
+    """
     print("Parsing slip outputs from %d epochs " % n_epochs);
     count = 0;
     total_cardinal_slip = [];
@@ -194,7 +197,6 @@ def parse_slip_outputs(slip_f, Ns_total, Ds, n_epochs, total_fault_slip_basis, n
         leveling_offsets = slip_f[-num_lev_offsets:];
     else:
         leveling_offsets = [];  # if we're not using leveling in this inversion
-
     return total_cardinal_slip, leveling_offsets;
 
 
@@ -299,7 +301,7 @@ def beginning_calc(config):
 
     # INITIAL DATA SCOPING: HOW MANY FILES WILL NEED TO BE READ?
     input_file_list, output_file_list = [], [];
-    spans_list, strengths_list, signs_list = [], [], [];
+    spans_list, strengths_list, signs_list = [], [], [];  # signs is for offset parameter, like for leveling
     data_type_list, row_span_list = [], [];
     print("Available data indicated in json file: ")
 
@@ -311,10 +313,7 @@ def beginning_calc(config):
         spans_list.append(config["data_files"][data_file]["span"]);           # 'span' expected of all data files
         strengths_list.append(config["data_files"][data_file]["strength"]);   # 'strength' expected of all data files
         print(config["data_files"][data_file]["data_file"], " spans ", config["data_files"][data_file]["span"]);
-        if config["data_files"][data_file]["type"] == "leveling":
-            signs_list.append(config["data_files"][data_file]["sign"]);
-        else:
-            signs_list.append(0.0);   # if 0, we won't create a column for parameter
+        signs_list.append(config["data_files"][data_file]["offset_sign"]);  # if 0, don't create column for parameter
 
     # Input many files of geodetic data
     [pos_obs_list, pos_basis_list, nums_obs_list,
@@ -418,12 +417,12 @@ def beginning_calc(config):
     disp_models = parse_disp_outputs(pred_disp_f, nums_obs_list);
 
     # Defensive programming (Reporting errors)
+    files_with_lev_offsets = [input_file_list[i] for i in range(len(input_file_list)) if signs_list[i] != 0];
     for i in range(len(leveling_offsets)):
-        if signs_list[i] != 0:
-            print("Leveling Offset for %s = %f m " % (input_file_list[i], leveling_offsets[i]));
-            if abs(leveling_offsets[i]) < 0.0000001:
-                print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." %
-                      (input_file_list[i]));
+        print("Leveling Offset for %s = %f " % (files_with_lev_offsets[i], leveling_offsets[i]));
+        if abs(leveling_offsets[i]) < 0.0000001:
+            print("WARNING: Leveling offset for %s close to zero. Consider a negative offset in G." %
+                  (files_with_lev_offsets[i]));
 
     ### get slip patch data for outputs
     #####################################################################
