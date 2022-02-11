@@ -1,5 +1,5 @@
 """
-Research-specific read functions to preprocess GNSS time series.
+Research-specific read functions to preprocess GNSS time series in special ways.
 NOTE: We use the Timeseries object from the GNSS repo for all uses of this object.
 import GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions as gps_io_functions
 Timeseries = GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions.Timeseries;

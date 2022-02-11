@@ -3,7 +3,7 @@ import numpy as np
 import collections
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole, haversine
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
-import Elastic_stresses_py.PyCoulomb.fault_slip_object.disp_points_object as disp_points
+import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 
 """
@@ -54,7 +54,7 @@ def add_all_csz_patches(one_patch_gfs):
     """take n patches of the subduction interface and add their green's functions together """
     new_pts = one_patch_gfs[0];
     for i in range(1, len(one_patch_gfs)):
-        new_pts = disp_points.add_disp_points(new_pts, one_patch_gfs[i]);
+        new_pts = dpo.utilities.add_disp_points(new_pts, one_patch_gfs[i]);
     return new_pts;
 
 

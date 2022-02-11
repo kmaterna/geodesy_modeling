@@ -15,7 +15,7 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Interseismic_Inversion.readers as readers
-import Geodesy_Modeling.src.Interseismic_Inversion.disp_points_tools as disp_point_tools
+import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
 # Also had to add into pycharm project settings.
 import humboldt_readers as HR
@@ -41,10 +41,10 @@ def correct_for_far_field_terms(exp_dict, obs_disp_points):
     csz_correction_disp_points = HR.read_addcp_correction_table(exp_dict["lonlatfile"], exp_dict["csz_correction"]);
     ridge_correction_disp_points = HR.read_correction_data_table(exp_dict["ridge_correction"]);  # Fred correction
     ssaf_correction_disp_points = HR.read_correction_data_table(exp_dict["ssaf_correction"]);  # Fred correction
-    obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, csz_correction_disp_points,
+    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, csz_correction_disp_points,
                                                                       target='horizontal');   # horizontal only
-    obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, ridge_correction_disp_points);
-    obs_disp_points = library.disp_points_object.subtract_disp_points(obs_disp_points, ssaf_correction_disp_points);
+    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, ridge_correction_disp_points);
+    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, ssaf_correction_disp_points);
     return obs_disp_points;
 
 
@@ -103,11 +103,11 @@ def run_humboldt_inversion(config_file):
     obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);
     obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
     # Experimental options:
-    # obs_disp_points = disp_point_tools.filter_to_continuous_only(obs_disp_points);  # an experimental design step.
+    obs_disp_points = dpo.utilities.filter_to_meas_type(obs_disp_points, 'continuous');  # an experimental design step.
     # maacama_pts = np.loadtxt(exp_dict["faults"]["Maacama"]["points"]);
     # bartlett_springs_pts = np.loadtxt(exp_dict["faults"]["BSF"]["points"]);
-    # obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, maacama_pts, radius_km=5);
-    # obs_disp_points = disp_point_tools.filter_to_remove_creep(obs_disp_points, bartlett_springs_pts, radius_km=5);
+    # obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_disp_points, maacama_pts, radius_km=5);
+    # obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_disp_points, bartlett_springs_pts, radius_km=5);
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
@@ -177,7 +177,7 @@ def run_humboldt_inversion(config_file):
     rms_mm, rms_chi2 = inv_tools.rms_from_model_pred_vector(G.dot(M_opt) * sigmas, weighted_obs * sigmas, sigmas);
     rms_title = "RMS: %f mm/yr" % rms_mm;
     print(" ", rms_title);
-    residual_pts = library.disp_points_object.subtract_disp_points(paired_obs, modeled_disp_points);
+    residual_pts = dpo.utilities.subtract_disp_points(paired_obs, modeled_disp_points);
     PyCoulomb.io_additionals.write_disp_points_results(modeled_disp_points,
                                                        exp_dict["outdir"] + '/model_pred_file.txt');
     PyCoulomb.io_additionals.write_disp_points_results(paired_obs, exp_dict["outdir"] + '/simple_obs_file.txt');
