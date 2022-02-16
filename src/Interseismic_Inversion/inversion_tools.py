@@ -11,7 +11,7 @@ GF_element is everything you would need to make a column of the Green's matrix a
 """
 GF_element = collections.namedtuple('GF_element', ['disp_points', 'fault_name',
                                                    'fault_dict_list', 'upper_bound', 'lower_bound',
-                                                   'slip_penalty_flag']);
+                                                   'slip_penalty_flag', 'units']);
 
 
 def pair_obs_gf(obs_disp_points, model_disp_points):
@@ -44,7 +44,7 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
         paired_gf_elements.append(GF_element(disp_points=paired_gf, fault_name=gf_model.fault_name,
                                              fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
                                              upper_bound=gf_model.upper_bound,
-                                             slip_penalty_flag=gf_model.slip_penalty_flag));
+                                             slip_penalty_flag=gf_model.slip_penalty_flag, units=gf_model.units));
         if len(paired_gf) != target_len:
             raise ValueError("ERROR! Not all points have green's functions.");
     return paired_obs, paired_gf_elements;
@@ -86,11 +86,11 @@ def get_GF_rotation_elements(obs_disp_points):
         z_disp_p.append(response);
 
     xresponse = GF_element(disp_points=x_disp_p, fault_name='x_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty_flag=0);
+                           slip_penalty_flag=0, units='deg/Ma');
     yresponse = GF_element(disp_points=y_disp_p, fault_name='y_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty_flag=0);
+                           slip_penalty_flag=0, units='deg/Ma');
     zresponse = GF_element(disp_points=z_disp_p, fault_name='z_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty_flag=0);
+                           slip_penalty_flag=0, units='deg/Ma');
     return [xresponse, yresponse, zresponse];
 
 
@@ -112,7 +112,7 @@ def get_GF_leveling_offset_element(obs_disp_points):
                                               Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
         total_response_pts.append(response);
     lev_offset_gf = GF_element(disp_points=total_response_pts, fault_name='lev_offset', fault_dict_list=[],
-                               upper_bound=1, lower_bound=-1, slip_penalty_flag=0);
+                               upper_bound=1, lower_bound=-1, slip_penalty_flag=0, units='m/yr');
     if lev_count == 0:
         return [];
     else:
@@ -393,14 +393,10 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
     for i in range(len(v)):
         if GF_elements[i].fault_name in ignore_faults:
             continue;
-        if GF_elements[i].fault_name in ["x_rot", "y_rot", "z_rot"]:
-            unit = "deg/Ma"
-        elif GF_elements[i].fault_name == 'lev_offset':
-            unit = "m/yr"
-        else:
-            unit = "cm/yr"
         ofile.write(GF_elements[i].fault_name + ": ");
-        ofile.write(str(v[i])+" "+unit+"\n");
+        ofile.write("%.5f %s" % (v[i], GF_elements[i].units));
+        ofile.write('  [within %.3f to %.3f]' % (GF_elements[i].lower_bound, GF_elements[i].upper_bound) );
+        ofile.write("\n");
     report_string = "\nRMS: %f mm/yr, on %d observations\n" % (residual, len(GF_elements[0].disp_points));
     ofile.write(report_string);
     ofile.write("Message: "+message+"\n");
@@ -408,8 +404,7 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
     return;
 
 
-def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rotation_pts, norot_pts, title, region,
-                      special_pts=()):
+def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rotation_pts, norot_pts, title, region):
     # Plot the data, model, and residual in separate plots
     # Not plotting the fault patches because it takes a long time.
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/data_only.png",
@@ -428,11 +423,6 @@ def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, r
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/faults_only_pred.png",
                                                          disp_points=norot_pts, region=region,
                                                          scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
-    if special_pts:
-        library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/csz_only_pred.png",
-                                                             disp_points=special_pts, region=region,
-                                                             scale_arrow=(1.0, 0.010, "1 cm/yr"),
-                                                             v_labeling_interval=0.001)
     return;
 
 
@@ -442,6 +432,8 @@ def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
     Inputs: list of GF_elements objects
     string for outdir
     """
+    if exclude_list == 'all':
+        return;
     for GF_element in GF_elements_list:
         if GF_element.fault_name in exclude_list:   # plot these elements separately, like individual CSZ patches
             continue;
@@ -456,22 +448,4 @@ def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
                                                              region=[-127, -119.7, 37.7, 43.3],
                                                              scale_arrow=scale_arrow,
                                                              v_labeling_interval=0.001);
-    return;
-
-
-def view_csz(csz_patches, one_patch_gfs):
-    """
-    View different parts of the distributed CSZ Green's functions.
-    Currently not called. Probably.
-    """
-    collective_csz_gf = add_all_csz_patches(one_patch_gfs);
-    library.plot_fault_slip.map_source_slip_distribution(csz_patches, "CSZ_patches.png", disp_points=collective_csz_gf,
-                                                         region=[-127, -119.7, 37.7, 43.3],
-                                                         scale_arrow=(1.0, 0.010, "1 cm"), v_labeling_interval=0.001);
-    idx = 0;
-    patch = csz_patches[idx];
-    one_patch_gf = one_patch_gfs[idx];
-    library.plot_fault_slip.map_source_slip_distribution([patch], "CSZ_patch.png", disp_points=one_patch_gf,
-                                                         region=[-127, -119.7, 37.7, 43.3],
-                                                         scale_arrow=(1.0, 0.001, "1 mm"), v_labeling_interval=0.001);
     return;

@@ -10,7 +10,7 @@ def inside_lonlat_box(bbox, lonlat):
         return 0;
 
 
-def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 43), unit_slip=False):
+def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 52), unit_slip=False):
     """
     Read the results of Fred's Static1D file
     For example: stat2C.outCascadia
@@ -35,8 +35,7 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
 
     counter = 0;
     norm_factor = 1;
-    disp_points_all_patches = [];
-    all_patches = [];
+    disp_points_all_patches, all_patches = [], [];
     for i in range(len(fault_patches)):
         if fault_patches[i]["depth"] > 60:  # potentially skip the deep section because it's freely slipping
             counter = counter + len(gps_disp_locs);
