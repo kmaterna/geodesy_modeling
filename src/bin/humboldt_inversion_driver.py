@@ -82,18 +82,19 @@ def read_fault_gf_elements(exp_dict):
                                                       lower_bound=exp_dict["faults"]["CSZ"]["slip_min"],
                                                       # upper_bound=exp_dict["faults"]["CSZ"]["slip_max"],
                                                       upper_bound=max0*100,  # max slip from geometry, in units of cm
-                                                      slip_penalty_flag=1, units='cm/yr');
+                                                      slip_penalty_flag=1, units='cm/yr', points=[]);
                 gf_elements.append(one_gf_element);
         else:  # Reading for LSF, MRF, other fault cases
             fault_gf = exp_dict["faults"][fault_name]["GF"];
             fault_geom = exp_dict["faults"][fault_name]["geometry"];
             temp, _ = library.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
             mod_disp_points = library.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
+            fault_points = np.loadtxt(exp_dict["faults"][fault_name]["points"]);
             one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, fault_name=fault_name,
                                                   fault_dict_list=temp,
                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
                                                   upper_bound=exp_dict["faults"][fault_name]["slip_max"],
-                                                  slip_penalty_flag=0, units='cm/yr');
+                                                  slip_penalty_flag=0, units='cm/yr', points=fault_points);
             gf_elements.append(one_gf_element);
     return gf_elements;
 
@@ -120,8 +121,7 @@ def run_humboldt_inversion(config_file):
     gf_element_lev = inv_tools.get_GF_leveling_offset_element(obs_disp_points);  # 1 element: lev reference frame
     gf_elements = gf_elements + gf_element_lev;
 
-    # COMPUTE STAGE: PAIRING DATA AND GREENS FUNCTION POINTS.
-    # Pairing is necessary in case you've filtered out any observations along the way.
+    # COMPUTE STAGE: Pairing is necessary in case you've filtered out any observations along the way.
     paired_obs, paired_gf_elements = inv_tools.pair_gf_elements_with_obs(obs_disp_points, gf_elements);
 
     inv_tools.visualize_GF_elements(paired_gf_elements, exp_dict["outdir"], exclude_list='all');
@@ -185,6 +185,8 @@ def run_humboldt_inversion(config_file):
     inv_tools.write_summary_params(M_opt, rms_mm, exp_dict["outdir"] + '/model_results_human.txt',
                                    paired_gf_elements,
                                    ignore_faults=['CSZ_dist'], message=response.message);
+    inv_tools.write_fault_traces(M_opt, paired_gf_elements, exp_dict["outdir"] + '/fault_output.txt',
+                                 ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset', 'LSFRev']);
     readers.write_csz_dist_fault_patches(fault_dict_lists, M_opt, exp_dict["outdir"] + '/csz_model.gmt');
     inv_tools.view_full_results(exp_dict, paired_obs, model_disp_points, residual_pts, rot_modeled_pts,
                                 norot_modeled_pts, rms_title, region=[-127, -119.7, 37.7, 43.5]);
