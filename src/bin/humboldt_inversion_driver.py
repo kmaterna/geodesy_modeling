@@ -5,7 +5,6 @@ A driver for interseismic velocity inversion for fault slip rates.
 Humboldt Bay application.
 Mostly research code.  It is included in the repo as an example of what to do with this toolbox.
 Depends on Humboldt Bay project code for some functions. It will not work on a different general system.
-Second half of 2021.
 """
 
 import numpy as np
@@ -17,9 +16,15 @@ import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Interseismic_Inversion.readers as readers
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
-# Also had to add into pycharm project settings.
-import humboldt_readers as HR
+import humboldt_readers as HR  # Also had to add into pycharm project settings.
 
+reader_dictionary = {
+    "csz": HR.read_addcp_correction_table,
+    "ridge": HR.read_correction_data_table,
+    "fred": HR.read_correction_data_table,
+    "ghost": HR.read_ghost_transient_table,
+    "bc": library.io_static1d.read_static1D_output_file
+}
 
 def configure(config_file):
     """Set up an experiment directory."""
@@ -35,25 +40,24 @@ def configure(config_file):
     return exp_dict;
 
 
+def remove_near_fault_points(obs_points, fault_trace_file):
+    trace_pts = np.loadtxt(fault_trace_file);
+    obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_points, trace_pts, radius_km=5);
+    return obs_disp_points;
+
+
 def correct_for_far_field_terms(exp_dict, obs_disp_points):
     """
-    Velocity corrections, Pollitz & Evans, 2017
+    Velocity corrections, to set boundary conditions, some from Pollitz & Evans, 2017.
     """
-    csz_correction_dp = HR.read_addcp_correction_table(exp_dict["lonlatfile"], exp_dict["csz_correction"]);
-    ridge_correction_dp = HR.read_correction_data_table(exp_dict["ridge_correction"]);  # Fred correction
-    _ssaf_correction_dp = HR.read_correction_data_table(exp_dict["ssaf_correction"]);  # Fred correction
-    ghost_trans_correction = HR.read_ghost_transient_table(exp_dict["ghost_correction"]);  # Fred correction
-    kzm_ssaf = library.io_static1d.read_static1D_output_file(exp_dict["kzm_ssaf"], exp_dict["lonlatfile"]);
-    kzm_WL = library.io_static1d.read_static1D_output_file(exp_dict["kzm_walker_lane"], exp_dict["lonlatfile"]);
-    kzm_ssaf = dpo.utilities.mult_disp_points_by(kzm_ssaf, multiplier=3.5);  # experimenting with SSAF approximation.
-    kzm_WL = dpo.utilities.mult_disp_points_by(kzm_WL, multiplier=1.0);  # experimenting with WL approximation.
-
-    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, csz_correction_dp, target='horizontal');
-    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, ridge_correction_dp, tol=0.001);
-    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, kzm_WL, tol=0.001);
-    # obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, ssaf_correction_dp, tol=0.001);
-    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, ghost_trans_correction, tol=0.001);
-    obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, kzm_ssaf, tol=0.001);  # experimental step
+    for correction in exp_dict["corrections"]:
+        correction_dps = reader_dictionary[correction["type"]](correction["file"], exp_dict["lonlatfile"]);
+        correction_dps = dpo.utilities.mult_disp_points_by(correction_dps, correction["scale"]);
+        if correction["type"] == "csz":
+            obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, correction_dps, tol=0.001,
+                                                                 target='horizontal');
+        else:
+            obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, correction_dps, tol=0.001);
     return obs_disp_points;
 
 
@@ -68,15 +72,16 @@ def read_fault_gf_elements(exp_dict):
     for i in range(len(exp_dict["exp_faults"])):  # for each fault
         fault_name = exp_dict["exp_faults"][i];
         if fault_name == "CSZ_dist":  # Reading for distributed CSZ patches as unit slip.
-            one_patch_dps, csz_patches = readers.read_distributed_GF(exp_dict["faults"]["CSZ"]["GF"],
-                                                                     exp_dict["faults"]["CSZ"]["geometry"],
-                                                                     exp_dict["lonlatfile"], unit_slip=True,
-                                                                     latlonbox=(-127, -120, 38, 44.5));
-            for gf_disp_points, patch in zip(one_patch_dps, csz_patches):
+            one_patch_dps, csz_patches, maxslip = readers.read_distributed_GF(exp_dict["faults"]["CSZ"]["GF"],
+                                                                              exp_dict["faults"]["CSZ"]["geometry"],
+                                                                              exp_dict["lonlatfile"], unit_slip=True,
+                                                                              latlonbox=(-127, -120, 38, 44.5));
+            for gf_disp_points, patch, max0 in zip(one_patch_dps, csz_patches, maxslip):
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],
                                                       lower_bound=exp_dict["faults"]["CSZ"]["slip_min"],
-                                                      upper_bound=exp_dict["faults"]["CSZ"]["slip_max"],
+                                                      # upper_bound=exp_dict["faults"]["CSZ"]["slip_max"],
+                                                      upper_bound=max0*100,  # max slip from geometry, in units of cm
                                                       slip_penalty_flag=1, units='cm/yr');
                 gf_elements.append(one_gf_element);
         else:  # Reading for LSF, MRF, other fault cases
@@ -98,14 +103,12 @@ def run_humboldt_inversion(config_file):
     exp_dict = configure(config_file);
 
     # # INPUT stage: Read obs velocities as cc.Displacement_Points
-    obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);
+    obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);   # all 783 points
     obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
     # Experimental options:
     # obs_disp_points = dpo.utilities.filter_to_meas_type(obs_disp_points, 'continuous');  # experimental design step.
-    maacama_pts = np.loadtxt(exp_dict["faults"]["Maacama"]["points"]);
-    bartlett_springs_pts = np.loadtxt(exp_dict["faults"]["BSF"]["points"]);
-    obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_disp_points, maacama_pts, radius_km=5);
-    obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_disp_points, bartlett_springs_pts, radius_km=5);
+    obs_disp_points = remove_near_fault_points(obs_disp_points, exp_dict["faults"]["Maacama"]["points"])
+    obs_disp_points = remove_near_fault_points(obs_disp_points, exp_dict["faults"]["BSF"]["points"])
     obs_disp_points = dpo.utilities.filter_by_bounding_box(obs_disp_points, [-127, -120, 38.5, 45]);  # exp. step
 
     # INPUT stage: Read GF models based on the configuration parameters

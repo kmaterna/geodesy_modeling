@@ -35,7 +35,7 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
 
     counter = 0;
     norm_factor = 1;
-    disp_points_all_patches, all_patches = [], [];
+    disp_points_all_patches, all_patches, given_slip = [], [], [];
     for i in range(len(fault_patches)):
         if not inside_lonlat_box(latlonbox, [fault_patches[i]["lon"], fault_patches[i]["lat"]]):  # southern patches
             counter = counter + len(gps_disp_locs);
@@ -61,8 +61,9 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
         [fault_slip_patch] = fso.fault_slip_object.change_fault_slip([fault_patches[i]],
                                                                      fault_patches[i]["slip"] * norm_factor);
         all_patches.append(fault_slip_patch);
+        given_slip.append(fault_patches[i]["slip"]);  # in mm
 
-    return disp_points_all_patches, all_patches;
+    return disp_points_all_patches, all_patches, given_slip;
 
 
 def write_csz_dist_fault_patches(all_fault_patches, model_vector, outfile):
