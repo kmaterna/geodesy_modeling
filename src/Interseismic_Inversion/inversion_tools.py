@@ -158,7 +158,7 @@ def buildG_column(GF_disp_points, obs_disp_points):
 
 def build_obs_vector(obs_disp_points):
     """
-    Build observation vector (will eventually have leveling here too)
+    Build observation 1D-vector
     """
     obs, sigmas = [], [];
     for item in obs_disp_points:
@@ -166,6 +166,13 @@ def build_obs_vector(obs_disp_points):
         obs = np.concatenate((obs, new_values), axis=0);
         sigmas = np.concatenate((sigmas, new_sigmas), axis=0);
     return obs, sigmas;
+
+
+def forward_disp_points_predictions(G, m, sigmas, paired_obs):
+    """Create a convenient list of disp_points from a forward prediction based on G and m and sigma matrices/vectors."""
+    model_pred = G.dot(m) * sigmas;
+    model_disp_points = unpack_model_pred_vector(model_pred, paired_obs);
+    return model_disp_points;
 
 
 def unpack_model_pred_vector(model_pred, paired_obs):
@@ -234,6 +241,7 @@ def unpack_model_of_particular_fault(M_vector, parameter_names, target_fault):
             fault_params_vector[i] = 1;
     M_fault = np.multiply(M_vector, fault_params_vector);
     return M_fault;
+
 
 def get_fault_element_distance(fault_dict1, fault_dict2):
     distance = haversine.distance([fault_dict1["lat"], fault_dict1["lon"]], [fault_dict2["lat"], fault_dict2["lon"]]);
