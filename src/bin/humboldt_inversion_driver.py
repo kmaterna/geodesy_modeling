@@ -23,6 +23,7 @@ reader_dictionary = {
     "ridge": HR.read_correction_data_table,
     "fred": HR.read_correction_data_table,
     "ghost": HR.read_ghost_transient_table,
+    "ep": HR.get_euler_pole_correction,
     "bc": library.io_static1d.read_static1D_output_file
 }
 
@@ -80,8 +81,7 @@ def read_fault_gf_elements(exp_dict):
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],
                                                       lower_bound=exp_dict["faults"]["CSZ"]["slip_min"],
-                                                      # upper_bound=exp_dict["faults"]["CSZ"]["slip_max"],
-                                                      upper_bound=max0*100,  # max slip from geometry, in units of cm
+                                                      upper_bound=max0*130,  # max slip from geometry, in units of cm
                                                       slip_penalty_flag=1, units='cm/yr', points=[]);
                 gf_elements.append(one_gf_element);
         else:  # Reading for LSF, MRF, other fault cases
@@ -90,6 +90,16 @@ def read_fault_gf_elements(exp_dict):
             temp, _ = library.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
             mod_disp_points = library.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
             fault_points = np.loadtxt(exp_dict["faults"][fault_name]["points"]);
+            if "creep_correction" in exp_dict["faults"][fault_name].keys():
+                correction_file = exp_dict["faults"][fault_name]["creep_correction"]
+                correction_strength = exp_dict["faults"][fault_name]["creep_multiplier"];
+                if correction_strength > 0:
+                    creep_correction_dpo = library.io_static1d.read_static1D_output_file(correction_file,
+                                                                                         exp_dict["lonlatfile"]);
+                    creep_correction_dpo = dpo.utilities.mult_disp_points_by(creep_correction_dpo, correction_strength);
+                    fault_gf = exp_dict["faults"][fault_name]["GF_15km"];
+                    mod_disp_points = library.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
+                    mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, creep_correction_dpo);
             one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, fault_name=fault_name,
                                                   fault_dict_list=temp,
                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
@@ -119,6 +129,8 @@ def run_humboldt_inversion(config_file):
     # COMPUTE STAGE: PREPARE ROTATION GREENS FUNCTIONS AND LEVELING OFFSET
     gf_elements_rotation = inv_tools.get_GF_rotation_elements(obs_disp_points);  # 3 elements: rot_x, rot_y, rot_z
     gf_elements = gf_elements + gf_elements_rotation;  # add rotation elements to matrix
+    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_points, target_region=[-126, -119, 40.4, 46]);
+    gf_elements = gf_elements + gf_elements_rotation2;  # add second rotation elements (Oregon Coast Block)
     gf_element_lev = inv_tools.get_GF_leveling_offset_element(obs_disp_points);  # 1 element: lev reference frame
     gf_elements = gf_elements + gf_element_lev;
 
@@ -182,7 +194,7 @@ def run_humboldt_inversion(config_file):
                                    paired_gf_elements,
                                    ignore_faults=['CSZ_dist'], message=response.message);
     inv_tools.write_fault_traces(M_opt, paired_gf_elements, exp_dict["outdir"] + '/fault_output.txt',
-                                 ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset', 'LSFRev']);
+                                 ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset']);
     readers.write_csz_dist_fault_patches(fault_dict_lists, M_opt, exp_dict["outdir"] + '/csz_model.gmt');
     inv_tools.view_full_results(exp_dict, paired_obs, model_disp_points, residual_pts, rot_modeled_pts,
                                 norot_modeled_pts, rms_title, region=[-127, -119.7, 37.7, 43.5]);

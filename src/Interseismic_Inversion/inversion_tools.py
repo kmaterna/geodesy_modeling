@@ -60,7 +60,7 @@ def add_all_csz_patches(one_patch_gfs):
     return new_pts;
 
 
-def get_GF_rotation_elements(obs_disp_points):
+def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)):
     """
     Build 3 GF_elements for horizontal rotation of GNSS velocities due to reference frames
     X rotation: [0, 0, 1] Euler Pole
@@ -71,19 +71,23 @@ def get_GF_rotation_elements(obs_disp_points):
     x_disp_p, y_disp_p, z_disp_p = [], [], [];
     for obs_item in obs_disp_points:
         coords = [obs_item.lon, obs_item.lat];
+        if target_region[0] < obs_item.lon < target_region[1] and target_region[2] < obs_item.lat < target_region[3]:
+            mult = 1;
+        else:
+            mult = 0;
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [0, 0, 1]);   # X direction
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=response_to_rot[0],
-                                          dN_obs=response_to_rot[1], dU_obs=response_to_rot[2],
+        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
+                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
                                           Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
         x_disp_p.append(response);
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [90, 0, 1]);  # Y direction
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=response_to_rot[0],
-                                          dN_obs=response_to_rot[1], dU_obs=response_to_rot[2],
+        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
+                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
                                           Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
         y_disp_p.append(response);
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [0, 89.99, 1]);  # Z direction
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=response_to_rot[0],
-                                          dN_obs=response_to_rot[1], dU_obs=response_to_rot[2],
+        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
+                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
                                           Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
         z_disp_p.append(response);
 
