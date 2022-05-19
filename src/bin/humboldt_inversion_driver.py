@@ -188,6 +188,11 @@ def run_humboldt_inversion(config_file):
     PyCoulomb.io_additionals.write_disp_points_results(model_disp_points, exp_dict["outdir"] + '/model_pred_file.txt');
     PyCoulomb.io_additionals.write_disp_points_results(residual_pts, exp_dict["outdir"] + '/resid_file.txt');
     PyCoulomb.io_additionals.write_disp_points_results(paired_obs, exp_dict["outdir"] + '/simple_obs_file.txt');
+
+    PyCoulomb.disp_points_object.outputs.write_disp_points_gmt(model_disp_points, exp_dict["outdir"] + '/model_pred_file_gmt.txt', write_meas_type=True);
+    PyCoulomb.disp_points_object.outputs.write_disp_points_gmt(residual_pts, exp_dict["outdir"] + '/resid_file_gmt.txt', write_meas_type=True);
+    PyCoulomb.disp_points_object.outputs.write_disp_points_gmt(paired_obs, exp_dict["outdir"] + '/simple_obs_file_gmt.txt', write_meas_type=True);
+
     inv_tools.write_model_params(M_opt, rms_mm, exp_dict["outdir"] + '/' + exp_dict["model_file"],
                                  paired_gf_elements);
     inv_tools.write_summary_params(M_opt, rms_mm, exp_dict["outdir"] + '/model_results_human.txt',
