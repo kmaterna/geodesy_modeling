@@ -9,7 +9,7 @@ Depends on Humboldt Bay project code for some functions. It will not work on a d
 
 import numpy as np
 import scipy.optimize
-import subprocess, json, sys
+import subprocess, json, sys, argparse, os
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
@@ -27,17 +27,40 @@ reader_dictionary = {
     "bc": library.io_static1d.read_static1D_output_file
 }
 
-def configure(config_file, fault_config_file):
-    """Set up an experiment directory."""
-    with open(config_file) as f:
-        exp_dict = json.load(f);
-    with open(fault_config_file) as f:
-        metadata = json.load(f);
-    exp_dict["faults"] = metadata["faults"];
-    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);
-    subprocess.call(['cp', config_file, exp_dict["outdir"] + "/config.txt"]);
-    subprocess.call(['cp', fault_config_file, exp_dict["outdir"] + "/fault_configs.txt"]);
-    print("Success resolving imports")
+def configure():
+    p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
+    p.add_argument('configfile', default='config.json');  # required first argument
+    p.add_argument('faultconfigfile', default='fault_config.json');  # required second argument
+    p.add_argument('--data_file', type=str, help='''filename with velocities''');
+    p.add_argument('--lonlatfile', type=str, help='''filename with lonlats''');
+    p.add_argument('--corrections', type=list, help='''List of correction dictionaries''');
+    p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''');
+    p.add_argument('--slip_penalty', type=float, help='''strength of minimum-norm slip constraint''');
+    p.add_argument('--max_depth_csz_slip', type=float, help='''Maximum depth of slip distribution on CSZ''');
+    p.add_argument('--bbox', type=list, help='''Area being included in the data [W, E, S, N]''');
+    p.add_argument('--exclude_regions', type=list, help='''Areas optionally excluded from the data [[W, E, S, N],]''');
+    p.add_argument('--continuous_only', type=list, help='''Flag to use only continuous GNSS''');
+    p.add_argument('--outdir', type=str, help='''Output directory''');
+    p.add_argument('--model_file', type=str, help='''Name of model file''');
+    p.add_argument('--exp_faults', type=list, help='''Faults used in this inversion''');
+    p.add_argument('--inverse_dir', type=str, help='''Way to get to the home directory of inverses''');
+    exp_dict = vars(p.parse_args())
+
+    if os.path.exists(exp_dict["configfile"]):
+        config_file = open(exp_dict["configfile"], 'r');
+        exp_dict = json.load(config_file)
+    else:
+        exp_dict = {}
+    p.set_defaults(**exp_dict);
+    exp_dict = vars(p.parse_args())
+    exp_dict["lonlatfile"] = exp_dict["inverse_dir"] + exp_dict["lonlatfile"];
+    exp_dict["data_file"] = exp_dict["inverse_dir"] + exp_dict["data_file"];
+    with open(exp_dict["faultconfigfile"]) as f:   # """ Load the faults"""
+        exp_dict["faults"] = json.load(f)["faults"];
+    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
+    with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
+        json.dump(exp_dict, fp, indent=4);
+    print("Success resolving imports");
     return exp_dict;
 
 
@@ -52,7 +75,8 @@ def correct_for_far_field_terms(exp_dict, obs_disp_points):
     Velocity corrections, to set boundary conditions, some from Pollitz & Evans, 2017.
     """
     for correction in exp_dict["corrections"]:
-        correction_dps = reader_dictionary[correction["type"]](correction["file"], exp_dict["lonlatfile"]);
+        correction_dps = reader_dictionary[correction["type"]](exp_dict["inverse_dir"]+correction["file"],
+                                                               exp_dict["lonlatfile"]);
         correction_dps = dpo.utilities.mult_disp_points_by(correction_dps, correction["scale"]);
         if correction["type"] == "csz":
             obs_disp_points = dpo.utilities.subtract_disp_points(obs_disp_points, correction_dps, tol=0.001,
@@ -73,56 +97,61 @@ def read_fault_gf_elements(exp_dict):
     for i in range(len(exp_dict["exp_faults"])):  # for each fault
         fault_name = exp_dict["exp_faults"][i];
         if fault_name == "CSZ_dist":  # Reading for distributed CSZ patches as unit slip.
-            one_patch_dps, csz_patches, maxslip = readers.read_distributed_GF(exp_dict["faults"]["CSZ"]["GF"],
-                                                                              exp_dict["faults"]["CSZ"]["geometry"],
+            one_patch_dps, csz_patches, maxslip = readers.read_distributed_GF(exp_dict["inverse_dir"]+exp_dict["faults"]["CSZ"]["GF"],
+                                                                              exp_dict["inverse_dir"]+exp_dict["faults"]["CSZ"]["geometry"],
                                                                               exp_dict["lonlatfile"], unit_slip=True,
                                                                               latlonbox=(-127, -120, 38, 44.5));
             for gf_disp_points, patch, max0 in zip(one_patch_dps, csz_patches, maxslip):
+                amount_of_slip_penalty = 1;
+                if patch["depth"] > exp_dict["max_depth_csz_slip"]:
+                    amount_of_slip_penalty = 100;   # optionally: force CSZ slip to be above a certain depth
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],
                                                       lower_bound=exp_dict["faults"]["CSZ"]["slip_min"],
                                                       upper_bound=max0*130,  # max slip from geometry, in units of cm
-                                                      slip_penalty_flag=1, units='cm/yr', points=[]);
+                                                      slip_penalty=amount_of_slip_penalty, units='cm/yr',
+                                                      points=[]);
                 gf_elements.append(one_gf_element);
         else:  # Reading for LSF, MRF, other fault cases
-            fault_gf = exp_dict["faults"][fault_name]["GF"];
-            fault_geom = exp_dict["faults"][fault_name]["geometry"];
+            fault_gf = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF"];
+            fault_geom = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["geometry"];
             temp, _ = library.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
             mod_disp_points = library.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
-            fault_points = np.loadtxt(exp_dict["faults"][fault_name]["points"]);
+            fault_points = np.loadtxt(exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["points"]);
             if "creep_multiplier" in exp_dict["faults"][fault_name].keys():
                 correction_strength = exp_dict["faults"][fault_name]["creep_multiplier"];
                 if correction_strength > 0:
-                    correction_file1 = exp_dict["faults"][fault_name]["GF_15km_visco"]
-                    correction_file2 = exp_dict["faults"][fault_name]["GF_15km_stat"]
-                    mod_disp_points1 = library.io_static1d.read_static1D_output_file(correction_file1, exp_dict["lonlatfile"]);
-                    mod_disp_points1 = dpo.utilities.mult_disp_points_by(mod_disp_points1, 1/500);
-                    mod_disp_points2 = library.io_static1d.read_static1D_output_file(correction_file2, exp_dict["lonlatfile"]);
-                    mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_disp_points1);
-                    mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_disp_points2);
+                    correction_file1 = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF_15km_visco"]
+                    correction_file2 = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF_15km_stat"]
+                    mod_dpo1 = library.io_static1d.read_static1D_output_file(correction_file1, exp_dict["lonlatfile"]);
+                    mod_dpo1 = dpo.utilities.mult_disp_points_by(mod_dpo1, 1/500);
+                    mod_dpo2 = library.io_static1d.read_static1D_output_file(correction_file2, exp_dict["lonlatfile"]);
+                    mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo1);
+                    mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo2);
             one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, fault_name=fault_name,
                                                   fault_dict_list=temp,
                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
                                                   upper_bound=exp_dict["faults"][fault_name]["slip_max"],
-                                                  slip_penalty_flag=0, units='cm/yr', points=fault_points);
+                                                  slip_penalty=0, units='cm/yr', points=fault_points);
             gf_elements.append(one_gf_element);
     return gf_elements;
 
 
-def run_humboldt_inversion(config_file, fault_config_file):
+def run_humboldt_inversion():
     # Starting program.  Configure stage
-    exp_dict = configure(config_file, fault_config_file);
+    exp_dict = configure();
 
     # # INPUT stage: Read obs velocities as cc.Displacement_Points
     obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);   # all 783 points
     obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
     # Experimental options:
-    # obs_disp_points = dpo.utilities.filter_to_meas_type(obs_disp_points, 'continuous');  # experimental design step.
-    obs_disp_points = remove_near_fault_points(obs_disp_points, exp_dict["faults"]["Maacama"]["points"])
-    obs_disp_points = remove_near_fault_points(obs_disp_points, exp_dict["faults"]["BSF"]["points"])
-    obs_disp_points = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_points, [-121.6, -121.4, 40.4, 40.55]);  # Lassen
-    obs_disp_points = dpo.utilities.filter_by_bounding_box(obs_disp_points, [-127, -120, 38.5, 45]);  # north of 38.5
-    obs_disp_points = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_points, [-123.04983, -123.04981, 39.40933, 39.40935]);  # P340
+    if exp_dict["continuous_only"]:
+        obs_disp_points = dpo.utilities.filter_to_meas_type(obs_disp_points, 'continuous');  # experimental design step
+    obs_disp_points = remove_near_fault_points(obs_disp_points, exp_dict["inverse_dir"]+exp_dict["faults"]["Maacama"]["points"])
+    obs_disp_points = remove_near_fault_points(obs_disp_points, exp_dict["inverse_dir"]+exp_dict["faults"]["BSF"]["points"])
+    for excluded_region in exp_dict["exclude_regions"]:
+        obs_disp_points = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_points, excluded_region);  # Lassen etc.
+    obs_disp_points = dpo.utilities.filter_by_bounding_box(obs_disp_points, exp_dict["bbox"]);  # north of 38.5
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
@@ -216,5 +245,9 @@ def run_humboldt_inversion(config_file, fault_config_file):
 
 
 if __name__ == "__main__":
-    config_file, fault_config_file = sys.argv[1], sys.argv[2];  # take config file from runstring.
-    run_humboldt_inversion(config_file, fault_config_file);
+    if len(sys.argv) == 1:
+        print("Error! Please provide the name of config files. "
+              " Ex: humboldt_inversion_driver.py config.json fault_config.json");
+        sys.exit(0);
+    else:
+        run_humboldt_inversion();

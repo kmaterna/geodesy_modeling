@@ -12,7 +12,7 @@ GF_element is everything you would need to make a column of the Green's matrix a
 """
 GF_element = collections.namedtuple('GF_element', ['disp_points', 'fault_name',
                                                    'fault_dict_list', 'upper_bound', 'lower_bound',
-                                                   'slip_penalty_flag', 'units', 'points']);
+                                                   'slip_penalty', 'units', 'points']);
 
 
 def pair_obs_gf(obs_disp_points, model_disp_points):
@@ -45,7 +45,7 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
         paired_gf_elements.append(GF_element(disp_points=paired_gf, fault_name=gf_model.fault_name,
                                              fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
                                              upper_bound=gf_model.upper_bound,
-                                             slip_penalty_flag=gf_model.slip_penalty_flag, units=gf_model.units,
+                                             slip_penalty=gf_model.slip_penalty, units=gf_model.units,
                                              points=gf_model.points));
         if len(paired_gf) != target_len:
             raise ValueError("ERROR! Not all points have green's functions.");
@@ -92,11 +92,11 @@ def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)
         z_disp_p.append(response);
 
     xresponse = GF_element(disp_points=x_disp_p, fault_name='x_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty_flag=0, units='deg/Ma', points=[]);
+                           slip_penalty=0, units='deg/Ma', points=[]);
     yresponse = GF_element(disp_points=y_disp_p, fault_name='y_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty_flag=0, units='deg/Ma', points=[]);
+                           slip_penalty=0, units='deg/Ma', points=[]);
     zresponse = GF_element(disp_points=z_disp_p, fault_name='z_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty_flag=0, units='deg/Ma', points=[]);
+                           slip_penalty=0, units='deg/Ma', points=[]);
     return [xresponse, yresponse, zresponse];
 
 
@@ -118,7 +118,7 @@ def get_GF_leveling_offset_element(obs_disp_points):
                                               Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
         total_response_pts.append(response);
     lev_offset_gf = GF_element(disp_points=total_response_pts, fault_name='lev_offset', fault_dict_list=[],
-                               upper_bound=1, lower_bound=-1, slip_penalty_flag=0, units='m/yr', points=[]);
+                               upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr', points=[]);
     if lev_count == 0:
         return [];
     else:
@@ -336,8 +336,8 @@ def build_slip_penalty(gf_elements, penalty, G, obs, sigmas):
 
     G_penalty = np.zeros((len(gf_elements), len(gf_elements)));
     for i in range(len(gf_elements)):
-        if gf_elements[i].slip_penalty_flag == 1:
-            G_penalty[i][i] = 1;
+        if gf_elements[i].slip_penalty > 0:
+            G_penalty[i][i] = gf_elements[i].slip_penalty;
 
     G_penalty = G_penalty * penalty;  # multiplying by lambda factor
 
