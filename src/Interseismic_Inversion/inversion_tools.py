@@ -15,13 +15,13 @@ GF_element = collections.namedtuple('GF_element', ['disp_points', 'fault_name',
                                                    'slip_penalty', 'units', 'points']);
 
 
-def pair_obs_gf(obs_disp_points, model_disp_points):
+def pair_obs_gf(obs_disp_pts, model_disp_pts):
     """
-    Operates on two disp_points objects, just pairing the 3-component objects together
+    Operates on two lists of disp_points objects, just pairing the objects together where their locations match
     """
     paired_gf, paired_obs = [], [];
-    for obs_item in obs_disp_points:
-        for gf_item in model_disp_points:
+    for obs_item in obs_disp_pts:
+        for gf_item in model_disp_pts:
             if abs(obs_item.lon - gf_item.lon) < 0.001 and abs(obs_item.lat - gf_item.lat) < 0.001:
                 paired_gf.append(gf_item);
                 paired_obs.append(obs_item);
@@ -78,17 +78,20 @@ def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [0, 0, 1]);   # X direction
         response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
                                           dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
+                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
+                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
         x_disp_p.append(response);
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [90, 0, 1]);  # Y direction
         response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
                                           dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
+                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
+                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
         y_disp_p.append(response);
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [0, 89.99, 1]);  # Z direction
         response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
                                           dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=obs_item.meas_type);
+                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
+                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
         z_disp_p.append(response);
 
     xresponse = GF_element(disp_points=x_disp_p, fault_name='x_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
@@ -111,11 +114,13 @@ def get_GF_leveling_offset_element(obs_disp_points):
     for item in obs_disp_points:
         if item.meas_type == "leveling":
             response = cc.Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=1,
-                                              Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
+                                              Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type, refframe=None,
+                                              name=None, starttime=None, endtime=None);
             lev_count += 1;
         else:
             response = cc.Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=0,
-                                              Se_obs=np.nan, Sn_obs=np.nan, Su_obs=np.nan, meas_type=item.meas_type);
+                                              Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type, refframe=None,
+                                              name=None, starttime=None, endtime=None);
         total_response_pts.append(response);
     lev_offset_gf = GF_element(disp_points=total_response_pts, fault_name='lev_offset', fault_dict_list=[],
                                upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr', points=[]);
@@ -208,24 +213,25 @@ def unpack_model_pred_vector(model_pred, paired_obs):
         new_disp_point = cc.Displacement_points(lon=paired_obs[i].lon, lat=paired_obs[i].lat,
                                                 dE_obs=E, dN_obs=N, dU_obs=U,
                                                 Se_obs=0, Sn_obs=0, Su_obs=0,
-                                                name=paired_obs[i].name, meas_type=paired_obs[i].meas_type);
+                                                name=paired_obs[i].name, meas_type=paired_obs[i].meas_type,
+                                                refframe=paired_obs[i].refframe, starttime=None, endtime=None);
         disp_points_list.append(new_disp_point);
     return disp_points_list;
 
 
-def unpack_model_of_rotation_only(M_vector, parameter_names):
+def unpack_model_of_rotation_only(M_vector, parameter_names, rot_target_names=("x_rot", "y_rot", "z_rot")):
     """
-    1) Zeros out all model parameters except the rotation (leaving the last three)
-    2) Zeros out all the rotation (canceling the last three)
-    :parameter M_vector: vector of model parameters
-    :parameter parameter_names: list of strings, derived from fault_name of a GF_element
-    """
+    First, create a pure rotation model. Zero out all model parameters except the rotation, leaving the last three.
+    Then, create a no-net-rotation model. Zero out all the rotation, leaving everything else.
+
+    :param M_vector: vector of model parameters
+    :param parameter_names: list of strings, derived from fault_name of a GF_element
+    :param rot_target_names: a list of parameter names for rotation parameters (default x_rot, y_rot, z_rot)
+s    """
     rot_multiplier = np.zeros(np.shape(M_vector));
     fault_multiplier = np.zeros(np.shape(M_vector));
     for i in range(len(parameter_names)):
-        if parameter_names[i] == 'lev_offset':
-            continue;
-        elif parameter_names[i] in ["x_rot", "y_rot", "z_rot"]:
+        if parameter_names[i] in rot_target_names:  # if we are seeing a rotation parameter
             rot_multiplier[i] = 1;
         else:
             fault_multiplier[i] = 1;
@@ -234,17 +240,22 @@ def unpack_model_of_rotation_only(M_vector, parameter_names):
     return M_rot_only, M_no_rot;
 
 
-def unpack_model_of_particular_fault(M_vector, parameter_names, target_fault):
+def unpack_model_of_target_param(M_vector, parameter_names, target_name):
     """
-    Simplify a model vector into only those components from particular target_fault (string), such as 'CSZ_dist'
+    Simplify a model vector into only those components from particular target_name (string), such as 'CSZ_dist'
     Useful for investigating a forward model.
+
+    :param M_vector: array of numbers, model parameter values
+    :param parameter_names: list of parameters names for each model parameter
+    :param target_name: name of desired model parameter
+    :returns: vector of zeros except for the model values corresponding to target name (e.g., 5 mm/yr on one fault)
     """
-    fault_params_vector = np.zeros(np.shape(M_vector));
+    target_params_vector = np.zeros(np.shape(M_vector));
     for i in range(len(parameter_names)):
-        if parameter_names[i] == target_fault:
-            fault_params_vector[i] = 1;
-    M_fault = np.multiply(M_vector, fault_params_vector);
-    return M_fault;
+        if parameter_names[i] == target_name:
+            target_params_vector[i] = 1;
+    M_target = np.multiply(M_vector, target_params_vector);
+    return M_target;
 
 
 def get_fault_element_distance(fault_dict1, fault_dict2):
@@ -355,6 +366,10 @@ def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
     """
     Remove lines of zeros automatically added to obs/sigma vectors for smoothing and slip penalty parameters.
     All inputs are expected to be vectors with the same length.
+
+    :param pred_vector: array, in m
+    :param obs_vector: array, in m
+    :param sigma_vector: array, in m
     """
     tol = 1e-9;
     new_pred_vector, new_obs_vector, new_sigma_vector = [], [], [];
@@ -368,23 +383,6 @@ def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
     print("During RMS calc., filter vectors from %d to %d for "
           "smoothing and penalty" % (len(pred_vector), len(new_pred_vector)) );
     return new_pred_vector, new_obs_vector, new_sigma_vector;
-
-
-def rms_from_model_pred_vector(pred_vector, obs_vector, sigma_vector):
-    """
-    Various ways to compute the RMS value
-    All inputs are expected to be vectors with the same length.
-    """
-    # Filter out lines added for smoothing
-    pred_vector, obs_vector, sigma_vector = filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector);
-    residuals = np.subtract(obs_vector, pred_vector);
-    rms_mm = np.multiply(np.sqrt(np.mean(np.square(residuals))), 1000);
-    added_sum = 0;
-    for i in range(len(pred_vector)):
-        chi2 = np.square(obs_vector[i]-pred_vector[i]) / np.square(sigma_vector[i]);
-        added_sum = added_sum + chi2
-    reported_chi2 = added_sum / len(sigma_vector);
-    return rms_mm, reported_chi2;
 
 
 def write_model_params(v, residual, outfile, GF_elements=None):
@@ -410,8 +408,9 @@ def write_model_params(v, residual, outfile, GF_elements=None):
 def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), message=''):
     """
     Write a human-readable results file, with the potential to ignore faults with distributed models for clarity
+
     :param v: vector of model parameters, floats
-    :param residual: float, mm/yr
+    :param residual: array of floats, mm/yr and normalized
     :param outfile: string
     :param GF_elements: list of GF_element objects
     :param ignore_faults: list of strings
@@ -426,7 +425,11 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
         ofile.write("%.5f %s" % (v[i], GF_elements[i].units));
         ofile.write('  [within %.3f to %.3f]' % (GF_elements[i].lower_bound, GF_elements[i].upper_bound) );
         ofile.write("\n");
-    report_string = "\nRMS: %f mm/yr, on %d observations\n" % (residual, len(GF_elements[0].disp_points));
+    report_string = "\nWith %d observations\n" % (len(GF_elements[0].disp_points));
+    ofile.write(report_string);
+    report_string = "RMS misfit [h, v, t]: %f %f %f mm/yr\n" % (residual[0], residual[1], residual[2]);
+    ofile.write(report_string);
+    report_string = "RMS normalized [h, v, t]: %f %f %f \n" % (residual[3], residual[4], residual[5]);
     ofile.write(report_string);
     ofile.write("Message: "+message+"\n");
     ofile.close();
@@ -458,8 +461,10 @@ def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, r
 def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
     """
     Aside to the main calculation, just view each GF.
-    Inputs: list of GF_elements objects
-    string for outdir
+
+    :param GF_elements_list: list of GF_elements objects
+    :param outdir: string for outdir
+    :param exclude_list: optional list of GF_element.fault_names to exclude from visualizing
     """
     if exclude_list == 'all':
         return;
@@ -478,3 +483,16 @@ def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
                                                              scale_arrow=scale_arrow,
                                                              v_labeling_interval=0.001);
     return;
+
+
+def remove_nearfault_pts(obs_points, fault_trace_file):
+    """
+    Wraps dpo.utilities.filter_to_remove_near_fault so that we can pass a filename.
+
+    :param obs_points: a list of disp_point objects
+    :param fault_trace_file: filename that contains two columns of numbers for fault trace: lon, lat
+    """
+    trace_pts = np.loadtxt(fault_trace_file);
+    print("Removing near-fault points from file %s " % fault_trace_file);
+    obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_points, trace_pts, radius_km=10);
+    return obs_disp_points;

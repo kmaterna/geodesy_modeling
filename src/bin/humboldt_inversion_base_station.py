@@ -144,7 +144,7 @@ def run_humboldt_inversion(config_file):
 
     # Make forward predictions
     M_rot_only, M_no_rot = inv_tools.unpack_model_of_rotation_only(M_opt, [x.fault_name for x in paired_gf_elements]);
-    M_csz = inv_tools.unpack_model_of_particular_fault(M_opt, [x.fault_name for x in paired_gf_elements], 'CSZ_dist');
+    M_csz = inv_tools.unpack_model_of_target_param(M_opt, [x.fault_name for x in paired_gf_elements], 'CSZ_dist');
     model_disp_points = inv_tools.forward_disp_points_predictions(G, M_opt, sigmas, paired_obs);
     rot_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_rot_only, sigmas, paired_obs);
     norot_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_no_rot, sigmas, paired_obs);
