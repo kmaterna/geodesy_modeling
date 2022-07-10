@@ -12,8 +12,8 @@ import scipy.optimize
 import subprocess, json, sys, argparse, os
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
-import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
-import Geodesy_Modeling.src.Interseismic_Inversion.readers as readers
+import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
+import Geodesy_Modeling.src.Inversion.readers as readers
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.disp_points_object.outputs as dpo_out
 sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
@@ -147,7 +147,6 @@ def run_humboldt_inversion():
     for excluded_region in exp_dict["exclude_regions"]:
         obs_disp_points = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_points, excluded_region);  # Lassen etc.
     obs_disp_points = dpo.utilities.filter_by_bounding_box(obs_disp_points, exp_dict["bbox"]);  # north of 38.5
-    # one last step: Filter one more tide gage.
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_hb_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
@@ -173,8 +172,10 @@ def run_humboldt_inversion():
     G = np.concatenate(tuple(list_of_gf_columns), axis=1);
 
     # Build observation vector
-    obs, _sigmas = inv_tools.build_obs_vector(paired_obs);
-    sigmas = np.ones(np.shape(obs));  # placeholder until uncertainty on tide gages is determined.
+    obs, sigmas = inv_tools.build_obs_vector(paired_obs);
+    sigmas = np.divide(sigmas, np.nanmean(sigmas));  # normalizing so smoothing has same order-of-magnitude
+    if exp_dict["unc_weighted"] == 0:
+        sigmas = np.ones(np.shape(obs));
     G /= sigmas[:, None];
     weighted_obs = obs / sigmas;
 
@@ -197,7 +198,7 @@ def run_humboldt_inversion():
         print("Maximum number of iterations exceeded. Cannot trust this inversion. Exiting");
         sys.exit(0);
 
-    # Make forward predictions
+    # Make forward predictions.  Work in disp_pts as soon as possible, not matrices.
     M_rot_only, M_no_rot = inv_tools.unpack_model_of_rotation_only(M_opt, [x.fault_name for x in paired_gf_elements]);
     M_csz = inv_tools.unpack_model_of_target_param(M_opt, [x.fault_name for x in paired_gf_elements], 'CSZ_dist');
     M_LSF = inv_tools.unpack_model_of_target_param(M_opt, [x.fault_name for x in paired_gf_elements], 'LSFRev');
@@ -221,13 +222,13 @@ def run_humboldt_inversion():
     PyCoulomb.io_additionals.write_disp_points_results(residual_pts, exp_dict["outdir"] + '/resid_file.txt');
     PyCoulomb.io_additionals.write_disp_points_results(paired_obs, exp_dict["outdir"] + '/simple_obs_file.txt');
 
-    dpo_out.write_disp_points_gmt(model_disp_pts, exp_dict["outdir"] + '/model_pred_gmt.txt', write_meas_type=True);
-    dpo_out.write_disp_points_gmt(residual_pts, exp_dict["outdir"] + '/resid_file_gmt.txt', write_meas_type=True);
-    dpo_out.write_disp_points_gmt(paired_obs, exp_dict["outdir"] + '/simple_obs_file_gmt.txt', write_meas_type=True);
-    dpo_out.write_disp_points_gmt(csz_modeled_pts, exp_dict["outdir"] + '/csz_model_pred.txt', write_meas_type=True);
-    dpo_out.write_disp_points_gmt(lsf_modeled_pts, exp_dict["outdir"] + '/lsf_model_pred.txt', write_meas_type=True);
+    dpo_out.write_disp_points_gmt(model_disp_pts, exp_dict["outdir"] + '/model_pred_gmt.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(residual_pts, exp_dict["outdir"] + '/resid_file_gmt.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(paired_obs, exp_dict["outdir"] + '/simple_obs_file_gmt.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(csz_modeled_pts, exp_dict["outdir"] + '/csz_model_pred.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(lsf_modeled_pts, exp_dict["outdir"] + '/lsf_model_pred.txt', write_meas_type=True)
 
-    inv_tools.write_model_params(M_opt, rms_mm_t, exp_dict["outdir"] + '/' + exp_dict["model_file"], paired_gf_elements);
+    inv_tools.write_model_params(M_opt, rms_mm_t, exp_dict["outdir"] + '/' + exp_dict["model_file"], paired_gf_elements)
     inv_tools.write_summary_params(M_opt, rms_obj, exp_dict["outdir"] + '/model_results_human.txt',
                                    paired_gf_elements, ignore_faults=['CSZ_dist'], message=response.message);
     inv_tools.write_fault_traces(M_opt, paired_gf_elements, exp_dict["outdir"] + '/fault_output.txt',

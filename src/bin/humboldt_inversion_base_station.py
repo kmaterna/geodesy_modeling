@@ -12,8 +12,8 @@ import scipy.optimize
 import sys
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
-import Geodesy_Modeling.src.Interseismic_Inversion.inversion_tools as inv_tools
-import Geodesy_Modeling.src.Interseismic_Inversion.readers as readers
+import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
+import Geodesy_Modeling.src.Inversion.readers as readers
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
 import humboldt_readers as HR  # Also had to add into pycharm project settings.

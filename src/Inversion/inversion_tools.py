@@ -410,7 +410,7 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
     Write a human-readable results file, with the potential to ignore faults with distributed models for clarity
 
     :param v: vector of model parameters, floats
-    :param residual: array of floats, mm/yr and normalized
+    :param residual: array of floats, mm/yr and normalized.  This might be a little project-specific
     :param outfile: string
     :param GF_elements: list of GF_element objects
     :param ignore_faults: list of strings
