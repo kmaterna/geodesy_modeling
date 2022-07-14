@@ -137,30 +137,31 @@ def run_humboldt_inversion():
     exp_dict = configure();
 
     # # INPUT stage: Read obs velocities as cc.Displacement_Points
-    obs_disp_points = HR.read_all_data_table(exp_dict["data_file"]);   # all 783 points
-    obs_disp_points = correct_for_far_field_terms(exp_dict, obs_disp_points);  # needed from Fred's work
+    obs_disp_pts = HR.read_all_data_table(exp_dict["data_file"]);   # all 783 points
+    # inv_tools.print_typical_uncs(obs_disp_pts);
+    obs_disp_pts = correct_for_far_field_terms(exp_dict, obs_disp_pts);  # needed from Fred's work
     # Experimental options:
     if exp_dict["continuous_only"] == 1:
-        obs_disp_points = dpo.utilities.filter_to_meas_type(obs_disp_points, 'continuous');  # experimental design step
-    obs_disp_points = inv_tools.remove_nearfault_pts(obs_disp_points, exp_dict["inverse_dir"]+exp_dict["faults"]["Maa"]["points"])
-    obs_disp_points = inv_tools.remove_nearfault_pts(obs_disp_points, exp_dict["inverse_dir"]+exp_dict["faults"]["BSF"]["points"])
+        obs_disp_pts = dpo.utilities.filter_to_meas_type(obs_disp_pts, 'continuous');  # experimental design step
+    obs_disp_pts = inv_tools.remove_nearfault_pts(obs_disp_pts, exp_dict["inverse_dir"]+exp_dict["faults"]["Maa"]["points"])
+    obs_disp_pts = inv_tools.remove_nearfault_pts(obs_disp_pts, exp_dict["inverse_dir"]+exp_dict["faults"]["BSF"]["points"])
     for excluded_region in exp_dict["exclude_regions"]:
-        obs_disp_points = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_points, excluded_region);  # Lassen etc.
-    obs_disp_points = dpo.utilities.filter_by_bounding_box(obs_disp_points, exp_dict["bbox"]);  # north of 38.5
+        obs_disp_pts = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_pts, excluded_region);  # Lassen etc.
+    obs_disp_pts = dpo.utilities.filter_by_bounding_box(obs_disp_pts, exp_dict["bbox"]);  # north of 38.5
 
     # INPUT stage: Read GF models based on the configuration parameters
     gf_elements = read_hb_fault_gf_elements(exp_dict);  # list of GF_elements, one for each fault-related column of G.
 
     # COMPUTE STAGE: PREPARE ROTATION GREENS FUNCTIONS AND LEVELING OFFSET
-    gf_elements_rotation = inv_tools.get_GF_rotation_elements(obs_disp_points);  # 3 elements: rot_x, rot_y, rot_z
+    gf_elements_rotation = inv_tools.get_GF_rotation_elements(obs_disp_pts);  # 3 elements: rot_x, rot_y, rot_z
     gf_elements = gf_elements + gf_elements_rotation;  # add rotation elements to matrix
-    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_points, target_region=[-126, -119, 40.4, 46]);
+    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_pts, target_region=[-126, -119, 40.4, 46]);
     gf_elements = gf_elements + gf_elements_rotation2;  # add second rotation elements (Oregon Coast Block)
-    gf_element_lev = inv_tools.get_GF_leveling_offset_element(obs_disp_points);  # 1 element: lev reference frame
+    gf_element_lev = inv_tools.get_GF_leveling_offset_element(obs_disp_pts);  # 1 element: lev reference frame
     gf_elements = gf_elements + gf_element_lev;
 
     # COMPUTE STAGE: Pairing is necessary in case you've filtered out any observations along the way.
-    paired_obs, paired_gf_elements = inv_tools.pair_gf_elements_with_obs(obs_disp_points, gf_elements);
+    paired_obs, paired_gf_elements = inv_tools.pair_gf_elements_with_obs(obs_disp_pts, gf_elements);
 
     inv_tools.visualize_GF_elements(paired_gf_elements, exp_dict["outdir"], exclude_list='all');
 

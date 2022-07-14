@@ -407,7 +407,8 @@ def write_model_params(v, residual, outfile, GF_elements=None):
 
 def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), message=''):
     """
-    Write a human-readable results file, with the potential to ignore faults with distributed models for clarity
+    Write a human-readable results file, with the potential to ignore faults with distributed models for clarity.
+    The "residual" field is a bit specific to the experiment
 
     :param v: vector of model parameters, floats
     :param residual: array of floats, mm/yr and normalized.  This might be a little project-specific
@@ -496,3 +497,23 @@ def remove_nearfault_pts(obs_points, fault_trace_file):
     print("Removing near-fault points from file %s " % fault_trace_file);
     obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_points, trace_pts, radius_km=10);
     return obs_disp_points;
+
+
+def print_typical_uncs(obs_points):
+    """
+    Print a median uncertainty in mm for each data type
+    """
+    unc_tide_gage = [1000*x.Su_obs for x in obs_points if x.meas_type == 'tide_gage'];
+    unc_leveling = [1000*x.Su_obs for x in obs_points if x.meas_type == 'leveling'];
+    unc_east_campaign = [1000*x.Se_obs for x in obs_points if x.meas_type == 'survey'];
+    unc_north_campaign = [1000 * x.Sn_obs for x in obs_points if x.meas_type == 'survey'];
+    unc_survey = unc_east_campaign + unc_north_campaign;
+    unc_east_continuous = [1000*x.Se_obs for x in obs_points if x.meas_type == 'continuous'];
+    unc_north_continuous = [1000 * x.Sn_obs for x in obs_points if x.meas_type == 'continuous'];
+    unc_up_continuous = [1000 * x.Su_obs for x in obs_points if x.meas_type == 'continuous'];
+    unc_continuous = unc_east_continuous + unc_north_continuous + unc_up_continuous;
+    print("continuous:", np.median(unc_continuous), np.mean(unc_continuous));
+    print("survey:", np.median(unc_survey), np.mean(unc_survey));
+    print("leveling:", np.median(unc_leveling), np.mean(unc_leveling));
+    print("tide gage:", np.median(unc_tide_gage), np.mean(unc_tide_gage));
+    return;
