@@ -38,6 +38,7 @@ def configure():
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''');
     p.add_argument('--slip_penalty', type=float, help='''strength of minimum-norm slip constraint''');
     p.add_argument('--max_depth_csz_slip', type=float, help='''Maximum depth of slip distribution on CSZ''');
+    p.add_argument('--depth_of_forced_coupling', type=float, help='''Depth of imposed coupling distribution on CSZ''');
     p.add_argument('--bbox', type=list, help='''Area being included in the data [W, E, S, N]''');
     p.add_argument('--exclude_regions', type=list, help='''Areas optionally excluded from the data [[W, E, S, N],]''');
     p.add_argument('--continuous_only', type=float, help='''Flag to use only continuous GNSS''');
@@ -45,6 +46,7 @@ def configure():
     p.add_argument('--model_file', type=str, help='''Name of model file''');
     p.add_argument('--exp_faults', type=list, help='''Faults used in this inversion''');
     p.add_argument('--inverse_dir', type=str, help='''Way to get to the home directory of inverses''');
+    p.add_argument('--lsfrev_min', type=str, help='''Constraint on little salmon reverse slip component, minimum cm''');
     exp_dict = vars(p.parse_args())
 
     if os.path.exists(exp_dict["configfile"]):
@@ -56,8 +58,10 @@ def configure():
     exp_dict = vars(p.parse_args())
     exp_dict["lonlatfile"] = exp_dict["inverse_dir"] + exp_dict["lonlatfile"];
     exp_dict["data_file"] = exp_dict["inverse_dir"] + exp_dict["data_file"];
-    with open(exp_dict["faultconfigfile"]) as f:   # """ Load the faults"""
+    with open(exp_dict["faultconfigfile"]) as f:   # Load the faults
         exp_dict["faults"] = json.load(f)["faults"];
+    if exp_dict["lsfrev_min"] is not None:   # LSF slip_minimum coming out into the command line
+        exp_dict["faults"]["LSFRev"]["slip_min"] = float(exp_dict["lsfrev_min"]);
     subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
@@ -97,13 +101,17 @@ def read_hb_fault_gf_elements(exp_dict):
                                                                               exp_dict["lonlatfile"], unit_slip=True,
                                                                               latlonbox=(-127, -120, 38, 44.5));
             for gf_disp_points, patch, max0 in zip(one_patch_dps, csz_patches, maxslip):
+                lower_bound = exp_dict["faults"]["CSZ"]["slip_min"];  # default lower bound, probabaly zero
+                upper_bound = max0*130;  # upper bound about 40 mm/yr; from max_slip from geometry; units in cm
                 amount_of_slip_penalty = 1;
                 if patch["depth"] > exp_dict["max_depth_csz_slip"]:
                     amount_of_slip_penalty = 100;   # optionally: force CSZ slip to be above a certain depth
+                if patch["depth"] < exp_dict["depth_of_forced_coupling"]:
+                    lower_bound = upper_bound * 0.90;  # optionally: force shallow CSZ to full coupling
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],
-                                                      lower_bound=exp_dict["faults"]["CSZ"]["slip_min"],
-                                                      upper_bound=max0*130,  # max slip from geometry, in units of cm
+                                                      lower_bound=lower_bound,
+                                                      upper_bound=upper_bound,
                                                       slip_penalty=amount_of_slip_penalty, units='cm/yr',
                                                       points=[]);
                 gf_elements.append(one_gf_element);
