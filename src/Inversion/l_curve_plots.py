@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-def plot_1d_curve(param_values, misfit, axis_name, outfile):
+def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
     """
     Make 1D plot for L-curve
 
@@ -11,8 +11,10 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile):
     :param misfit: 1D array
     :param axis_name: string
     :param outfile: string
+    :param corner_point: float, optional x-location where an annotation will be drawn
     """
     param = [1/x for x in param_values];
+
     def tick_function(X):  # for the upper axis labels
         V = 1 / X
         return ["%.4f" % z for z in V]
@@ -23,6 +25,9 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile):
     plt.xlabel("1/"+axis_name, fontsize=14);
     plt.ylabel('Misfit (mm)', fontsize=14);
     ax1 = plt.gca();
+    top, bottom = plt.gca().get_ylim();
+    if corner_point is not None:  # draw optional annotation
+        ax1.plot([1/corner_point, 1/corner_point], [bottom, top], '--r');
     ax2 = plt.twiny(ax1);
     ax2.set_xlim(ax1.get_xlim())
     new_tick_locations = np.array(np.divide(1, param_values));
@@ -39,6 +44,9 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile):
     ax1 = plt.gca()
     ax1.set_yscale('log');
     ax1.set_xscale('log');
+    top, bottom = plt.gca().get_ylim();
+    if corner_point is not None:   # draw optional annotation
+        ax1.plot([1/corner_point, 1/corner_point], [bottom, top], '--r');
     ax2 = plt.twiny(ax1);
     ax2.set_xscale('log');
     ax2.set_xlim(ax1.get_xlim())
@@ -105,5 +113,5 @@ def plot_l_curve_coordinator(params, misfits, outfile):
         plot_1d_curve(all_alphas, misfits, 'Slip Penalty, alpha', outfile.split('.')[0] + "_slip.png");
     else:
         plot_2d_curve(all_alphas, all_penalties, misfits, '1/alpha (slip)', '1/smoothing (smoothing)',
-                      outfile.split('.')[0] +"_2d.png");
+                      outfile.split('.')[0] + "_2d.png");
     return;

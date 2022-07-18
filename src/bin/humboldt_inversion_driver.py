@@ -138,7 +138,6 @@ def run_humboldt_inversion():
 
     # # INPUT stage: Read obs velocities as cc.Displacement_Points
     obs_disp_pts = HR.read_all_data_table(exp_dict["data_file"]);   # all 783 points
-    # inv_tools.print_typical_uncs(obs_disp_pts);
     obs_disp_pts = correct_for_far_field_terms(exp_dict, obs_disp_pts);  # needed from Fred's work
     # Experimental options:
     if exp_dict["continuous_only"] == 1:
