@@ -20,43 +20,52 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
         return ["%.4f" % z for z in V]
 
     # Linear scale
-    plt.figure(figsize=(8, 8), dpi=300);
+    plt.figure(figsize=(6, 6), dpi=300);
     plt.plot(param, misfit, '.', markersize=14);
-    plt.xlabel("1/"+axis_name, fontsize=14);
-    plt.ylabel('Misfit (mm)', fontsize=14);
+    plt.xlabel("1/"+axis_name, fontsize=16);
+    plt.ylabel('Misfit (mm/yr)', fontsize=16);
     ax1 = plt.gca();
     top, bottom = plt.gca().get_ylim();
     if corner_point is not None:  # draw optional annotation
         ax1.plot([1/corner_point, 1/corner_point], [bottom, top], '--r');
+    ax1.tick_params(axis='x', labelsize=16)
+    ax1.tick_params(axis='y', labelsize=16)
     ax2 = plt.twiny(ax1);
     ax2.set_xlim(ax1.get_xlim())
     new_tick_locations = np.array(np.divide(1, param_values));
     # cutting off some labels
     ax2.set_xticks(new_tick_locations)
     ax2.set_xticklabels(tick_function(new_tick_locations), rotation=70)
-    ax2.set_xlabel(axis_name, fontsize=14)
+    ax2.tick_params(axis='x', labelsize=16)
+    ax2.set_xlabel(axis_name, fontsize=16)
     ax2.grid(True)
+    plt.tight_layout()
     plt.savefig(outfile);
 
     # Log scale
-    plt.figure(figsize=(8, 8), dpi=300);
+    plt.figure(figsize=(6, 6), dpi=300);
     plt.plot(param, misfit, '.', markersize=14);
     ax1 = plt.gca()
-    ax1.set_yscale('log');
+    # ax1.set_yscale('log');
     ax1.set_xscale('log');
     top, bottom = plt.gca().get_ylim();
     if corner_point is not None:   # draw optional annotation
         ax1.plot([1/corner_point, 1/corner_point], [bottom, top], '--r');
+
+    ax1.set_xlabel("1/"+axis_name, fontsize=16);
+    ax1.set_ylabel('Misfit (mm/yr)', fontsize=16);
+    # ax1.grid(True)
+    ax1.tick_params(axis='x', labelsize=16)
+    ax1.tick_params(axis='y', labelsize=16)
     ax2 = plt.twiny(ax1);
     ax2.set_xscale('log');
     ax2.set_xlim(ax1.get_xlim())
     new_tick_locations = np.array(np.divide(1, param_values));
     ax2.set_xticks(new_tick_locations)
     ax2.set_xticklabels(tick_function(new_tick_locations), rotation=70)
-    ax2.set_xlabel(axis_name, fontsize=14)
-    ax1.grid(True)
-    ax1.set_xlabel("1/"+axis_name, fontsize=14);
-    ax1.set_ylabel('Misfit (mm)', fontsize=14);
+    ax2.set_xlabel(axis_name, fontsize=16)
+    ax2.tick_params(axis='x', labelsize=16)
+    plt.tight_layout()
     plt.savefig(outfile.split('.')[0]+"_log.png");
     return;
 
