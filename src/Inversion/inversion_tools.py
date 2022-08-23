@@ -2,6 +2,7 @@
 import numpy as np
 import collections
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole, haversine
+import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as moment_calcs
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
@@ -405,6 +406,44 @@ def write_model_params(v, residual, outfile, GF_elements=None):
     return;
 
 
+def write_custom_metrics(ofile, values, GF_elements):
+    # Accounting of moment rate on the CSZ and other faults
+    # ofile : file handle
+    # values : model vector
+    # GF_elements: list of green's functions elements associated with vector of model values
+    # Specific to Humboldt project
+
+    csz_fault_dicts = [];
+    for value, gf_element in zip(values, GF_elements):
+        if gf_element.fault_name == 'CSZ_dist':
+            if gf_element.fault_dict_list[0]["lat"] > 43:  # considering southern section only
+                continue;
+            new_patches = library.fault_slip_object.change_fault_slip(gf_element.fault_dict_list, value/100);
+            csz_fault_dicts.append(new_patches[0]);
+    csz_mo = library.fault_slip_object.get_total_moment(csz_fault_dicts);
+    ofile.write("\nCSZ Over 300 years: equivalent to Mw");
+    ofile.write("%f \n" % moment_calcs.mw_from_moment(csz_mo*300));
+    ofile.write("%f N-m\n" % csz_mo);
+
+    new_patches = [];
+    for value, gf_element in zip(values, GF_elements):
+        if gf_element.fault_name == 'LSFRev':
+            new_patches = library.fault_slip_object.change_fault_slip(gf_element.fault_dict_list, value / 100);
+    lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
+    ofile.write("\nLSFRev Over 300 years: equivalent to Mw");
+    ofile.write("%f \n" % moment_calcs.mw_from_moment(lsf_mo*300));
+    ofile.write("%f N-m\n" % lsf_mo);
+
+    for value, gf_element in zip(values, GF_elements):
+        if gf_element.fault_name == 'MadRiverRev':
+            new_patches = library.fault_slip_object.change_fault_slip(gf_element.fault_dict_list, value / 100);
+    lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
+    ofile.write("\nMadRiverRev Over 300 years: equivalent to Mw");
+    ofile.write("%f \n" % moment_calcs.mw_from_moment(lsf_mo*300));
+    ofile.write("%f N-m\n" % lsf_mo);
+    return;
+
+
 def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), message=''):
     """
     Write a human-readable results file, with the potential to ignore faults with distributed models for clarity.
@@ -423,8 +462,15 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
         if GF_elements[i].fault_name in ignore_faults:
             continue;
         ofile.write(GF_elements[i].fault_name + ": ");
-        ofile.write("%.5f %s" % (v[i], GF_elements[i].units));
-        ofile.write('  [within %.3f to %.3f]' % (GF_elements[i].lower_bound, GF_elements[i].upper_bound) );
+        if GF_elements[i].units == "cm/yr":   # converting fault slip rates into mm/yr for convenience
+            units = 'mm/yr';
+            multiplier = 10;
+        else:
+            units = GF_elements[i].units;
+            multiplier = 1;
+        ofile.write("%.5f %s" % (v[i]*multiplier, units));
+        ofile.write('  [within %.3f to %.3f]' % (GF_elements[i].lower_bound*multiplier,
+                                                 GF_elements[i].upper_bound*multiplier) );
         ofile.write("\n");
     report_string = "\nWith %d observations\n" % (len(GF_elements[0].disp_points));
     ofile.write(report_string);
@@ -433,6 +479,7 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
     report_string = "RMS normalized [h, v, t]: %f %f %f \n" % (residual[3], residual[4], residual[5]);
     ofile.write(report_string);
     ofile.write("Message: "+message+"\n");
+    write_custom_metrics(ofile, v, GF_elements);  # for humboldt project
     ofile.close();
     return;
 
