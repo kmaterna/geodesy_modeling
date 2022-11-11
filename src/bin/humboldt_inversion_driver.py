@@ -189,7 +189,7 @@ def run_humboldt_inversion():
 
     # Add optional smoothing penalty, overwriting old variables
     if 'smoothing' in exp_dict.keys():
-        G, weighted_obs, sigmas = inv_tools.build_smoothing(paired_gf_elements, 'CSZ_dist',
+        G, weighted_obs, sigmas = inv_tools.build_smoothing(paired_gf_elements, ('CSZ_dist'),
                                                             exp_dict["smoothing"], G, weighted_obs, sigmas);
     # Add optional slip weighting penalty, overwriting old variables
     if 'slip_penalty' in exp_dict.keys():

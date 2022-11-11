@@ -260,8 +260,11 @@ def unpack_model_of_target_param(M_vector, parameter_names, target_name):
 
 
 def get_fault_element_distance(fault_dict1, fault_dict2):
-    distance = haversine.distance([fault_dict1["lat"], fault_dict1["lon"]], [fault_dict2["lat"], fault_dict2["lon"]]);
-    return distance;
+    """Return the distance between two fault elements, in 3d, in km"""
+    h_distance = haversine.distance([fault_dict1["lat"], fault_dict1["lon"]], [fault_dict2["lat"], fault_dict2["lon"]]);
+    depth_distance = fault_dict1['depth'] - fault_dict2['depth'];
+    distance_3d = np.sqrt(np.square(h_distance) + np.square(depth_distance))
+    return distance_3d;
 
 
 def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
@@ -278,7 +281,7 @@ def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
     return;
 
 
-def build_smoothing(gf_elements, fault_name, strength, G, obs, sigmas):
+def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas):
     """
     Make a weighted connectivity matrix that has the same number of columns as G, that can be appended to the bottom.
     Any element within gf_element that has fault_name will have its immediate neighbors subtracted for smoothing.
@@ -287,7 +290,7 @@ def build_smoothing(gf_elements, fault_name, strength, G, obs, sigmas):
 
     :param gf_elements: list of gf_element objects
     :type gf_elements: list
-    :param fault_name: which fault elements are we smoothing, string
+    :param fault_name_list: which fault elements are we smoothing, tuple of strings
     :param strength: lambda parameter in smoothing equation
     :param G: already existing G matrix
     :param obs: already existing obs vector
@@ -304,9 +307,9 @@ def build_smoothing(gf_elements, fault_name, strength, G, obs, sigmas):
     # Operates on the first patch that it finds.
     distances = [];
     for i in range(len(gf_elements)):
-        if gf_elements[i].fault_name == fault_name:
+        if gf_elements[i].fault_name in fault_name_list:
             for j in range(i+1, len(gf_elements)):
-                if gf_elements[j].fault_name == fault_name:
+                if gf_elements[j].fault_name in fault_name_list:
                     distances.append(get_fault_element_distance(gf_elements[i].fault_dict_list[0],
                                                                 gf_elements[j].fault_dict_list[0]));
             break;
@@ -314,10 +317,10 @@ def build_smoothing(gf_elements, fault_name, strength, G, obs, sigmas):
 
     # Build the parts of the matrix for smoothing
     for i in range(len(gf_elements)):
-        if gf_elements[i].fault_name == fault_name:
+        if gf_elements[i].fault_name in fault_name_list:
             G_smoothing[i][i] = 1;
             for j in range(len(gf_elements)):
-                if gf_elements[j].fault_name == fault_name:
+                if gf_elements[j].fault_name in fault_name_list:
                     if i != j and get_fault_element_distance(gf_elements[i].fault_dict_list[0],
                                                              gf_elements[j].fault_dict_list[0]) < critical_distance:
                         G_smoothing[i][j] = -1/4;
