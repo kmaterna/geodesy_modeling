@@ -47,6 +47,7 @@ def configure():
     p.add_argument('--exp_faults', type=list, help='''Faults used in this inversion''');
     p.add_argument('--inverse_dir', type=str, help='''Way to get to the home directory of inverses''');
     p.add_argument('--lsfrev_min', type=str, help='''Constraint on little salmon reverse slip component, minimum cm''');
+    p.add_argument('--ghost_transient_mult', type=str, help='''Ghost transient multiplier, cm''');
     exp_dict = vars(p.parse_args())
 
     if os.path.exists(exp_dict["configfile"]):
@@ -62,6 +63,8 @@ def configure():
         exp_dict["faults"] = json.load(f)["faults"];
     if exp_dict["lsfrev_min"] is not None:   # LSF slip_minimum coming out into the command line
         exp_dict["faults"]["LSFRev"]["slip_min"] = float(exp_dict["lsfrev_min"]);
+    if exp_dict["ghost_transient_mult"] is not None:  # ghost transient multiplier into the command line
+        exp_dict["corrections"][3]["scale"] = float(exp_dict["ghost_transient_mult"])
     subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
@@ -189,8 +192,9 @@ def run_humboldt_inversion():
 
     # Add optional smoothing penalty, overwriting old variables
     if 'smoothing' in exp_dict.keys():
-        G, weighted_obs, sigmas = inv_tools.build_smoothing(paired_gf_elements, ('CSZ_dist'),
-                                                            exp_dict["smoothing"], G, weighted_obs, sigmas);
+        G, weighted_obs, sigmas = inv_tools.build_smoothing(paired_gf_elements, ('CSZ_dist',),
+                                                            exp_dict["smoothing"], G, weighted_obs, sigmas,
+                                                            distance_3d=False);
     # Add optional slip weighting penalty, overwriting old variables
     if 'slip_penalty' in exp_dict.keys():
         G, weighted_obs, sigmas = inv_tools.build_slip_penalty(paired_gf_elements,
