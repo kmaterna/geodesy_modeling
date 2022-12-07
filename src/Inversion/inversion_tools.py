@@ -1,11 +1,12 @@
 
 import numpy as np
 import collections
-from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole, haversine
+from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole, haversine, fault_vector_functions
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as moment_calcs
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
+import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fso
 
 """
 GF_element is everything you would need to make a column of the Green's matrix and plot the impulse response function. 
@@ -270,6 +271,21 @@ def get_fault_element_distance(fault_dict1, fault_dict2, threedimensional=True):
     return distance_3d;
 
 
+def get_fault_element_distance_triangle(fault_dict1, fault_dict2, threedimensional=True):
+    """Return the distance between two triangular fault elements, in 3d, in km"""
+    [xc1, yc1, zc1] = fso.fault_slip_triangle.compute_triangle_centroid(fault_dict1);
+    [xc2, yc2, zc2] = fso.fault_slip_triangle.compute_triangle_centroid(fault_dict2);
+    lon_t1, lat_t1 = fault_vector_functions.xy2lonlat_single(xc1/1000, yc1/1000, fault_dict1["lon"], fault_dict1["lat"])
+    lon_t2, lat_t2 = fault_vector_functions.xy2lonlat_single(xc2/1000, yc2/1000, fault_dict2["lon"], fault_dict2["lat"])
+    h_distance = haversine.distance([lat_t1, lon_t1], [lat_t2, lon_t2]);
+    if threedimensional:
+        depth_distance = (zc1 - zc2)/1000;
+    else:
+        depth_distance = 0;
+    distance_3d = np.sqrt(np.square(h_distance) + np.square(depth_distance))
+    return distance_3d;
+
+
 def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
     """Write a file with fault traces and colors"""
     print("Writing %s" % outfile);
@@ -314,10 +330,10 @@ def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas, dist
         if gf_elements[i].fault_name in fault_name_list:
             for j in range(i+1, len(gf_elements)):
                 if gf_elements[j].fault_name in fault_name_list:
-                    distances.append(get_fault_element_distance(gf_elements[i].fault_dict_list[0],
-                                                                gf_elements[j].fault_dict_list[0]));
+                    distances.append(get_fault_element_distance_triangle(gf_elements[i].fault_dict_list[0],
+                                                                         gf_elements[j].fault_dict_list[0]));
             break;
-    critical_distance = sorted(distances)[2] + 5;  # take adjacent patches with some wiggle room
+    critical_distance = sorted(distances)[2] + 2;  # take adjacent patches with some wiggle room (5 for humboldt)
 
     # Build the parts of the matrix for smoothing
     for i in range(len(gf_elements)):

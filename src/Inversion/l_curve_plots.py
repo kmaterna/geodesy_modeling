@@ -17,7 +17,7 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
 
     def tick_function(X):  # for the upper axis labels
         V = 1 / X
-        return ["%.4f" % z for z in V]
+        return ["%.2f" % z for z in V]
 
     # Linear scale
     plt.figure(figsize=(6, 6), dpi=300);
@@ -63,7 +63,7 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
     new_tick_locations = np.array(np.divide(1, param_values));
     ax2.set_xticks(new_tick_locations)
     ax2.set_xticklabels(tick_function(new_tick_locations), rotation=70)
-    ax2.set_xlabel(axis_name, fontsize=16)
+    ax2.set_xlabel(axis_name + " Parameter", fontsize=16)
     ax2.tick_params(axis='x', labelsize=16)
     plt.tight_layout()
     plt.savefig(outfile.split('.')[0]+"_log.png");
