@@ -330,10 +330,12 @@ def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas, dist
         if gf_elements[i].fault_name in fault_name_list:
             for j in range(i+1, len(gf_elements)):
                 if gf_elements[j].fault_name in fault_name_list:
-                    distances.append(get_fault_element_distance_triangle(gf_elements[i].fault_dict_list[0],
-                                                                         gf_elements[j].fault_dict_list[0]));
+                    distances.append(get_fault_element_distance(gf_elements[i].fault_dict_list[0],
+                                                                gf_elements[j].fault_dict_list[0]));
             break;
-    critical_distance = sorted(distances)[2] + 2;  # take adjacent patches with some wiggle room (5 for humboldt)
+    critical_distance = sorted(distances)[2] + 5;
+    # take adjacent patches with some wiggle room (5 for humboldt)
+    # take adjacent patches with some wiggle room (2 for salton sea)
 
     # Build the parts of the matrix for smoothing
     for i in range(len(gf_elements)):

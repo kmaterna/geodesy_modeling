@@ -66,13 +66,17 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
     return disp_points_all_patches, all_patches, given_slip;
 
 
-def write_csz_dist_fault_patches(all_fault_patches, model_vector, outfile):
+def write_csz_dist_fault_patches(gf_elements, model_vector, outfile_gmt, outfile_txt):
     """Write out the slip results for a distributed CSZ model into GMT format"""
     modeled_slip_patches = [];
-    for i in range(len(all_fault_patches)):
-        if len(all_fault_patches[i]) == 1:   # CSZ patches are 1 patch per model element.
-            [new_patch] = fso.fault_slip_object.change_fault_slip(all_fault_patches[i], model_vector[i]*10);  # mm/yr
+    fault_dict_lists = [item.fault_dict_list for item in gf_elements];
+    for i in range(len(gf_elements)):
+        if gf_elements[i].fault_name == 'CSZ_dist':   # CSZ patches are 1 patch per model element.
+            [new_patch] = fso.fault_slip_object.change_fault_slip(fault_dict_lists[i], model_vector[i]*10);  # mm/yr
             modeled_slip_patches.append(new_patch);
     if len(modeled_slip_patches) > 0:
-        fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile);
+        fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile_gmt,
+                                                   plotting_function=fso.fault_slip_object.get_total_slip);
+
+    fso.io_slippy.write_slippy_distribution(modeled_slip_patches, outfile_txt, slip_units='mm/yr');
     return;

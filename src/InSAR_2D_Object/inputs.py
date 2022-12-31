@@ -21,7 +21,8 @@ def inputs_grd(los_grdfile):
     return InSAR_Obj;
 
 
-def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angle, constant_incidence_angle=None):
+def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angle, constant_incidence_angle=None,
+                                    convert_m_to_mm=True):
     """
     Read synthetic models with three deformation components.
     If constant_incidence_angle is provided, it uses one simple incidence angle and flight angle for the field.
@@ -32,6 +33,7 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     :param u_grdfile: string, filename
     :param flight_angle: float, flight angle, degrees cw from n
     :param constant_incidence_angle: float, incidence angle, degrees from vertical
+    :param convert_m_to_mm: default True. Multiplies by 1000
     """
     [lon, lat, e] = netcdf_read_write.read_any_grd(e_grdfile);
     [_, _, n] = netcdf_read_write.read_any_grd(n_grdfile);
@@ -42,7 +44,8 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     lkv_N = np.multiply(np.ones(np.shape(e)), look_vector[1]);  # constant incidence angle for now
     lkv_U = np.multiply(np.ones(np.shape(e)), look_vector[2]);  # constant incidence angle for now
     los = insar_vector_functions.def3D_into_LOS(e, n, u, flight_angle, constant_incidence_angle);
-    los = np.multiply(los, 1000);  # convert from m to mm
+    if convert_m_to_mm:
+        los = np.multiply(los, 1000);  # convert from m to mm
     InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
                                 lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None);
     print("Done with reading object");

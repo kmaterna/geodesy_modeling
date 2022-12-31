@@ -146,6 +146,7 @@ def read_hb_fault_gf_elements(exp_dict):
 def run_humboldt_inversion():
     # Starting program.  Configure stage
     exp_dict = configure();
+    outdir = exp_dict['outdir'];
 
     # # INPUT stage: Read obs velocities as cc.Displacement_Points
     obs_disp_pts = HR.read_all_data_table(exp_dict["data_file"]);   # all 783 points
@@ -153,8 +154,10 @@ def run_humboldt_inversion():
     # Experimental options:
     if exp_dict["continuous_only"] == 1:
         obs_disp_pts = dpo.utilities.filter_to_meas_type(obs_disp_pts, 'continuous');  # experimental design step
-    obs_disp_pts = inv_tools.remove_nearfault_pts(obs_disp_pts, exp_dict["inverse_dir"]+exp_dict["faults"]["Maa"]["points"])
-    obs_disp_pts = inv_tools.remove_nearfault_pts(obs_disp_pts, exp_dict["inverse_dir"]+exp_dict["faults"]["BSF"]["points"])
+    obs_disp_pts = inv_tools.remove_nearfault_pts(obs_disp_pts, exp_dict["inverse_dir"] +
+                                                  exp_dict["faults"]["Maa"]["points"])
+    obs_disp_pts = inv_tools.remove_nearfault_pts(obs_disp_pts, exp_dict["inverse_dir"] +
+                                                  exp_dict["faults"]["BSF"]["points"])
     for excluded_region in exp_dict["exclude_regions"]:
         obs_disp_pts = dpo.utilities.filter_to_exclude_bounding_box(obs_disp_pts, excluded_region);  # Lassen etc.
     obs_disp_pts = dpo.utilities.filter_by_bounding_box(obs_disp_pts, exp_dict["bbox"]);  # north of 38.5
@@ -173,7 +176,7 @@ def run_humboldt_inversion():
     # COMPUTE STAGE: Pairing is necessary in case you've filtered out any observations along the way.
     paired_obs, paired_gf_elements = inv_tools.pair_gf_elements_with_obs(obs_disp_pts, gf_elements);
 
-    inv_tools.visualize_GF_elements(paired_gf_elements, exp_dict["outdir"], exclude_list='all');
+    inv_tools.visualize_GF_elements(paired_gf_elements, outdir, exclude_list='all');
 
     # COMPUTE STAGE: INVERSE.  Reduces certain points to only-horizontal, only-vertical, etc.
     list_of_gf_columns = [];
@@ -221,7 +224,6 @@ def run_humboldt_inversion():
     lsf_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_LSF, sigmas, paired_obs);
 
     # Output stage
-    fault_dict_lists = [item.fault_dict_list for item in paired_gf_elements];
     rms_mm_h, rms_chi2_h = dpo.compute_rms.obs_vs_model_L2_horiz(paired_obs, model_disp_pts);
     rms_mm_v, rms_chi2_v = dpo.compute_rms.obs_vs_model_L2_vertical(paired_obs, model_disp_pts);
     rms_mm_t, rms_chi2_t = dpo.compute_rms.obs_vs_model_L2_aggregate(paired_obs, model_disp_pts);
@@ -230,28 +232,29 @@ def run_humboldt_inversion():
     print(" ", rms_title);
 
     residual_pts = dpo.utilities.subtract_disp_points(paired_obs, model_disp_pts);
-    PyCoulomb.io_additionals.write_disp_points_results(model_disp_pts, exp_dict["outdir"] + '/model_pred_file.txt');
-    PyCoulomb.io_additionals.write_disp_points_results(residual_pts, exp_dict["outdir"] + '/resid_file.txt');
-    PyCoulomb.io_additionals.write_disp_points_results(paired_obs, exp_dict["outdir"] + '/simple_obs_file.txt');
+    PyCoulomb.io_additionals.write_disp_points_results(model_disp_pts, outdir + '/model_pred_file.txt');
+    PyCoulomb.io_additionals.write_disp_points_results(residual_pts, outdir + '/resid_file.txt');
+    PyCoulomb.io_additionals.write_disp_points_results(paired_obs, outdir + '/simple_obs_file.txt');
 
-    dpo_out.write_disp_points_gmt(model_disp_pts, exp_dict["outdir"] + '/model_pred_gmt.txt', write_meas_type=True)
-    dpo_out.write_disp_points_gmt(residual_pts, exp_dict["outdir"] + '/resid_file_gmt.txt', write_meas_type=True)
-    dpo_out.write_disp_points_gmt(paired_obs, exp_dict["outdir"] + '/simple_obs_file_gmt.txt', write_meas_type=True)
-    dpo_out.write_disp_points_gmt(csz_modeled_pts, exp_dict["outdir"] + '/csz_model_pred.txt', write_meas_type=True)
-    dpo_out.write_disp_points_gmt(lsf_modeled_pts, exp_dict["outdir"] + '/lsf_model_pred.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(model_disp_pts, outdir + '/model_pred_gmt.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(residual_pts, outdir + '/resid_file_gmt.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(paired_obs, outdir + '/simple_obs_file_gmt.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(csz_modeled_pts, outdir + '/csz_model_pred.txt', write_meas_type=True)
+    dpo_out.write_disp_points_gmt(lsf_modeled_pts, outdir + '/lsf_model_pred.txt', write_meas_type=True)
 
-    inv_tools.write_model_params(M_opt, rms_mm_t, exp_dict["outdir"] + '/' + exp_dict["model_file"], paired_gf_elements)
-    inv_tools.write_summary_params(M_opt, rms_obj, exp_dict["outdir"] + '/model_results_human.txt',
+    inv_tools.write_model_params(M_opt, rms_mm_t, outdir + '/' + exp_dict["model_file"], paired_gf_elements)
+    inv_tools.write_summary_params(M_opt, rms_obj, outdir + '/model_results_human.txt',
                                    paired_gf_elements, ignore_faults=['CSZ_dist'], message=response.message);
-    inv_tools.write_fault_traces(M_opt, paired_gf_elements, exp_dict["outdir"] + '/fault_output.txt',
+    inv_tools.write_fault_traces(M_opt, paired_gf_elements, outdir + '/fault_output.txt',
                                  ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset']);
-    readers.write_csz_dist_fault_patches(fault_dict_lists, M_opt, exp_dict["outdir"] + '/csz_model.gmt');
+    readers.write_csz_dist_fault_patches(paired_gf_elements, M_opt, outdir+'/csz_model.gmt',
+                                         outdir+'/csz_slip_distribution.txt');
     inv_tools.view_full_results(exp_dict, paired_obs, model_disp_pts, residual_pts, rot_modeled_pts,
                                 norot_modeled_pts, rms_title, region=[-127, -119.7, 37.7, 43.5]);
-    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/csz_only_pred.png",
+    library.plot_fault_slip.map_source_slip_distribution([], outdir + "/csz_only_pred.png",
                                                          disp_points=csz_modeled_pts, region=[-127, -119.7, 37.7, 43.5],
                                                          scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
-    library.plot_fault_slip.plot_data_model_residual(exp_dict["outdir"] + "/results.png", paired_obs,
+    library.plot_fault_slip.plot_data_model_residual(outdir + "/results.png", paired_obs,
                                                      model_disp_pts, residual_pts, [-126, -119.7, 37.7, 43.3],
                                                      scale_arrow=(0.5, 0.020, "2 cm"), v_labeling_interval=0.003,
                                                      fault_dict_list=[], rms=rms_mm_t);

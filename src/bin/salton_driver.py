@@ -21,8 +21,8 @@ def configure():
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''');
     p.add_argument('--outdir', type=str, help='''Output directory''');
     exp_dict = vars(p.parse_args())
-    exp_dict["obs_disp_points"] = "ssgf_vectors_manual_m.txt";
-    exp_dict["fault_file"] = "../../_Data/Lohman_Fault_Geom/forK.mat";
+    exp_dict["obs_disp_points"] = "Input_Data/ssgf_vectors_manual_m.txt";
+    exp_dict["fault_file"] = "../../../_Data/Lohman_Fault_Geom/forK.mat";
     subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
@@ -30,6 +30,7 @@ def configure():
 
 
 def read_gf_elements_kalin(exp_dict, obs_disp_pts):
+    """Create a list of fault triangle elements and their associated GF's for use in inversion. """
     GF_elements = [];
     fault_tris = fst.io_other.read_brawley_lohman_2005(exp_dict['fault_file']);
     for tri in fault_tris:
@@ -43,8 +44,21 @@ def read_gf_elements_kalin(exp_dict, obs_disp_pts):
     return GF_elements;
 
 
+def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts):
+    [_all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_disp_pts, model_disp_pts);
+    with open(exp_dict["outdir"]+'/metrics.txt', 'w') as ofile:
+        print('Avg misfit (mm):', avg_misfit_norm);
+        print("total moment (N-m): ", total_moment);
+        print("Equivalent to:", mo.mw_from_moment(total_moment));
+        ofile.write('Avg misfit: %f mm\n' % avg_misfit_norm);
+        ofile.write("total moment (N-m): %f\n" % total_moment);
+        ofile.write("Equivalent to: %f\n" % mo.mw_from_moment(total_moment));
+    return;
+
+
 if __name__ == "__main__":
     exp_dict = configure();
+    outdir = exp_dict['outdir'];
     obs_disp_pts = PyCoulomb.io_additionals.read_disp_points(exp_dict["obs_disp_points"]);
     GF_elements = read_gf_elements_kalin(exp_dict, obs_disp_pts);
 
@@ -56,21 +70,19 @@ if __name__ == "__main__":
     G = np.concatenate(tuple(list_of_gf_columns), axis=1);
     obs, sigmas = inv_tools.build_obs_vector(obs_disp_pts);
     G /= sigmas[:, None];
-    weighted_obs = obs / sigmas;
-    G, weighted_obs, sigmas = inv_tools.build_smoothing(GF_elements, ('kalin',), exp_dict["smoothing"], G, weighted_obs,
-                                                        sigmas);
-    plt.imshow(G, vmin=-3, vmax=3); plt.savefig(exp_dict['outdir']+"/G_matrix.png");
+    w_obs = obs / sigmas;
+    G, w_obs, sigmas = inv_tools.build_smoothing(GF_elements, ('kalin',), exp_dict["smoothing"], G, w_obs, sigmas);
+    plt.imshow(G, vmin=-3, vmax=3); plt.savefig(outdir+"/G_matrix.png");
 
     # Money line: Constrained inversion
-    lb = [x.lower_bound for x in GF_elements];
-    ub = [x.upper_bound for x in GF_elements];
-    response = scipy.optimize.lsq_linear(G, weighted_obs, bounds=(lb, ub), max_iter=1500, method='bvls');
+    lb, ub = [x.lower_bound for x in GF_elements], [x.upper_bound for x in GF_elements];
+    response = scipy.optimize.lsq_linear(G, w_obs, bounds=(lb, ub), max_iter=1500, method='bvls');
     M_opt = response.x;  # parameters of best-fitting model
 
     model_disp_pts = inv_tools.forward_disp_points_predictions(G, M_opt, sigmas, obs_disp_pts);
     resid = dpo.utilities.subtract_disp_points(obs_disp_pts, model_disp_pts);   # make residual points
-    PyCoulomb.io_additionals.write_disp_points_results(model_disp_pts, exp_dict['outdir']+'/model_pred_file.txt');
-    PyCoulomb.io_additionals.write_disp_points_results(obs_disp_pts, exp_dict['outdir'] + '/obs_file.txt');
+    PyCoulomb.io_additionals.write_disp_points_results(model_disp_pts, outdir + '/model_pred_file.txt');
+    PyCoulomb.io_additionals.write_disp_points_results(obs_disp_pts, outdir + '/obs_file.txt');
 
     # Unpack into a collection of fault triangles with optimal slip values
     modeled_faults = [];
@@ -80,18 +92,24 @@ if __name__ == "__main__":
         modeled_faults.append(new_fault);
     total_moment = fst.fault_slip_triangle.get_total_moment(modeled_faults)
 
-    fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, exp_dict['outdir']+"/temp-outfile.txt",
+    fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
                                                        plotting_function=fst.fault_slip_triangle.get_rtlat_slip);
-    fso.plot_fault_slip.map_source_slip_distribution([], exp_dict['outdir']+'/model_disps.png',
-                                                     disp_points=model_disp_pts,
-                                                     fault_traces_from_file=exp_dict['outdir']+"/temp-outfile.txt");
-    fso.plot_fault_slip.map_source_slip_distribution([], exp_dict['outdir']+'/obs_disps.png', disp_points=obs_disp_pts);
+    fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,
+                                                     fault_traces_from_file=outdir+"/temp-outfile.txt");
+    fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_disp_pts);
+    fst.fault_slip_triangle.write_gmt_vertical_fault_file(modeled_faults, outdir+'/vertical_fault.txt',
+                                                          plotting_function=fst.fault_slip_triangle.get_rtlat_slip,
+                                                          strike=225);
 
-    [all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_disp_pts, model_disp_pts);
-    with open(exp_dict["outdir"]+'/metrics.txt', 'w') as ofile:
-        print('Avg misfit (mm):', avg_misfit_norm);
-        print("total moment (N-m): ", total_moment);
-        print("Equivalent to:", mo.mw_from_moment(total_moment));
-        ofile.write('Avg misfit: %f mm\n' % avg_misfit_norm);
-        ofile.write("total moment (N-m): %f\n" % total_moment);
-        ofile.write("Equivalent to: %f\n" % mo.mw_from_moment(total_moment));
+    write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts);
+    subprocess.call(['./gmt_plot.sh', outdir]);   # plotting the results in pretty GMT plots
+
+    # Do a special experiment: while the fault elements are in computer memory, let's forward predict their
+    # displacement everywhere.
+    newfaults = [];
+    for fault in modeled_faults:  # have to change the reference location.
+        newfaults.append(fst.fault_slip_triangle.change_reference_loc(fault, (-115.7, 33.1)));
+
+    grid_pts = dpo.utilities.generate_grid_of_disp_points(-115.90, -115.2, 32.9, 33.3, 0.005, 0.005);
+    model_grid = fst.triangle_okada.compute_disp_points_from_triangles(newfaults, grid_pts, poisson_ratio=0.25);
+    PyCoulomb.io_additionals.write_disp_points_results(model_grid, outdir+'/modeled_grid_pts.txt');
