@@ -34,8 +34,8 @@ def read_gf_elements_kalin(exp_dict, obs_disp_pts):
     GF_elements = [];
     fault_tris = fst.io_other.read_brawley_lohman_2005(exp_dict['fault_file']);
     for tri in fault_tris:
-        changed_slip = fst.fault_slip_triangle.change_fault_slip(tri, rtlat=1, dipslip=0, tensile=0);
-        changed_slip = fst.fault_slip_triangle.change_reference_loc(changed_slip);
+        changed_slip = tri.change_fault_slip(rtlat=1, dipslip=0, tensile=0);
+        changed_slip = changed_slip.change_reference_loc();
         model_disp_pts = fst.triangle_okada.compute_disp_points_from_triangles([changed_slip], obs_disp_pts,
                                                                                poisson_ratio=0.25);
         GF_elements.append(inv_tools.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
@@ -88,18 +88,17 @@ if __name__ == "__main__":
     modeled_faults = [];
     for i in range(len(GF_elements)):
         [new_fault] = GF_elements[i].fault_dict_list;
-        new_fault = fst.fault_slip_triangle.change_fault_slip(new_fault, rtlat=M_opt[i]);
+        new_fault = new_fault.change_fault_slip(rtlat=M_opt[i]);
         modeled_faults.append(new_fault);
     total_moment = fst.fault_slip_triangle.get_total_moment(modeled_faults)
 
     fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
-                                                       plotting_function=fst.fault_slip_triangle.get_rtlat_slip);
+                                                       color_mappable=lambda x: x.get_rtlat_slip());
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,
                                                      fault_traces_from_file=outdir+"/temp-outfile.txt");
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_disp_pts);
     fst.fault_slip_triangle.write_gmt_vertical_fault_file(modeled_faults, outdir+'/vertical_fault.txt',
-                                                          plotting_function=fst.fault_slip_triangle.get_rtlat_slip,
-                                                          strike=225);
+                                                          color_mappable=lambda x: x.get_rtlat_slip(), strike=225);
 
     write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts);
     subprocess.call(['./gmt_plot.sh', outdir]);   # plotting the results in pretty GMT plots
@@ -108,7 +107,7 @@ if __name__ == "__main__":
     # displacement everywhere.
     newfaults = [];
     for fault in modeled_faults:  # have to change the reference location.
-        newfaults.append(fst.fault_slip_triangle.change_reference_loc(fault, (-115.7, 33.1)));
+        newfaults.append(fault.change_reference_loc((-115.7, 33.1)));
 
     grid_pts = dpo.utilities.generate_grid_of_disp_points(-115.90, -115.2, 32.9, 33.3, 0.005, 0.005);
     model_grid = fst.triangle_okada.compute_disp_points_from_triangles(newfaults, grid_pts, poisson_ratio=0.25);

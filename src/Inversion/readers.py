@@ -76,7 +76,7 @@ def write_csz_dist_fault_patches(gf_elements, model_vector, outfile_gmt, outfile
             modeled_slip_patches.append(new_patch);
     if len(modeled_slip_patches) > 0:
         fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile_gmt,
-                                                   plotting_function=fso.fault_slip_object.get_total_slip);
+                                                   color_mappable=fso.fault_slip_object.get_total_slip);
 
     fso.io_slippy.write_slippy_distribution(modeled_slip_patches, outfile_txt, slip_units='mm/yr');
     return;
