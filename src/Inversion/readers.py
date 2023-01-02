@@ -18,8 +18,8 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
     If unit_slip, we divide by the imposed slip rate to get a 1 cm/yr Green's Function.
     Returns a list of lists of disp_point objects, and a matching list of fault patches
     """
-    fault_patches = fso.io_static1d.read_stat2C_geometry(geom_file);
-    gps_disp_locs = fso.io_static1d.read_disp_points_from_static1d(latlonfile);
+    fault_patches = fso.file_io.io_static1d.read_stat2C_geometry(geom_file);
+    gps_disp_locs = fso.file_io.io_static1d.read_disp_points_from_static1d(latlonfile);
 
     print("Reading file %s " % gf_file);
     xdisps, ydisps, zdisps = [], [], [];
@@ -37,14 +37,14 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
     norm_factor = 1;
     disp_points_all_patches, all_patches, given_slip = [], [], [];
     for i in range(len(fault_patches)):
-        if not inside_lonlat_box(latlonbox, [fault_patches[i]["lon"], fault_patches[i]["lat"]]):  # southern patches
+        if not inside_lonlat_box(latlonbox, [fault_patches[i].lon, fault_patches[i].lat]):  # southern patches
             counter = counter + len(gps_disp_locs);
             continue;
         disp_points_one_patch = [];
         for j in range(len(gps_disp_locs)):
             # Build a list of GF disp_points for each patch in inversion
             if unit_slip:
-                norm_factor = 0.010 / fault_patches[i]["slip"];  # normalizing to 1 cm/yr Green's Function
+                norm_factor = 0.010 / fault_patches[i].slip;  # normalizing to 1 cm/yr Green's Function
             else:
                 norm_factor = 1;
             disp_point = cc.Displacement_points(lon=gps_disp_locs[j].lon, lat=gps_disp_locs[j].lat,
@@ -58,10 +58,9 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
             if counter == len(gps_disp_locs):
                 break;
         disp_points_all_patches.append(disp_points_one_patch);
-        [fault_slip_patch] = fso.fault_slip_object.change_fault_slip([fault_patches[i]],
-                                                                     fault_patches[i]["slip"] * norm_factor);
+        fault_slip_patch = fault_patches[i].change_fault_slip(fault_patches[i].slip * norm_factor);
         all_patches.append(fault_slip_patch);
-        given_slip.append(fault_patches[i]["slip"]);  # in mm
+        given_slip.append(fault_patches[i].slip);  # in mm
 
     return disp_points_all_patches, all_patches, given_slip;
 
@@ -72,11 +71,11 @@ def write_csz_dist_fault_patches(gf_elements, model_vector, outfile_gmt, outfile
     fault_dict_lists = [item.fault_dict_list for item in gf_elements];
     for i in range(len(gf_elements)):
         if gf_elements[i].fault_name == 'CSZ_dist':   # CSZ patches are 1 patch per model element.
-            [new_patch] = fso.fault_slip_object.change_fault_slip(fault_dict_lists[i], model_vector[i]*10);  # mm/yr
+            new_patch = fault_dict_lists[i].change_fault_slip(model_vector[i]*10);  # mm/yr
             modeled_slip_patches.append(new_patch);
     if len(modeled_slip_patches) > 0:
         fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile_gmt,
-                                                   color_mappable=fso.fault_slip_object.get_total_slip);
+                                                   color_mappable=lambda x: x.get_total_slip());
 
-    fso.io_slippy.write_slippy_distribution(modeled_slip_patches, outfile_txt, slip_units='mm/yr');
+    fso.file_io.io_slippy.write_slippy_distribution(modeled_slip_patches, outfile_txt, slip_units='mm/yr');
     return;

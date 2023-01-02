@@ -414,9 +414,9 @@ def write_custom_metrics(ofile, values, GF_elements):
     csz_fault_dicts = [];
     for value, gf_element in zip(values, GF_elements):
         if gf_element.fault_name == 'CSZ_dist':
-            if gf_element.fault_dict_list[0]["lat"] > 43:  # considering southern section only
+            if gf_element.fault_dict_list[0].lat > 43:  # considering southern section only
                 continue;
-            new_patches = library.fault_slip_object.change_fault_slip(gf_element.fault_dict_list, value/100);
+            new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value/100);
             csz_fault_dicts.append(new_patches[0]);
     csz_mo = library.fault_slip_object.get_total_moment(csz_fault_dicts);
     ofile.write("\nCSZ Over 300 years: equivalent to Mw");
@@ -426,7 +426,7 @@ def write_custom_metrics(ofile, values, GF_elements):
     new_patches = [];
     for value, gf_element in zip(values, GF_elements):
         if gf_element.fault_name == 'LSFRev':
-            new_patches = library.fault_slip_object.change_fault_slip(gf_element.fault_dict_list, value / 100);
+            new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value / 100);
     lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
     ofile.write("\nLSFRev Over 300 years: equivalent to Mw");
     ofile.write("%f \n" % moment_calcs.mw_from_moment(lsf_mo*300));
@@ -434,7 +434,7 @@ def write_custom_metrics(ofile, values, GF_elements):
 
     for value, gf_element in zip(values, GF_elements):
         if gf_element.fault_name == 'MadRiverRev':
-            new_patches = library.fault_slip_object.change_fault_slip(gf_element.fault_dict_list, value / 100);
+            new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value / 100);
     lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
     ofile.write("\nMadRiverRev Over 300 years: equivalent to Mw");
     ofile.write("%f \n" % moment_calcs.mw_from_moment(lsf_mo*300));

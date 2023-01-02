@@ -25,7 +25,7 @@ reader_dictionary = {
     "fred": HR.read_correction_data_table,
     "ghost": HR.read_ghost_transient_table,
     "ep": HR.get_euler_pole_correction,
-    "bc": library.io_static1d.read_static1D_output_file
+    "bc": library.file_io.io_static1d.read_static1D_output_file
 }
 
 def configure():
@@ -99,8 +99,10 @@ def read_hb_fault_gf_elements(exp_dict):
     for i in range(len(exp_dict["exp_faults"])):  # for each fault
         fault_name = exp_dict["exp_faults"][i];
         if fault_name == "CSZ_dist":  # Reading for distributed CSZ patches as unit slip.
-            one_patch_dps, csz_patches, maxslip = readers.read_distributed_GF(exp_dict["inverse_dir"]+exp_dict["faults"]["CSZ"]["GF"],
-                                                                              exp_dict["inverse_dir"]+exp_dict["faults"]["CSZ"]["geometry"],
+            one_patch_dps, csz_patches, maxslip = readers.read_distributed_GF(exp_dict["inverse_dir"] +
+                                                                              exp_dict["faults"]["CSZ"]["GF"],
+                                                                              exp_dict["inverse_dir"] +
+                                                                              exp_dict["faults"]["CSZ"]["geometry"],
                                                                               exp_dict["lonlatfile"], unit_slip=True,
                                                                               latlonbox=(-127, -120, 38, 44.5));
             for gf_disp_points, patch, max0 in zip(one_patch_dps, csz_patches, maxslip):
@@ -121,17 +123,19 @@ def read_hb_fault_gf_elements(exp_dict):
         else:  # Reading for LSF, MRF, other fault cases
             fault_gf = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF"];
             fault_geom = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["geometry"];
-            temp, _ = library.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
-            mod_disp_points = library.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
+            temp, _ = library.file_io.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
+            mod_disp_points = library.file_io.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
             fault_points = np.loadtxt(exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["points"]);
             if "creep_multiplier" in exp_dict["faults"][fault_name].keys():
                 correction_strength = exp_dict["faults"][fault_name]["creep_multiplier"];
                 if correction_strength > 0:
                     correction_file1 = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF_15km_visco"]
                     correction_file2 = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF_15km_stat"]
-                    mod_dpo1 = library.io_static1d.read_static1D_output_file(correction_file1, exp_dict["lonlatfile"]);
+                    mod_dpo1 = library.file_io.io_static1d.read_static1D_output_file(correction_file1,
+                                                                                     exp_dict["lonlatfile"]);
                     mod_dpo1 = dpo.utilities.mult_disp_points_by(mod_dpo1, 1/500);
-                    mod_dpo2 = library.io_static1d.read_static1D_output_file(correction_file2, exp_dict["lonlatfile"]);
+                    mod_dpo2 = library.file_io.io_static1d.read_static1D_output_file(correction_file2,
+                                                                                     exp_dict["lonlatfile"]);
                     mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo1);
                     mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo2);
             one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, fault_name=fault_name,

@@ -66,8 +66,8 @@ def read_fault_gf_elements(exp_dict, refpt):
         else:  # Reading for LSF, MRF, other fault cases
             fault_gf = exp_dict["faults"][fault_name]["GF"];
             fault_geom = exp_dict["faults"][fault_name]["geometry"];
-            temp, _ = library.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
-            mod_disp_points = library.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
+            temp, _ = library.file_io.io_static1d.read_static1D_source_file(fault_geom, headerlines=1);
+            mod_disp_points = library.file_io.io_static1d.read_static1D_output_file(fault_gf, exp_dict["lonlatfile"]);
             refdpo = dpo.utilities.extract_particular_station_from_list(mod_disp_points, refpt[0], refpt[1]);  # SACR
             mod_disp_points = dpo.utilities.subtract_reference_from_disp_points(mod_disp_points, refdpo);
             fault_points = np.loadtxt(exp_dict["faults"][fault_name]["points"]);  # fault trace
