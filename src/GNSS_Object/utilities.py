@@ -14,7 +14,8 @@ def disp_points_to_Station_Vels(list_of_disp_points):
                                                   u=dpo.dU_obs*1000, se=dpo.Se_obs*1000, sn=dpo.Sn_obs*1000,
                                                   su=dpo.Su_obs*1000, name=dpo.name, first_epoch=dpo.starttime,
                                                   last_epoch=dpo.endtime, refframe=dpo.refframe,
-                                                  meas_type=dpo.meas_type);  # in units of mm/yr
+                                                  meas_type=dpo.meas_type, proccenter=None,
+                                                  subnetwork=None, survey=None);  # in units of mm/yr
         list_of_station_vels.append(new_station_vel);
     return list_of_station_vels;
 

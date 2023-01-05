@@ -32,7 +32,7 @@ def configure():
 def read_gf_elements_kalin(exp_dict, obs_disp_pts):
     """Create a list of fault triangle elements and their associated GF's for use in inversion. """
     GF_elements = [];
-    fault_tris = fst.io_other.read_brawley_lohman_2005(exp_dict['fault_file']);
+    fault_tris = fst.file_io.io_other.read_brawley_lohman_2005(exp_dict['fault_file']);
     for tri in fault_tris:
         changed_slip = tri.change_fault_slip(rtlat=1, dipslip=0, tensile=0);
         changed_slip = changed_slip.change_reference_loc();
