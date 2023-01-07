@@ -29,8 +29,13 @@ def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
 
 
 def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
-    """Take a vector and find the location closest to the target location.
-    Fast function because of numpy math"""
+    """
+    Find the element closest to the target location in vector of lon and vector of lat.
+    Fast function because of numpy math.
+
+    # There is a nice implementation of this inside the InSAR_2D_Object utilities.
+    # This implementation seems unnecessarily complex.
+    """
     dist = np.sqrt(np.power(np.subtract(vector_lon, target_lon), 2) + np.power(np.subtract(vector_lat, target_lat), 2));
     minimum_distance = np.nanmin(dist);
     close_pixels = np.where(dist < 0.0009);  # the runner-up close pixels, about 100 of them
