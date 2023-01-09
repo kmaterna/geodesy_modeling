@@ -46,8 +46,8 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
     :returns: 1D insar object
     """
     if ref_coord:
-        nearest_index, _, _ = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_Obj.lon, InSAR_Obj.lat, ref_coord[0],
-                                                                             ref_coord[1]);
+        nearest_index, _, _ = multiSAR_utilities.get_many_nearest_pixels_in_vector(InSAR_Obj.lon, InSAR_Obj.lat, ref_coord[0],
+                                                                                   ref_coord[1]);
         constant = InSAR_Obj.LOS[nearest_index];
     else:
         constant = np.nanmedian(InSAR_Obj.LOS);

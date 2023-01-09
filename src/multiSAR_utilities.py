@@ -28,13 +28,36 @@ def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
     return i_found, j_found, minimum_distance;
 
 
-def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
+def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat, tolerance=0.005):
+    """
+    A simpler implementation of finding the nearest pixel to a latitude/longitude point (doesn't do distance formula)
+    Assumes a 2D grid of points
+    Throws an error if the target point is outside the domain.
+
+    :param vector_lon: 1d array, longitudes
+    :param vector_lat: 1d array, latitudes
+    :param target_lon: longitude of the point of interest
+    :param target_lat: latitude of the point of interest
+    :param tolerance: tolerance in degrees
+    """
+    idx_lon = np.abs(vector_lon - target_lon).argmin();
+    idx_lat = np.abs(vector_lat - target_lat).argmin();
+    # Throw an error if the recovered location is really far from the target (i.e., off the arrays)
+    if np.abs(target_lon - vector_lon[idx_lon]) > tolerance:
+        print("refidx[0]-InSAR_obj.lon[idx_lon]: %f degrees " % np.abs(target_lon - vector_lon[idx_lon]));
+        raise ValueError("Error! Resolved Reference Pixel is not within tol of Target Reference Pixel (longitude)");
+    if np.abs(target_lat - vector_lat[idx_lat]) > tolerance:
+        print("refidx[1]-InSAR_obj.lon[idx_lat]: %f degrees " % np.abs(target_lat - vector_lat[idx_lat]));
+        raise ValueError("Error! Resolved Reference Pixel is not within tol of Target Reference Pixel (latitude)");
+    return idx_lon, idx_lat;
+
+
+def get_many_nearest_pixels_in_vector(vector_lon, vector_lat, target_lon, target_lat):
     """
     Find the element closest to the target location in vector of lon and vector of lat.
     Fast function because of numpy math.
 
-    # There is a nice implementation of this inside the InSAR_2D_Object utilities.
-    # This implementation seems unnecessarily complex.
+    This implementation seems unnecessarily complex and possibly bad error handling. Might want to replace it.
     """
     dist = np.sqrt(np.power(np.subtract(vector_lon, target_lon), 2) + np.power(np.subtract(vector_lat, target_lat), 2));
     minimum_distance = np.nanmin(dist);
@@ -50,14 +73,17 @@ def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat):
 def find_pixels_idxs_in_InSAR_Obj(InSAR_Data, target_lons, target_lats):
     """
     Get the nearest index (and neighbors) for each given coordinate.
-    InSAR_Data : insar object, or any object with 1D lists of lon/lat attributes
-    closest_index : a list that matches the length of InSAR_Data.lon
-    close_indices : a list of lists (might return the 100 closest pixels for a given coordinate)
+
+    :param InSAR_Data: InSAR_1D_object or InSAR_2D_obbject, or any object with 1D lists of lon/lat attributes
+    :param target_lons: 1d array of longitudes to be found
+    :param target_lats: 1d array of latitudes to be found
+    :returns closest_index: a list that matches the length of InSAR_Data.lon
+    :returns close_indices: a list of lists (might return the 100 closest pixels for a given coordinate)
     """
     print("Finding target leveling pixels in vector of data");
     closest_index, close_indices = [], [];
     for tlon, tlat in zip(target_lons, target_lats):
-        i_found, mindist, closer_pts = get_nearest_pixel_in_vector(InSAR_Data.lon, InSAR_Data.lat, tlon, tlat);
+        i_found, mindist, closer_pts = get_many_nearest_pixels_in_vector(InSAR_Data.lon, InSAR_Data.lat, tlon, tlat);
         if i_found != -1:
             closest_index.append(i_found);
             close_indices.append(closer_pts);
@@ -69,8 +95,8 @@ def find_pixels_idxs_in_InSAR_Obj(InSAR_Data, target_lons, target_lats):
 
 def compute_difference_metrics_on_same_pixels(list1, list2):
     """
-    :param list1: a list of LOS data from platform 1 (like Leveling)
-    :param list2: a matching list of LOS data from platform 2 (like UAVSAR)
+    :param list1: a 1d array of LOS data from platform 1 (like Leveling)
+    :param list2: a matching 1d array of LOS data from platform 2 (like UAVSAR)
     :returns: average misfit value, and r^2 coefficient.
     """
     misfit_metric = np.nanmean(np.abs(np.subtract(list1, list2)));  # average deviation from 1-to-1

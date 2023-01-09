@@ -7,6 +7,7 @@ LOS is in mm
 
 import numpy as np
 from .class_model import InSAR_2D_Object
+from .. import multiSAR_utilities
 
 
 def impose_InSAR_bounding_box(_InSAR_obj, _bbox=(-180, 180, -90, 90)):
@@ -29,23 +30,12 @@ def subtract_reference(InSAR_obj, refidx, tolerance=0.005):
     :param refidx: [int, int] for row/col or [float, float] for lon/lat
     :param tolerance: how close must the reference be to a viable pixel? In Degrees
     """
-    if type(refidx[0]) is float:
-        # refidx is lon, lat
-        target_lon, target_lat = refidx[0], refidx[1];
-        idx_lon = np.abs(InSAR_obj.lon - target_lon).argmin();
-        idx_lat = np.abs(InSAR_obj.lat - target_lat).argmin();
-        # Throw an error if the recovered location is really far from the target (i.e., off the arrays)
-        if np.abs(refidx[0]-InSAR_obj.lon[idx_lon]) > tolerance:
-            print("refidx[0]-InSAR_obj.lon[idx_lon]: %f degrees " % np.abs(refidx[0]-InSAR_obj.lon[idx_lon]));
-            raise ValueError("Error! Resolved Reference Pixel is not within tol of Target Reference Pixel (longitude)");
-        if np.abs(refidx[1]-InSAR_obj.lat[idx_lat]) > tolerance:
-            print("refidx[1]-InSAR_obj.lon[idx_lat]: %f degrees " % np.abs(refidx[1] - InSAR_obj.lat[idx_lat]));
-            raise ValueError("Error! Resolved Reference Pixel is not within tol of Target Reference Pixel (latitude)");
+    if type(refidx[0]) is float:  # if refidx is lon, lat
+        idx_lon, idx_lat = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_obj.lon, InSAR_obj.lat, refidx[0],
+                                                                          refidx[1], tolerance=tolerance);
         refvalue = InSAR_obj.LOS[idx_lon][idx_lat];
-    else:
-        # refidx is row, col
-        row, col = refidx[0], refidx[1];
-        refvalue = InSAR_2D_Object.LOS[row][col];
+    else:  # if refidx is row, col
+        refvalue = InSAR_2D_Object.LOS[refidx[0]][refidx[1]];
     new_InSAR_obj = InSAR_2D_Object(lon=InSAR_obj.lon, lat=InSAR_obj.lat, LOS=np.subtract(InSAR_obj.LOS, refvalue),
                                     LOS_unc=InSAR_obj.LOS_unc, lkv_E=InSAR_obj.lkv_E, lkv_N=InSAR_obj.lkv_N,
                                     lkv_U=InSAR_obj.lkv_U, starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
