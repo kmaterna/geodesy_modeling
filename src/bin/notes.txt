@@ -1,6 +1,9 @@
 November 2021
 
-This directory contains the access points for a lot of experiments within Geodesy_Modeling.  For better or worse, it's somewhat research code mixed with library code, because I wanted to have a record of the clever things I was doing with this library.  Each driver here is likely taylored to a specific project.  
+This directory contains the access points for a lot of experiments within Geodesy_Modeling.
+For better or worse, it's somewhat research code mixed with library code,
+because I wanted to have a record of the clever things I was doing with this library.
+Each driver here is tailored to a specific project.
 
 For now, this directory is on my system path.  For better or worse.  
 

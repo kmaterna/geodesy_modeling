@@ -27,9 +27,9 @@ def inputs_grd(los_grdfile, _rdrlosfile=None):
     return InSAR_Obj;
 
 
-def inputs_phase_isce(iscefile=None, los_rdr_file=None):
+def get_isce_lon_lat(iscefile=None, los_rdr_file=None):
     """
-    Create a 2D InSAR object from ISCE phase data.
+    Return 1d arrays for longitude and latitude based on isce filenames. Read from iscefile if given; otherwise los.rdr.
     """
     if iscefile:
         lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml');
@@ -37,9 +37,16 @@ def inputs_phase_isce(iscefile=None, los_rdr_file=None):
         lon, lat = isce_read_write.get_xarray_yarray_from_xml(los_rdr_file + '.xml');
     else:
         raise ValueError("Error! No valid filenames provided.");
+    return lon, lat;
+
+
+def inputs_phase_isce(iscefile=None, los_rdr_file=None):
+    """
+    Create a 2D InSAR object from ISCE phase data.  Returns the scalar field in LOS, such as wrapped phase.
+    """
+    lon, lat = get_isce_lon_lat(iscefile, los_rdr_file);
     LOS = np.empty((len(lat), len(lon)));
-    incidence = np.empty((len(lat), len(lon)));
-    azimuth = np.empty((len(lat), len(lon)));
+    incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)));
     if iscefile:
         LOS = isce_read_write.read_phase_data(iscefile);
     if los_rdr_file:
@@ -54,17 +61,11 @@ def inputs_phase_isce(iscefile=None, los_rdr_file=None):
 
 def inputs_scalar_isce(iscefile=None, los_rdr_file=None):
     """
-    Create a 2D InSAR object from ISCE data.
+    Create a 2D InSAR object from ISCE data.  Returns the scalar field in LOS, such as unwrapped phase.
     """
-    if iscefile:
-        lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml');
-    elif los_rdr_file:
-        lon, lat = isce_read_write.get_xarray_yarray_from_xml(los_rdr_file + '.xml');
-    else:
-        raise ValueError("Error! No valid filenames provided.");
+    lon, lat = get_isce_lon_lat(iscefile, los_rdr_file);
     LOS = np.empty((len(lat), len(lon)));
-    incidence = np.empty((len(lat), len(lon)));
-    azimuth = np.empty((len(lat), len(lon)));
+    incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)));
     if iscefile:
         LOS = isce_read_write.read_scalar_data(iscefile);
     if los_rdr_file:
@@ -84,9 +85,9 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     If constant_incidence_angle is provided, it uses one simple incidence angle and flight angle for the field.
     Future: Options for non-constant incidence angle have not yet been written. Range depends on track/orbit.
 
-    :param e_grdfile: string, filename
-    :param n_grdfile: string, filename
-    :param u_grdfile: string, filename
+    :param e_grdfile: string, filename, with units of meters for default behavior
+    :param n_grdfile: string, filename, with units of meters for default behavior
+    :param u_grdfile: string, filename, with units of meters for default behavior
     :param flight_angle: float, flight angle, degrees cw from n
     :param constant_incidence_angle: float, incidence angle, degrees from vertical
     :param convert_m_to_mm: default True. Multiplies by 1000
@@ -104,5 +105,5 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
         los = np.multiply(los, 1000);  # convert from m to mm
     InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
                                 lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None);
-    print("Done with reading object");
+    utilities.defensive_checks(InSAR_Obj);
     return InSAR_Obj;

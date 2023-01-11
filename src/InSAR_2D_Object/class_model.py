@@ -6,7 +6,7 @@ InSAR_2D_Object = collections.namedtuple('InSAR_2D_Object', ['lon', 'lat', 'LOS'
 
 """
 A generalized grid InSAR format
-displacements in mm
+Displacements in mm (if LOS is a displacement measurement instead of phase or other)
 Look vector is Ground to Satellite.
 starttime and endtime are just for metadata
 lon, lat are 1D arrays

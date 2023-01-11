@@ -121,7 +121,7 @@ def map_wrapped_insar(grd_filename, plotname, text_annot=None, flight_heading=No
     :param region: optional array, [W, E, S, N] for the plot
     """
     InSAR_Obj = inputs.inputs_grd(grd_filename);
-    print("Plotting file %s " % grd_filename);
+    print("Plotting file %s " % plotname);
     proj = 'M4i'
     if not region:
         region = [np.min(InSAR_Obj.lon), np.max(InSAR_Obj.lon), np.min(InSAR_Obj.lat), np.max(InSAR_Obj.lat)];
