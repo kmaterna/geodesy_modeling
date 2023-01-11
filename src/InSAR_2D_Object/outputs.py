@@ -1,12 +1,13 @@
 """
-Write and output functions for InSAR 2D data format
+Write/output/plotting functions for InSAR 2D data format
 """
 
 import pygmt
 import numpy as np
+import matplotlib.pyplot as plt
 from Tectonic_Utils.read_write import netcdf_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
-from . import inputs
+from . import inputs, utilities
 from Elastic_stresses_py.PyCoulomb import utilities as overall_utils
 
 
@@ -23,6 +24,26 @@ def write_insar2D_invertible_format(_InSAR_obj, _unc_min, filename):
     InSAR_2D_obj is in mm, and written out is in meters
     """
     print("Writing InSAR displacements into file %s - function not yet written!" % filename);
+    return;
+
+
+def plot_incidence_angle(InSAR_2D_obj, plotname):
+    """
+    Plot the incidence angle (degrees from the vertical) from the 2D InSAR object.
+    This takes a while because right now it doesn't use vectorized numpy operations.
+
+    :param InSAR_2D_obj: an InSAR_2D_object
+    :param plotname: string
+    """
+    print("Plotting %s " % plotname);
+    inc = utilities.get_incidence_grid(InSAR_2D_obj);
+    plt.figure();
+    plt.imshow(inc, extent=[InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
+                            InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()]);
+    plt.xlabel('Longitude (degrees)', fontsize=14);
+    plt.ylabel('Latitude (degrees)', fontsize=14);
+    plt.colorbar(label="Incidence (degrees)");
+    plt.savefig(plotname);
     return;
 
 

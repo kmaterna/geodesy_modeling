@@ -4,10 +4,10 @@ These functions do not appear to be implemented or used yet.
 """
 
 
-from ..InSAR_1D_Object import class_model
+from . import class_model
 
 
-def uniform_downsampling(InSAR_obj, spatial_wavelength_x, spatial_wavelength_y):
+def uniform_filtering(InSAR_obj, _spatial_wavelength_x, _spatial_wavelength_y):
     print("Spatial Filtering: Starting with %d points " % (len(InSAR_obj.LOS)));
     print("STOP! Filtering algorithm is not written yet!!!! ");
 

@@ -1,23 +1,16 @@
-"""InSAR_Obj 1D uniform downsampling algorithm"""
-
 
 import numpy as np
 from .. import multiSAR_utilities
-from ..InSAR_1D_Object import class_model
-
-
-# InSAR Object is my standard format:
-# InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object',['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U',
-#                                                        'starttime','endtime']);
-# where LOS is in mm
+from . import class_model
 
 
 def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     """
-    InSAR_obj : an InSAR_1D_Object with 1D columns of data
-    sampling_interval : degrees, float
-    averaging_window : degrees, float
-    This will essentially return a regular grid of points, but it won't keep pixels with no data / NaNs.
+    Produce a regular grid of points, but don't keep pixels with no data / NaNs.
+
+    :param InSAR_obj: an InSAR_1D_Object with 1D columns of data
+    :param sampling_interval: degrees, float
+    :param averaging_window: degrees, float
     """
     print("Uniform downsampling: Starting with %d points " % (len(InSAR_obj.lon)));
 

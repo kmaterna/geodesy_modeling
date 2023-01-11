@@ -12,6 +12,8 @@ Leveling: write out
 import numpy as np
 import sys, json, subprocess
 import datetime as dt
+
+import src.InSAR_1D_Object.downsample
 from GNSS_TimeSeries_Viewers import gps_tools
 from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, GNSS_Object, Leveling_Object
 from S1_batches.read_write_insar_utilities import isce_read_write
@@ -197,14 +199,14 @@ def write_tsx_tre_displacements(config):
                 "tsx_bbox"]);  # bounding box vertical
             East_InSAR = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(East_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box east
-            Vert_InSAR = Downsample.uniform_downsample.uniform_downsampling(Vert_InSAR,
-                                                                            new_interval_dict[
+            Vert_InSAR = src.InSAR_1D_Object.downsample.uniform_downsampling(Vert_InSAR,
+                                                                             new_interval_dict[
                                                                                 "tsx_downsample_interval"],
-                                                                            new_interval_dict["tsx_averaging_window"]);
-            East_InSAR = Downsample.uniform_downsample.uniform_downsampling(East_InSAR,
-                                                                            new_interval_dict[
+                                                                             new_interval_dict["tsx_averaging_window"]);
+            East_InSAR = src.InSAR_1D_Object.downsample.uniform_downsampling(East_InSAR,
+                                                                             new_interval_dict[
                                                                                 "tsx_downsample_interval"],
-                                                                            new_interval_dict["tsx_averaging_window"]);
+                                                                             new_interval_dict["tsx_averaging_window"]);
 
             Total_InSAR = InSAR_1D_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
             InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
@@ -240,9 +242,9 @@ def write_s1_displacements(config):
                                                                                   new_interval_dict["s1_lkv_filename"],
                                                                                   new_interval_dict["s1_slicenum"]);
             InSAR_Data = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(InSAR_Data, new_interval_dict["s1_bbox"]);
-            InSAR_Data = Downsample.uniform_downsample.uniform_downsampling(InSAR_Data,
-                                                                            new_interval_dict["s1_downsample_interval"],
-                                                                            new_interval_dict["s1_averaging_window"]);
+            InSAR_Data = src.InSAR_1D_Object.downsample.uniform_downsampling(InSAR_Data,
+                                                                             new_interval_dict["s1_downsample_interval"],
+                                                                             new_interval_dict["s1_averaging_window"]);
 
             InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                   config["prep_inputs_dir"] + new_interval_dict[

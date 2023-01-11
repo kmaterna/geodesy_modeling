@@ -15,6 +15,7 @@ def inputs_txt(insar_textfile, starttime=dt.datetime.strptime("19900101", "%Y%m%
     """
     Read slippy-invertible text file.
     Columns are: lon, lat, disp(m), sig(m), unit_e, unit_n, unit_u, with one header row.
+
     :param insar_textfile: string, file name
     :param starttime: optional, beginning of InSAR interval, dt.datetime object
     :param endtime: optional, end of InSAR interval, dt.datetime object
@@ -154,6 +155,7 @@ def inputs_isce_unw_geo_losrdr(isce_unw_filename, los_filename, starttime=dt.dat
 def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
     """
     Compute displacement = rate * time
+
     :param rateslice: 2D array of velocities
     :param date_intformat: array of two strings, in [YYYYMMDD, YYYYMMDD] format.
     """
@@ -168,6 +170,7 @@ def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
 def convert_rates_to_disps(LOS_rates, starttime, endtime):
     """
     Compute displacement = rate * time
+
     :param LOS_rates: a vector
     :param starttime: a datetime object
     :param endtime: a datetime object
