@@ -1,15 +1,12 @@
 """
 Research-specific read functions to preprocess GNSS time series in special ways.
-NOTE: We use the Timeseries object from the GNSS repo for all uses of this object.
-import GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions as gps_io_functions
-Timeseries = GNSS_TimeSeries_Viewers.gps_tools.gps_io_functions.Timeseries;
 Reference: Timeseries = collections.namedtuple("Timeseries",
 ['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su', 'EQtimes']);  # in mm
 """
 
-
-import GNSS_TimeSeries_Viewers.gps_tools as gpstools
 import datetime as dt
+import numpy as np
+from GNSS_TimeSeries_Viewers import gps_tools as gpstools
 
 
 def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='pbo', blacklist=()):
@@ -87,3 +84,23 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
             ref_dataobjlist.append(refobj);
 
     return ref_dataobjlist;
+
+
+def write_interval_gps_invertible(gps_object_list, filename):
+    """
+    Write displacements from a special format associated with an interval
+    (i.e., disp object has only 2 elements, start=0 and finish=finish).
+    Format has one header line. GPS displacements are in meters.
+    """
+    print("Writing GPS displacements into file %s " % filename);
+    ofile = open(filename, 'w');
+    ofile.write("# Header: lon, lat, dE, dN, dU, Se, Sn, Su (m)\n");
+    for station in gps_object_list:
+        if np.isnan(station.dE[1]):
+            continue;
+        else:
+            ofile.write('%f %f ' % (station.coords[0], station.coords[1]));
+            ofile.write("%f %f %f " % (0.001 * station.dE[1], 0.001 * station.dN[1], 0.001 * station.dU[1]));
+            ofile.write("%f %f %f\n" % (station.Se[1], station.Sn[1], station.Su[1]));
+    ofile.close();
+    return;

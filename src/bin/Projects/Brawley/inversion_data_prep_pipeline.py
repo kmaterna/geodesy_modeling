@@ -12,10 +12,9 @@ Leveling: write out
 import numpy as np
 import sys, json, subprocess
 import datetime as dt
-
-import src.InSAR_1D_Object.downsample
+from . import file_io_brawley_gnss as read_brawley
 from GNSS_TimeSeries_Viewers import gps_tools
-from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, GNSS_Object, Leveling_Object
+from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, Leveling_Object
 from S1_batches.read_write_insar_utilities import isce_read_write
 
 
@@ -71,16 +70,15 @@ def write_gps_displacements(config):
         starttime, endtime = get_starttime_endtime(config["epochs"], new_interval_dict);
 
         print("\nFor GPS %s, starting to extract GPS from %s to %s " % (interval_dict_key, starttime, endtime));
-        stations = GNSS_Object.read_gnss.read_station_ts_NBGF(new_interval_dict["gps_bbox"],
-                                                              new_interval_dict["gps_reference"],
-                                                              remove_coseismic=new_interval_dict["remove_coseismic"],
-                                                              network=network);
+        stations = read_brawley.read_station_ts_NBGF(new_interval_dict["gps_bbox"], new_interval_dict["gps_reference"],
+                                                     remove_coseismic=new_interval_dict["remove_coseismic"],
+                                                     network=network);
         displacement_objects = Downsample.downsample_gps_ts.get_displacements_show_ts(stations, starttime, endtime,
                                                                                       gps_sigma, prep_dir);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
             displacement_objects = loop_removing_constant(displacement_objects, new_interval_dict["gps_add_offset_mm"]);
-        GNSS_Object.outputs.write_gps_invertible_format(displacement_objects, config["prep_inputs_dir"]
-                                                        + new_interval_dict["gps_textfile"]);
+        read_brawley.write_interval_gps_invertible(displacement_objects, config["prep_inputs_dir"]
+                                                   + new_interval_dict["gps_textfile"])
     return;
 
 
@@ -199,14 +197,14 @@ def write_tsx_tre_displacements(config):
                 "tsx_bbox"]);  # bounding box vertical
             East_InSAR = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(East_InSAR, new_interval_dict[
                 "tsx_bbox"]);  # bounding box east
-            Vert_InSAR = src.InSAR_1D_Object.downsample.uniform_downsampling(Vert_InSAR,
-                                                                             new_interval_dict[
-                                                                                "tsx_downsample_interval"],
-                                                                             new_interval_dict["tsx_averaging_window"]);
-            East_InSAR = src.InSAR_1D_Object.downsample.uniform_downsampling(East_InSAR,
-                                                                             new_interval_dict[
-                                                                                "tsx_downsample_interval"],
-                                                                             new_interval_dict["tsx_averaging_window"]);
+            Vert_InSAR = InSAR_1D_Object.downsample.uniform_downsampling(Vert_InSAR,
+                                                                         new_interval_dict[
+                                                                             "tsx_downsample_interval"],
+                                                                         new_interval_dict["tsx_averaging_window"]);
+            East_InSAR = InSAR_1D_Object.downsample.uniform_downsampling(East_InSAR,
+                                                                         new_interval_dict[
+                                                                             "tsx_downsample_interval"],
+                                                                         new_interval_dict["tsx_averaging_window"]);
 
             Total_InSAR = InSAR_1D_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
             InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
@@ -242,16 +240,14 @@ def write_s1_displacements(config):
                                                                                   new_interval_dict["s1_lkv_filename"],
                                                                                   new_interval_dict["s1_slicenum"]);
             InSAR_Data = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(InSAR_Data, new_interval_dict["s1_bbox"]);
-            InSAR_Data = src.InSAR_1D_Object.downsample.uniform_downsampling(InSAR_Data,
-                                                                             new_interval_dict["s1_downsample_interval"],
-                                                                             new_interval_dict["s1_averaging_window"]);
-
+            InSAR_Data = InSAR_1D_Object.downsample.uniform_downsampling(InSAR_Data,
+                                                                         new_interval_dict["s1_downsample_interval"],
+                                                                         new_interval_dict["s1_averaging_window"]);
             InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
                                                                   config["prep_inputs_dir"] + new_interval_dict[
                                                                       "s1_datafile"]);
             InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["s1_plot"]);
-
     return;
 
 

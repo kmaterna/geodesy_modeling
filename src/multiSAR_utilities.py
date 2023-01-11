@@ -1,5 +1,5 @@
 """
-Some useful functions for comparing pixels across object types
+Some useful functions mostly independent of object specifics
 """
 
 import numpy as np
@@ -70,11 +70,12 @@ def get_many_nearest_pixels_in_vector(vector_lon, vector_lat, target_lon, target
     return i_found, minimum_distance, close_pixels;
 
 
-def find_pixels_idxs_in_InSAR_Obj(InSAR_Data, target_lons, target_lats):
+def find_pixels_idxs_in_ll_arrays(vector_lons, vector_lats, target_lons, target_lats):
     """
     Get the nearest index (and neighbors) for each given coordinate.
 
-    :param InSAR_Data: InSAR_1D_object or InSAR_2D_obbject, or any object with 1D lists of lon/lat attributes
+    :param vector_lons: 1D array of lon attributes
+    :param vector_lats: 1D array of lat attributes
     :param target_lons: 1d array of longitudes to be found
     :param target_lats: 1d array of latitudes to be found
     :returns closest_index: a list that matches the length of InSAR_Data.lon
@@ -83,7 +84,7 @@ def find_pixels_idxs_in_InSAR_Obj(InSAR_Data, target_lons, target_lats):
     print("Finding target leveling pixels in vector of data");
     closest_index, close_indices = [], [];
     for tlon, tlat in zip(target_lons, target_lats):
-        i_found, mindist, closer_pts = get_many_nearest_pixels_in_vector(InSAR_Data.lon, InSAR_Data.lat, tlon, tlat);
+        i_found, mindist, closer_pts = get_many_nearest_pixels_in_vector(vector_lons, vector_lats, tlon, tlat);
         if i_found != -1:
             closest_index.append(i_found);
             close_indices.append(closer_pts);
@@ -116,3 +117,18 @@ def get_file_dictionary(config_filename):
         this_dict[data_type] = total_data_files;
     ifile.close();
     return this_dict;
+
+
+def convert_rates_to_disps(LOS_rates, starttime, endtime):
+    """
+    Compute displacement = rate * time
+
+    :param LOS_rates: a vector
+    :param starttime: a datetime object
+    :param endtime: a datetime object
+    :returns: a vector
+    """
+    tdelta = endtime - starttime;
+    interval_years = tdelta.days / 365.24;  # number of years spanned by given velocity.
+    Disps = [i * interval_years for i in LOS_rates];
+    return Disps;

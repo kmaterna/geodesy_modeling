@@ -7,6 +7,7 @@ import datetime as dt
 import sys, pandas, h5py
 from S1_batches.read_write_insar_utilities import isce_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
+from src.multiSAR_utilities import convert_rates_to_disps
 from .class_model import InSAR_1D_Object
 
 
@@ -165,17 +166,3 @@ def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
                   dt.datetime.strptime(str(date_intformat[1]), "%Y%m%d")];
     disps = convert_rates_to_disps(ratevector, datevector[0], datevector[1]);
     return disps, datevector;
-
-
-def convert_rates_to_disps(LOS_rates, starttime, endtime):
-    """
-    Compute displacement = rate * time
-
-    :param LOS_rates: a vector
-    :param starttime: a datetime object
-    :param endtime: a datetime object
-    """
-    tdelta = endtime - starttime;
-    interval_years = tdelta.days / 365.24;  # number of years spanned by given velocity.
-    Disps = [i * interval_years for i in LOS_rates];
-    return Disps;
