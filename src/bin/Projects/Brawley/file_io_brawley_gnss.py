@@ -66,9 +66,9 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
         north_params = [north_slope, 0, 0, 0, 0];
         vert_params = [vert_slope, 0, 0, 0, 0];
         # Remove postseismic transient by Hines model
-        model_obj = gpstools.gps_postseismic_remove.get_station_hines(newobj.name, gps_data_config_file);
-        newobj = gpstools.gps_postseismic_remove.remove_by_model(newobj, model_obj, starttime1, endtime1, starttime2,
-                                                                 endtime2);
+        model_obj = gpstools.remove_postseismic.get_station_hines(newobj.name, gps_data_config_file);
+        newobj = gpstools.remove_postseismic.remove_by_model(newobj, model_obj, starttime1, endtime1, starttime2,
+                                                             endtime2);
         # Remove coseismic offset if within window
         newobj = gpstools.gps_ts_functions.detrend_data_by_value(newobj, east_params, north_params, vert_params);
         cleaned_objects.append(newobj)
@@ -88,8 +88,8 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
 
 def write_interval_gps_invertible(gps_object_list, filename):
     """
-    Write displacements from a special format associated with an interval
-    (i.e., disp object has only 2 elements, start=0 and finish=finish).
+    Write displacements from a timeseries object associated with an interval
+    (i.e., disp object has only 2 elements, start and finish).
     Format has one header line. GPS displacements are in meters.
     """
     print("Writing GPS displacements into file %s " % filename);
@@ -100,7 +100,9 @@ def write_interval_gps_invertible(gps_object_list, filename):
             continue;
         else:
             ofile.write('%f %f ' % (station.coords[0], station.coords[1]));
-            ofile.write("%f %f %f " % (0.001 * station.dE[1], 0.001 * station.dN[1], 0.001 * station.dU[1]));
+            ofile.write("%f %f %f " % (0.001 * (station.dE[1]-station.dE[0]),
+                                       0.001 * (station.dN[1]-station.dN[0]),
+                                       0.001 * (station.dU[1]-station.dU[0])));
             ofile.write("%f %f %f\n" % (station.Se[1], station.Sn[1], station.Su[1]));
     ofile.close();
     return;

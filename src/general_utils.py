@@ -1,5 +1,5 @@
 """
-Some useful functions mostly independent of object specifics
+Mathematical functions independent of object specifics
 """
 
 import numpy as np
@@ -107,18 +107,6 @@ def compute_difference_metrics_on_same_pixels(list1, list2):
     return misfit_metric, r2;
 
 
-def get_file_dictionary(config_filename):
-    """GET FILE NAMES"""
-    this_dict = {};
-    ifile = open(config_filename);
-    for line in ifile:
-        data_type = line.split(':')[0];
-        total_data_files = line.split()[1];  # assuming one file per list entry
-        this_dict[data_type] = total_data_files;
-    ifile.close();
-    return this_dict;
-
-
 def convert_rates_to_disps(LOS_rates, starttime, endtime):
     """
     Compute displacement = rate * time
@@ -132,3 +120,30 @@ def convert_rates_to_disps(LOS_rates, starttime, endtime):
     interval_years = tdelta.days / 365.24;  # number of years spanned by given velocity.
     Disps = [i * interval_years for i in LOS_rates];
     return Disps;
+
+
+def convert_disps_to_rates(disps, starttime, endtime):
+    """
+    Compute displacement / time = rate
+
+    :param disps: a vector
+    :param starttime: a datetime object
+    :param endtime: a datetime object
+    :returns: a vector
+    """
+    tdelta = endtime - starttime;
+    interval_years = tdelta.days / 365.24;  # number of years spanned by given velocity.
+    LOS_rates = [i / interval_years for i in disps];
+    return LOS_rates;
+
+
+def get_file_dictionary(config_filename):
+    """GET FILE NAMES"""
+    this_dict = {};
+    ifile = open(config_filename);
+    for line in ifile:
+        data_type = line.split(':')[0];
+        total_data_files = line.split()[1];  # assuming one file per list entry
+        this_dict[data_type] = total_data_files;
+    ifile.close();
+    return this_dict;

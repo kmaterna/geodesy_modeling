@@ -2,7 +2,7 @@ import datetime as dt
 import matplotlib
 import numpy as np
 import collections
-from .. import multiSAR_utilities
+from .. import general_utils
 from Tectonic_Utils.read_write import netcdf_read_write
 from matplotlib import pyplot as plt, cm as cm
 
@@ -127,6 +127,6 @@ def total_ts_visualizing(myUAVSAR, gps_lon, gps_lat, gps_names, selected, outdir
                          incremental=False, gps_i=None, gps_j=None, selected=selected);
     # Comparing InSAR TS with GPS
     for i in range(len(gps_lon)):
-        ipt, jpt = multiSAR_utilities.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, gps_lon[i], gps_lat[i]);
+        ipt, jpt = general_utils.get_nearest_pixel_in_raster(myUAVSAR.lon, myUAVSAR.lat, gps_lon[i], gps_lat[i]);
         plot_pixel_ts(myUAVSAR.TS, myUAVSAR.dtarray, ipt, jpt, gps_names[i], outdir);
     return;

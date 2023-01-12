@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
-from .. import multiSAR_utilities
+from .. import general_utils
 from .class_model import InSAR_1D_Object
 from .inputs import inputs_txt
 from .outputs import write_insar_invertible_format
@@ -46,8 +46,8 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
     :returns: 1D insar object
     """
     if ref_coord:
-        nearest_index, _, _ = multiSAR_utilities.get_many_nearest_pixels_in_vector(InSAR_Obj.lon, InSAR_Obj.lat, ref_coord[0],
-                                                                                   ref_coord[1]);
+        nearest_index, _, _ = general_utils.get_many_nearest_pixels_in_vector(InSAR_Obj.lon, InSAR_Obj.lat,
+                                                                              ref_coord[0], ref_coord[1]);
         constant = InSAR_Obj.LOS[nearest_index];
     else:
         constant = np.nanmedian(InSAR_Obj.LOS);

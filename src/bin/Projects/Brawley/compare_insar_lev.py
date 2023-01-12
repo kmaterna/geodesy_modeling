@@ -18,7 +18,7 @@ import matplotlib
 import matplotlib.cm as cm
 import datetime as dt
 import sys
-from Geodesy_Modeling.src import multiSAR_utilities, InSAR_1D_Object, Leveling_Object, UAVSAR
+from Geodesy_Modeling.src import general_utils, InSAR_1D_Object, Leveling_Object, UAVSAR
 from Tectonic_Utils.read_write import general_python_io_functions
 
 
@@ -40,9 +40,8 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     lon_plotting, lat_plotting = [], [];
     lon_leveling_list = [item.lon for item in myLev];
     lat_leveling_list = [item.lat for item in myLev];
-    vector_index, close_pixels = multiSAR_utilities.find_pixels_idxs_in_ll_arrays(InSAR_Data.lon, InSAR_Data.lat,
-                                                                                  lon_leveling_list,
-                                                                                  lat_leveling_list);
+    vector_index, close_pixels = general_utils.find_pixels_idxs_in_ll_arrays(InSAR_Data.lon, InSAR_Data.lat,
+                                                                             lon_leveling_list, lat_leveling_list);
 
     reference_insar_los = np.nanmean(np.array(proj_InSAR_Data.LOS)[close_pixels[0]]);  # InSAR disp near lev. refpixel.
     # the first element of leveling is the datum Y-1225, so it should be used as reference for InSAR
@@ -61,7 +60,7 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
                 lon_plotting.append(lon_leveling_list[i]);
                 lat_plotting.append(lat_leveling_list[i]);
     # Computing misfit
-    misfit_metric, r2 = multiSAR_utilities.compute_difference_metrics_on_same_pixels(oto_lev, oto_tsx);
+    misfit_metric, r2 = general_utils.compute_difference_metrics_on_same_pixels(oto_lev, oto_tsx);
 
     # Comparison plot between leveling and InSAR
     fig, axarr = plt.subplots(2, 2, figsize=(14, 10));
@@ -203,7 +202,7 @@ def drive_uavsar_ts_compare(file_dict, lev_slice, uav_slice, outfile):
 
 if __name__ == "__main__":
     config_filename = sys.argv[1];
-    file_dict = multiSAR_utilities.get_file_dictionary(config_filename);
+    file_dict = general_utils.get_file_dictionary(config_filename);
 
     # # TSX experiment: 2012-2013, leveling slice 3-4
     drive_tre_compare(file_dict, 'tsx', lev_slice=[3, 4], outdir="TSX/", outfile="one_to_one_34.png");

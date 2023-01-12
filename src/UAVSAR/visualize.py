@@ -9,11 +9,11 @@ Not really well-tested after a refactor, but it shouldn't be too hard to get wor
 import numpy as np
 import sys
 from . import uavsar_readwrite
-from .. import multiSAR_utilities
+from .. import general_utils
 
 
 def visualize_timedep_timeseries(config_filename, gps_filename, outdir):
-    file_dict = multiSAR_utilities.get_file_dictionary(config_filename);
+    file_dict = general_utils.get_file_dictionary(config_filename);
     uav_los, uav_lon, uav_lat = file_dict["uavsar_file"], file_dict["uavsar_lon"], file_dict["uavsar_lat"];
     myUAVSAR_TS = uavsar_readwrite.inputs_TS_grd(uav_los, uav_lon, uav_lat);
     [gps_lons, gps_lats, gps_names] = np.loadtxt(gps_filename, unpack=True, dtype={"formats": (float, float, 'U4'),

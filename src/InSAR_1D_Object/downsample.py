@@ -1,6 +1,6 @@
 
 import numpy as np
-from .. import multiSAR_utilities
+from .. import general_utils
 from . import class_model
 
 
@@ -32,8 +32,8 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     for i in range(len(y_array)):
         for j in range(len(x_array)):
             if averaging_window == 0:  # If we just want to find THE nearest pixel
-                idx, min_dist, _ = multiSAR_utilities.get_many_nearest_pixels_in_vector(InSAR_obj.lon, InSAR_obj.lat,
-                                                                                        x_array[j], y_array[i]);
+                idx, min_dist, _ = general_utils.get_many_nearest_pixels_in_vector(InSAR_obj.lon, InSAR_obj.lat,
+                                                                                   x_array[j], y_array[i]);
                 if min_dist < sampling_interval * 110:  # rough degrees to km conversion
                     new_obs_array[i][j] = InSAR_obj.LOS[idx];
                     new_obs_unc[i][j] = InSAR_obj.LOS_unc[idx];

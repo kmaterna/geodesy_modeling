@@ -7,7 +7,7 @@ LOS is in mm
 
 import numpy as np
 from .class_model import InSAR_2D_Object
-from .. import multiSAR_utilities
+from .. import general_utils
 from Tectonic_Utils.geodesy import insar_vector_functions
 
 
@@ -32,8 +32,8 @@ def subtract_reference(InSAR_obj, refidx, tolerance=0.005):
     :param tolerance: how close must the reference be to a viable pixel? In Degrees
     """
     if type(refidx[0]) is float:  # if refidx is lon, lat
-        idx_lon, idx_lat = multiSAR_utilities.get_nearest_pixel_in_vector(InSAR_obj.lon, InSAR_obj.lat, refidx[0],
-                                                                          refidx[1], tolerance=tolerance);
+        idx_lon, idx_lat = general_utils.get_nearest_pixel_in_vector(InSAR_obj.lon, InSAR_obj.lat, refidx[0],
+                                                                     refidx[1], tolerance=tolerance);
         refvalue = InSAR_obj.LOS[idx_lon][idx_lat];
     else:  # if refidx is row, col
         refvalue = InSAR_2D_Object.LOS[refidx[0]][refidx[1]];
