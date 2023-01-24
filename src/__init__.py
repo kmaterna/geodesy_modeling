@@ -1,2 +1,2 @@
 from . import general_utils
-from . import gnss_utilities
+from . import gnss_utils
