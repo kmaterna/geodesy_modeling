@@ -2,17 +2,9 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 from Elastic_stresses_py.PyCoulomb import coulomb_collections as cc
 
 
-def inside_lonlat_box(bbox, lonlat):
-    """Return boolean condition testing whether [lon, lat] point is within a bounding box [w, e, s, n]"""
-    if bbox[0] <= lonlat[0] <= bbox[1] and bbox[2] <= lonlat[1] <= bbox[3]:
-        return 1;
-    else:
-        return 0;
-
-
 def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 52), unit_slip=False):
     """
-    Read the results of Fred's Static1D file
+    Read results of Fred's Static1D file
     For example: stat2C.outCascadia
     We also restrict the range of fault elements using a bounding box
     If unit_slip, we divide by the imposed slip rate to get a 1 cm/yr Green's Function.
@@ -37,7 +29,7 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
     norm_factor = 1;
     disp_points_all_patches, all_patches, given_slip = [], [], [];
     for i in range(len(fault_patches)):
-        if not inside_lonlat_box(latlonbox, [fault_patches[i].lon, fault_patches[i].lat]):  # southern patches
+        if not fault_patches[i].is_within_bbox(latlonbox):  # can restrict to the southern patches if desired
             counter = counter + len(gps_disp_locs);
             continue;
         disp_points_one_patch = [];
@@ -71,7 +63,7 @@ def write_csz_dist_fault_patches(gf_elements, model_vector, outfile_gmt, outfile
     fault_dict_lists = [item.fault_dict_list for item in gf_elements];
     for i in range(len(gf_elements)):
         if gf_elements[i].fault_name == 'CSZ_dist':   # CSZ patches are 1 patch per model element.
-            new_patch = fault_dict_lists[i].change_fault_slip(model_vector[i]*10);  # mm/yr
+            new_patch = fault_dict_lists[i][0].change_fault_slip(model_vector[i]*10);  # mm/yr
             modeled_slip_patches.append(new_patch);
     if len(modeled_slip_patches) > 0:
         fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile_gmt,

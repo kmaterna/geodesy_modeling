@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 """
-A driver for interseismic velocity inversion for fault slip rates.
-Humboldt Bay application.
-Mostly research code.  It is included in the repo as an example of what to do with this toolbox.
+A driver for interseismic velocity inversion for fault slip rates: Humboldt Bay application.
+Mostly research code.  It is included in repo as an example of what to do with this toolbox, and for version control.
 Depends on Humboldt Bay project code for some functions. It will not work on a different general system.
 """
 
@@ -109,9 +108,9 @@ def read_hb_fault_gf_elements(exp_dict):
                 lower_bound = exp_dict["faults"]["CSZ"]["slip_min"];  # default lower bound, probabaly zero
                 upper_bound = max0*130;  # upper bound about 40 mm/yr; from max_slip from geometry; units in cm
                 amount_of_slip_penalty = 1;
-                if patch["depth"] > exp_dict["max_depth_csz_slip"]:
+                if patch.depth > exp_dict["max_depth_csz_slip"]:
                     amount_of_slip_penalty = 100;   # optionally: force CSZ slip to be above a certain depth
-                if patch["depth"] < exp_dict["depth_of_forced_coupling"]:
+                if patch.depth < exp_dict["depth_of_forced_coupling"]:
                     lower_bound = upper_bound * 0.90;  # optionally: force shallow CSZ to full coupling
                 one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
                                                       fault_dict_list=[patch],

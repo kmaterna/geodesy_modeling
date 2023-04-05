@@ -16,33 +16,39 @@ GF_element = collections.namedtuple('GF_element', ['disp_points', 'fault_name',
                                                    'slip_penalty', 'units', 'points']);
 
 
-def pair_obs_gf(obs_disp_pts, model_disp_pts):
+def pair_obs_model(obs_disp_pts, model_disp_pts):
     """
-    Operates on two lists of disp_points objects, just pairing the objects together where their locations match
+    Filters two lists of disp_points objects, just pairing the objects together where their locations match
+
+    :param obs_disp_pts: list of disp_points objects
+    :param model_disp_pts: list of disp_points objects
+    :returns: list of disp_point_obj, list of disp_point_obj
     """
-    paired_gf, paired_obs = [], [];
+    tol = 0.001;
+    paired_model, paired_obs = [], [];
     for obs_item in obs_disp_pts:
-        for gf_item in model_disp_pts:
-            if abs(obs_item.lon - gf_item.lon) < 0.001 and abs(obs_item.lat - gf_item.lat) < 0.001:
-                paired_gf.append(gf_item);
+        for model_item in model_disp_pts:
+            if abs(obs_item.lon - model_item.lon) < tol and abs(obs_item.lat - model_item.lat) < tol:
+                paired_model.append(model_item);
                 paired_obs.append(obs_item);
                 break;
-    return paired_obs, paired_gf;
+    return paired_obs, paired_model;
 
 
 def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
     """
     Take list of GF_elements, and list of obs_disp_points. Pare them down to a matching set of points in same order.
     The assumption is that all gf_elements have same points inside them (because we take first one as representative)
-    Returns:
-        paired_obs (list of disp_points)
-        paired_gf_elements (list of gf_elements)
+
+    :param obs_disp_points: list of disp_points
+    :param gf_elements: a list of gf_elements with all the same points inside them
+    :returns: paired_obs (list of disp_points), paired_gf_elements (list of gf_elements)
     """
     paired_gf_elements = [];  # a list of GF_element objects
-    paired_obs, _ = pair_obs_gf(obs_disp_points, gf_elements[0].disp_points);  # get paired obs disp_points
+    paired_obs, _ = pair_obs_model(obs_disp_points, gf_elements[0].disp_points);  # get paired obs disp_points
     target_len = len(paired_obs);
     for gf_model in gf_elements:
-        _, paired_gf = pair_obs_gf(obs_disp_points, gf_model.disp_points);  # one fault or CSZ patch
+        _, paired_gf = pair_obs_model(obs_disp_points, gf_model.disp_points);  # one fault or CSZ patch
         paired_gf_elements.append(GF_element(disp_points=paired_gf, fault_name=gf_model.fault_name,
                                              fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
                                              upper_bound=gf_model.upper_bound,
@@ -53,11 +59,16 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
     return paired_obs, paired_gf_elements;
 
 
-def add_all_csz_patches(one_patch_gfs):
-    """take n patches of the subduction interface and add their green's functions together """
-    new_pts = one_patch_gfs[0];
-    for i in range(1, len(one_patch_gfs)):
-        new_pts = dpo.utilities.add_disp_points(new_pts, one_patch_gfs[i]);
+def add_gfs(single_gfs):
+    """
+    Take some gf_elements and add their green's functions together.
+
+    :param single_gfs: list of gf_objects with the same modeled_disp_points lists
+    :returns: list of disp_points
+    """
+    new_pts = single_gfs[0];
+    for i in range(1, len(single_gfs)):
+        new_pts = dpo.utilities.add_disp_points(new_pts, single_gfs[i]);
     return new_pts;
 
 
@@ -107,8 +118,9 @@ def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)
 def get_GF_leveling_offset_element(obs_disp_points):
     """
     Build a GF_element for a reference frame leveling offset column of the GF matrix
-    Input: a list of disp_points
-    Output: a list of 1 GF_element, or an empty list if there is no leveling in this dataset
+
+    :param obs_disp_points: list of disp_point_objects
+    :returns: a list of 1 GF_element, or an empty list if there is no leveling in this dataset
     """
     total_response_pts = [];
     lev_count = 0;
@@ -306,7 +318,7 @@ def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas, dist
                     distances.append(gf_elements[i].fault_dict_list[0].get_fault_element_distance(
                         gf_elements[j].fault_dict_list[0]));
             break;
-    critical_distance = sorted(distances)[2] + 2;
+    critical_distance = sorted(distances)[2] + 5;
     # take adjacent patches with some wiggle room (5 for humboldt)
     # take adjacent patches with some wiggle room (2 for salton sea)
 
