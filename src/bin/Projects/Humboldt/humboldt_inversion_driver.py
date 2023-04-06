@@ -171,7 +171,8 @@ def run_humboldt_inversion():
     # COMPUTE STAGE: PREPARE ROTATION GREENS FUNCTIONS AND LEVELING OFFSET
     gf_elements_rotation = inv_tools.get_GF_rotation_elements(obs_disp_pts);  # 3 elements: rot_x, rot_y, rot_z
     gf_elements = gf_elements + gf_elements_rotation;  # add rotation elements to matrix
-    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_pts, target_region=[-126, -119, 40.4, 46]);
+    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_pts, target_region=[-126, -122.5, 40.4, 46],
+                                                               rot_name='ocb_');
     gf_elements = gf_elements + gf_elements_rotation2;  # add second rotation elements (Oregon Coast Block)
     gf_element_lev = inv_tools.get_GF_leveling_offset_element(obs_disp_pts);  # 1 element: lev reference frame
     gf_elements = gf_elements + gf_element_lev;
@@ -217,12 +218,18 @@ def run_humboldt_inversion():
         sys.exit(0);
 
     # Make forward predictions.  Work in disp_pts as soon as possible, not matrices.
-    M_rot_only, M_no_rot = inv_tools.unpack_model_of_rotation_only(M_opt, [x.fault_name for x in paired_gf_elements]);
-    M_csz = inv_tools.unpack_model_of_target_param(M_opt, [x.fault_name for x in paired_gf_elements], 'CSZ_dist');
-    M_LSF = inv_tools.unpack_model_of_target_param(M_opt, [x.fault_name for x in paired_gf_elements], 'LSFRev');
+    rotation_params = ("x_rot", "y_rot", "z_rot", 'ocb_x_rot', 'ocb_y_rot', 'ocb_z_rot');
+    all_param_names = [x.fault_name for x in paired_gf_elements]
+    M_csz = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, ['CSZ_dist']);
+    M_LSF = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, ['LSFRev']);
+    M_ocb = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, ['ocb_x_rot', 'ocb_y_rot', 'ocb_z_rot']);
+    M_rot_only = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, rotation_params);
+    M_no_rot = inv_tools.unpack_model_without_target_param(M_opt, all_param_names, rotation_params);
+
     model_disp_pts = inv_tools.forward_disp_points_predictions(G, M_opt, sigmas, paired_obs);
     rot_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_rot_only, sigmas, paired_obs);
     norot_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_no_rot, sigmas, paired_obs);
+    ocb_modeld_pts = inv_tools.forward_disp_points_predictions(G, M_ocb, sigmas, paired_obs);
     csz_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_csz, sigmas, paired_obs);
     lsf_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_LSF, sigmas, paired_obs);
 
@@ -249,7 +256,8 @@ def run_humboldt_inversion():
     inv_tools.write_summary_params(M_opt, rms_obj, outdir + '/model_results_human.txt',
                                    paired_gf_elements, ignore_faults=['CSZ_dist'], message=response.message);
     inv_tools.write_fault_traces(M_opt, paired_gf_elements, outdir + '/fault_output.txt',
-                                 ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset']);
+                                 ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset',
+                                                'ocb_x_rot', 'ocb_y_rot', 'ocb_z_rot']);
     readers.write_csz_dist_fault_patches(paired_gf_elements, M_opt, outdir+'/csz_model.gmt',
                                          outdir+'/csz_slip_distribution.txt');
     inv_tools.view_full_results(exp_dict, paired_obs, model_disp_pts, residual_pts, rot_modeled_pts,
@@ -261,6 +269,9 @@ def run_humboldt_inversion():
                                                      model_disp_pts, residual_pts, [-126, -119.7, 37.7, 43.3],
                                                      scale_arrow=(0.5, 0.020, "2 cm"), v_labeling_interval=0.003,
                                                      fault_dict_list=[], rms=rms_mm_t);
+    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/ocb_only.png",
+                                                         disp_points=ocb_modeld_pts, region=[-126, -119.7, 37.7, 43.3],
+                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
     return;
 
 

@@ -72,13 +72,17 @@ def add_gfs(single_gfs):
     return new_pts;
 
 
-def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)):
+def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90), rot_name=''):
     """
     Build 3 GF_elements for horizontal rotation of GNSS velocities due to reference frames
     X rotation: [0, 0, 1] Euler Pole
     Y rotation: [90, 0, 1] Euler Pole
     Z rotation: [0, 89.99, 1] Euler Pole
-    Returns list of GF_elements with theoretical displacements in all 3 directions.
+
+    :param obs_disp_points: list of disp_points
+    :param target_region: list of lon/lon/lat/lat for bounding box
+    :param rot_name: string, optional metadata for naming the rotation (ex: ocb_)
+    :returns: list of 3 GF_elements with rotation displacements in x, y, and z directions
     """
     x_disp_p, y_disp_p, z_disp_p = [], [], [];
     for obs_item in obs_disp_points:
@@ -106,12 +110,12 @@ def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)
                                           refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
         z_disp_p.append(response);
 
-    xresponse = GF_element(disp_points=x_disp_p, fault_name='x_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty=0, units='deg/Ma', points=[]);
-    yresponse = GF_element(disp_points=y_disp_p, fault_name='y_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty=0, units='deg/Ma', points=[]);
-    zresponse = GF_element(disp_points=z_disp_p, fault_name='z_rot', fault_dict_list=[], upper_bound=1, lower_bound=-1,
-                           slip_penalty=0, units='deg/Ma', points=[]);
+    xresponse = GF_element(disp_points=x_disp_p, fault_name=rot_name+'x_rot', fault_dict_list=[],
+                           upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
+    yresponse = GF_element(disp_points=y_disp_p, fault_name=rot_name+'y_rot', fault_dict_list=[],
+                           upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
+    zresponse = GF_element(disp_points=z_disp_p, fault_name=rot_name+'z_rot', fault_dict_list=[],
+                           upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
     return [xresponse, yresponse, zresponse];
 
 
@@ -232,41 +236,38 @@ def unpack_model_pred_vector(model_pred, paired_obs):
     return disp_points_list;
 
 
-def unpack_model_of_rotation_only(M_vector, parameter_names, rot_target_names=("x_rot", "y_rot", "z_rot")):
-    """
-    First, create a pure rotation model. Zero out all model parameters except the rotation, leaving the last three.
-    Then, create a no-net-rotation model. Zero out all the rotation, leaving everything else.
-
-    :param M_vector: vector of model parameters
-    :param parameter_names: list of strings, derived from fault_name of a GF_element
-    :param rot_target_names: a list of parameter names for rotation parameters (default x_rot, y_rot, z_rot)
-s    """
-    rot_multiplier = np.zeros(np.shape(M_vector));
-    fault_multiplier = np.zeros(np.shape(M_vector));
-    for i in range(len(parameter_names)):
-        if parameter_names[i] in rot_target_names:  # if we are seeing a rotation parameter
-            rot_multiplier[i] = 1;
-        else:
-            fault_multiplier[i] = 1;
-    M_rot_only = np.multiply(M_vector, rot_multiplier);
-    M_no_rot = np.multiply(M_vector, fault_multiplier);
-    return M_rot_only, M_no_rot;
-
-
-def unpack_model_of_target_param(M_vector, parameter_names, target_name):
+def unpack_model_of_target_param(M_vector, parameter_names, target_names=()):
     """
     Simplify a model vector into only those components from particular target_name (string), such as 'CSZ_dist'
     Useful for investigating a forward model.
 
-    :param M_vector: array of numbers, model parameter values
+    :param M_vector: 1D array of numbers, model parameter values
     :param parameter_names: list of parameters names for each model parameter
-    :param target_name: name of desired model parameter
+    :param target_names: list, names of desired model parameter
     :returns: vector of zeros except for the model values corresponding to target name (e.g., 5 mm/yr on one fault)
     """
     target_params_vector = np.zeros(np.shape(M_vector));
     for i in range(len(parameter_names)):
-        if parameter_names[i] == target_name:
+        if parameter_names[i] in target_names:
             target_params_vector[i] = 1;
+    M_target = np.multiply(M_vector, target_params_vector);
+    return M_target;
+
+
+def unpack_model_without_target_param(M_vector, parameter_names, exclude_names=()):
+    """
+    Simplify a model vector into only those components excluding target_names (string)
+    Useful for investigating a forward model.
+
+    :param M_vector: 1D array of numbers, model parameter values
+    :param parameter_names: list of parameters names for each model parameter
+    :param exclude_names: list, names of undesired model parameter
+    :returns: vector of parameter values except for the model values corresponding to exclude name
+    """
+    target_params_vector = np.ones(np.shape(M_vector));
+    for i in range(len(parameter_names)):
+        if parameter_names[i] in exclude_names:
+            target_params_vector[i] = 0;
     M_target = np.multiply(M_vector, target_params_vector);
     return M_target;
 
