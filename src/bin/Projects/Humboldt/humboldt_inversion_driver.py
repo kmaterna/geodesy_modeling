@@ -15,7 +15,7 @@ import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Inversion.readers as readers
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.disp_points_object.outputs as dpo_out
-sys.path.append("/Users/kmaterna/Documents/B_Research/Mendocino_Geodesy/Humboldt/_Project_Code");  # add local code
+sys.path.append("../../../_Project_Code");  # add local code
 import humboldt_readers as HR  # Also had to add into pycharm project settings.
 
 reader_dictionary = {
@@ -171,7 +171,7 @@ def run_humboldt_inversion():
     # COMPUTE STAGE: PREPARE ROTATION GREENS FUNCTIONS AND LEVELING OFFSET
     gf_elements_rotation = inv_tools.get_GF_rotation_elements(obs_disp_pts);  # 3 elements: rot_x, rot_y, rot_z
     gf_elements = gf_elements + gf_elements_rotation;  # add rotation elements to matrix
-    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_pts, target_region=[-126, -122.5, 40.4, 46],
+    gf_elements_rotation2 = inv_tools.get_GF_rotation_elements(obs_disp_pts, target_region=[-126, -120, 40.4, 46],
                                                                rot_name='ocb_');
     gf_elements = gf_elements + gf_elements_rotation2;  # add second rotation elements (Oregon Coast Block)
     gf_element_lev = inv_tools.get_GF_leveling_offset_element(obs_disp_pts);  # 1 element: lev reference frame

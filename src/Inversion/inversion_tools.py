@@ -72,6 +72,34 @@ def add_gfs(single_gfs):
     return new_pts;
 
 
+def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 90), rot_name=''):
+    """
+    Build one GF_elements for a horizontal rotation of GNSS velocities about some axis
+
+    :param obs_disp_points: list of disp_points
+    :param ep: [lon, lat, rate] of euler pole for desired rotation
+    :param target_region: list of lon/lon/lat/lat for bounding box
+    :param rot_name: string, optional metadata for naming the rotation (ex: ocb_)
+    :returns: one GF_element with rotation displacements in x, y, and z directions
+    """
+    rot_disp_p = [];
+    for obs_item in obs_disp_points:
+        coords = [obs_item.lon, obs_item.lat];
+        if dpo.utilities.is_within_bbox(obs_item, target_region):
+            mult = 1;
+        else:
+            mult = 0;
+        response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, ep);
+        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
+                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
+                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
+                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
+        rot_disp_p.append(response);
+    rot_response = GF_element(disp_points=rot_disp_p, fault_name=rot_name, fault_dict_list=[],
+                              upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
+    return rot_response;
+
+
 def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90), rot_name=''):
     """
     Build 3 GF_elements for horizontal rotation of GNSS velocities due to reference frames
@@ -84,38 +112,12 @@ def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)
     :param rot_name: string, optional metadata for naming the rotation (ex: ocb_)
     :returns: list of 3 GF_elements with rotation displacements in x, y, and z directions
     """
-    x_disp_p, y_disp_p, z_disp_p = [], [], [];
-    for obs_item in obs_disp_points:
-        coords = [obs_item.lon, obs_item.lat];
-        if target_region[0] < obs_item.lon < target_region[1] and target_region[2] < obs_item.lat < target_region[3]:
-            mult = 1;
-        else:
-            mult = 0;
-        response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [0, 0, 1]);   # X direction
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
-                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
-                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
-        x_disp_p.append(response);
-        response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [90, 0, 1]);  # Y direction
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
-                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
-                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
-        y_disp_p.append(response);
-        response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, [0, 89.99, 1]);  # Z direction
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
-                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
-                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
-        z_disp_p.append(response);
-
-    xresponse = GF_element(disp_points=x_disp_p, fault_name=rot_name+'x_rot', fault_dict_list=[],
-                           upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
-    yresponse = GF_element(disp_points=y_disp_p, fault_name=rot_name+'y_rot', fault_dict_list=[],
-                           upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
-    zresponse = GF_element(disp_points=z_disp_p, fault_name=rot_name+'z_rot', fault_dict_list=[],
-                           upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
+    xresponse = get_GF_rotation_element(obs_disp_points, ep=[0, 0, 1],  rot_name=rot_name+'x_rot',
+                                        target_region=target_region);  # X direction
+    yresponse = get_GF_rotation_element(obs_disp_points, ep=[90, 0, 1],  rot_name=rot_name+'y_rot',
+                                        target_region=target_region);  # Y direction
+    zresponse = get_GF_rotation_element(obs_disp_points, ep=[0, 89.99, 1],  rot_name=rot_name+'z_rot',
+                                        target_region=target_region);  # Z direction
     return [xresponse, yresponse, zresponse];
 
 
