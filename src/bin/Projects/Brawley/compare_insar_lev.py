@@ -19,7 +19,7 @@ import matplotlib.cm as cm
 import datetime as dt
 import sys
 from Geodesy_Modeling.src import general_utils, InSAR_1D_Object, Leveling_Object, UAVSAR
-from Tectonic_Utils.read_write import general_python_io_functions
+from Tectonic_Utils.read_write import general_io
 
 
 def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None,
@@ -176,7 +176,7 @@ def drive_tre_compare(file_dict, insar_key, lev_slice, outdir, outfile):
     VertTSXData, EastTSXData = InSAR_1D_Object.inputs.inputs_TRE_vert_east(insar_datafile);
     myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
     one_to_one_comparison(myLev, VertTSXData, insar_key, outdir + outfile, label="Vertical", graph_scale=50);
-    fields = general_python_io_functions.read_gmt_multisegment_latlon(file_dict["field_file"], split_delimiter=',');
+    fields = general_io.read_gmt_multisegment_latlon(file_dict["field_file"], split_delimiter=',');
     InSAR_1D_Object.outputs.plot_insar(VertTSXData, outdir+"InSAR_velo.png", lons_annot=fields[0][0],
                                        lats_annot=fields[1][0]);
     return;
