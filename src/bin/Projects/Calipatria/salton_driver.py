@@ -23,6 +23,7 @@ def configure():
     exp_dict = vars(p.parse_args())
     exp_dict["obs_disp_points"] = "Input_Data/ssgf_vectors_manual_m.txt";
     exp_dict["fault_file"] = "../../../_Data/Lohman_Fault_Geom/forK.mat";
+    exp_dict["smoothing_length"] = 2;  # smooth adjacent patches with some wiggle room (2 for salton sea)
     subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
@@ -71,7 +72,8 @@ if __name__ == "__main__":
     obs, sigmas = inv_tools.build_obs_vector(obs_disp_pts);
     G /= sigmas[:, None];
     w_obs = obs / sigmas;
-    G, w_obs, sigmas = inv_tools.build_smoothing(GF_elements, ('kalin',), exp_dict["smoothing"], G, w_obs, sigmas);
+    G, w_obs, sigmas = inv_tools.build_smoothing(GF_elements, ('kalin',), exp_dict["smoothing"],
+                                                 exp_dict["smoothing_length"], G, w_obs, sigmas);
     plt.imshow(G, vmin=-3, vmax=3); plt.savefig(outdir+"/G_matrix.png");
 
     # Money line: Constrained inversion

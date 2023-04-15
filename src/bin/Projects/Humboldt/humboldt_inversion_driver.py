@@ -35,6 +35,7 @@ def configure():
     p.add_argument('--lonlatfile', type=str, help='''filename with lonlats''');
     p.add_argument('--corrections', type=list, help='''List of correction dictionaries''');
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''');
+    p.add_argument('--smoothing_length', type=float, help='''lengthscale of Laplacian smoothing constraint''');
     p.add_argument('--slip_penalty', type=float, help='''strength of minimum-norm slip constraint''');
     p.add_argument('--max_depth_csz_slip', type=float, help='''Maximum depth of slip distribution on CSZ''');
     p.add_argument('--depth_of_forced_coupling', type=float, help='''Depth of imposed coupling distribution on CSZ''');
@@ -200,9 +201,10 @@ def run_humboldt_inversion():
     # Add optional smoothing penalty, overwriting old variables
     if 'smoothing' in exp_dict.keys():
         G, weighted_obs, sigmas = inv_tools.build_smoothing(paired_gf_elements, ('CSZ_dist',),
-                                                            exp_dict["smoothing"], G, weighted_obs, sigmas,
+                                                            exp_dict["smoothing"], exp_dict["smoothing_length"],
+                                                            G, weighted_obs, sigmas,
                                                             distance_3d=False);
-    # Add optional slip weighting penalty, overwriting old variables
+    # Add optional slip weighting penalty, overwriting old variable
     if 'slip_penalty' in exp_dict.keys():
         G, weighted_obs, sigmas = inv_tools.build_slip_penalty(paired_gf_elements,
                                                                exp_dict["slip_penalty"], G, weighted_obs, sigmas);

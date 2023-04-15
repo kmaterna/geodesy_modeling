@@ -288,7 +288,7 @@ def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
     return;
 
 
-def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas, distance_3d=True):
+def build_smoothing(gf_elements, fault_name_list, strength, lengthscale, G, obs, sigmas, distance_3d=True):
     """
     Make a weighted connectivity matrix that has the same number of columns as G, that can be appended to the bottom.
     Any element within gf_element that has fault_name will have its immediate neighbors subtracted for smoothing.
@@ -299,6 +299,7 @@ def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas, dist
     :type gf_elements: list
     :param fault_name_list: which fault elements are we smoothing, tuple of strings
     :param strength: lambda parameter in smoothing equation
+    :param lengthscale: distance over which fault elements are smooth (i.e., correlated)
     :param G: already existing G matrix
     :param obs: already existing obs vector
     :param sigmas: already existing sigma vector
@@ -321,9 +322,7 @@ def build_smoothing(gf_elements, fault_name_list, strength, G, obs, sigmas, dist
                     distances.append(gf_elements[i].fault_dict_list[0].get_fault_element_distance(
                         gf_elements[j].fault_dict_list[0]));
             break;
-    critical_distance = sorted(distances)[2] + 5;
-    # take adjacent patches with some wiggle room (5 for humboldt)
-    # take adjacent patches with some wiggle room (2 for salton sea)
+    critical_distance = sorted(distances)[2] + lengthscale;  # smooth adjacent patches with some wiggle room
 
     # Build the parts of the matrix for smoothing
     for i in range(len(gf_elements)):
@@ -376,7 +375,7 @@ def build_slip_penalty(gf_elements, penalty, G, obs, sigmas):
     return G_penalty, smoothed_obs, smoothed_sigmas;
 
 
-def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
+def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector, tol=1e-9):
     """
     Remove lines of zeros automatically added to obs/sigma vectors for smoothing and slip penalty parameters.
     All inputs are expected to be vectors with the same length.
@@ -384,8 +383,8 @@ def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector):
     :param pred_vector: array, in m
     :param obs_vector: array, in m
     :param sigma_vector: array, in m
+    :param tol: optional, 1e-9
     """
-    tol = 1e-9;
     new_pred_vector, new_obs_vector, new_sigma_vector = [], [], [];
     for i in range(len(pred_vector)):
         if abs(pred_vector[i]) < tol and abs(obs_vector[i]) < tol and abs(sigma_vector[i]) < tol:
