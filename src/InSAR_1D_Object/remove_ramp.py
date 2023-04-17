@@ -11,7 +11,6 @@ from .. import general_utils
 from .class_model import InSAR_1D_Object
 from .inputs import inputs_txt
 from .outputs import write_insar_invertible_format
-from . import utilities
 
 
 def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
@@ -23,7 +22,7 @@ def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
     noplane_Obj = remove_ramp(InSAR_Obj, ref_coord);
     print("Writing ramp-removed data into file %s " % ramp_removed_file);
     plotting_ramp_results(InSAR_Obj, noplane_Obj, insar_textfile+".png");
-    write_insar_invertible_format(noplane_Obj, 0.0, ramp_removed_file);
+    write_insar_invertible_format(noplane_Obj, ramp_removed_file);
     return;
 
 
@@ -32,7 +31,7 @@ def remove_constant_filewise(insar_textfile, constant_removed_file, ref_coord=No
     noconst_Obj = remove_constant_insarformat(InSAR_Obj, ref_coord);
     print("Writing constant-removed data into file %s " % constant_removed_file);
     plotting_ramp_results(InSAR_Obj, noconst_Obj, insar_textfile+".png");
-    write_insar_invertible_format(noconst_Obj, 0.0, constant_removed_file);
+    write_insar_invertible_format(noconst_Obj, constant_removed_file);
     return;
 
 
@@ -68,7 +67,7 @@ def remove_ramp(InSAR_Obj, ref_coord=None):
     :param ref_coord: [lon, lat] of point constrained to be zero.
     :returns: 1D insar object
     """
-    nonan_obj = utilities.remove_nans(InSAR_Obj);
+    nonan_obj = InSAR_Obj.remove_nans();
     Z = [];
     A = np.zeros((len(nonan_obj.lon), 3));
     for i in range(len(nonan_obj.lon)):

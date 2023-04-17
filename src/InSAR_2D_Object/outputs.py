@@ -36,7 +36,7 @@ def plot_incidence_angle(InSAR_2D_obj, plotname):
     :param plotname: string
     """
     print("Plotting %s " % plotname);
-    inc = utilities.get_incidence_grid(InSAR_2D_obj);
+    inc = InSAR_2D_obj.get_incidence_grid();
     plt.figure();
     plt.imshow(inc, extent=[InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
                             InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()]);

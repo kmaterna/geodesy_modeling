@@ -53,7 +53,7 @@ class LevStation:
         Restrict a leveling object to only a certain timerange, setting the start to zero displacement.
         start_index and end_index refer to slices of dtarray.
         Data will be [0, enddisp]. Sign convention of (end - start) displacements.
-        Should eventually re-write this for datetimes instead of indices.
+        Should eventually add the same function for datetimes instead of indices.
         """
         dtarray, new_station_list = [], [];
         dtarray.append(self.dtarray[start_index]);

@@ -148,3 +148,14 @@ def get_file_dictionary(config_filename):
         this_dict[data_type] = total_data_files;
     ifile.close();
     return this_dict;
+
+
+def wrap_float(def_meas, wavelength):
+    """
+    Wrap a float or array (already referenced to refpixel) by a given wavelength. Tested.
+
+    :param def_meas: float or array
+    :param wavelength: float (in same units as def_meas)
+    """
+    wrapped_phase = np.mod(def_meas, wavelength/2) * (4*np.pi / wavelength) - np.pi;
+    return wrapped_phase;

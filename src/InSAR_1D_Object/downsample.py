@@ -47,16 +47,12 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
                     new_n[i][j] = np.nan;
                     new_u[i][j] = np.nan;
             else:  # If we want to average over a spatial window
-                new_obs_array[i][j] = get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i],
-                                                             averaging_window, InSAR_obj.LOS);
-                new_obs_unc[i][j] = get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i],
-                                                           averaging_window, InSAR_obj.LOS_unc);
-                new_e[i][j] = get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i],
-                                                     averaging_window, InSAR_obj.lkv_E);
-                new_n[i][j] = get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i],
-                                                     averaging_window, InSAR_obj.lkv_N);
-                new_u[i][j] = get_average_within_box(InSAR_obj.lon, InSAR_obj.lat, x_array[j], y_array[i],
-                                                     averaging_window, InSAR_obj.lkv_U);
+                avg_pixel = InSAR_obj.get_average_los_within_box(x_array[j], y_array[i], averaging_window);
+                new_obs_array[i][j] = avg_pixel.LOS[0];
+                new_obs_unc[i][j] = avg_pixel.LOS_unc[0];
+                new_e[i][j] = avg_pixel.lkv_E[0];
+                new_n[i][j] = avg_pixel.lkv_N[0];
+                new_u[i][j] = avg_pixel.lkv_U[0];
 
     ds_lon = np.reshape(X, (len(x_array) * len(y_array),));
     ds_lat = np.reshape(Y, (len(x_array) * len(y_array),));
@@ -71,17 +67,3 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
                                                starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
     print("Done with downsampling: Ending with %d points " % (len(ds_lon)));
     return ds_InSAR_obj;
-
-
-def get_average_within_box(lonlist, latlist, target_lon, target_lat, averaging_window, data):
-    """
-    averaging window in degrees
-    Search the averaging window in both directions from the target loc, and average the data
-    Could this have better performance?
-    """
-    new_data = [];
-    for i in range(len(lonlist)):
-        if target_lon - averaging_window <= lonlist[i] <= target_lon + averaging_window:
-            if target_lat - averaging_window <= latlist[i] <= target_lat + averaging_window:
-                new_data.append(data[i]);
-    return np.nanmean(new_data);

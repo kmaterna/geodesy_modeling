@@ -199,10 +199,10 @@ def write_tsx_tre_displacements(config):
 
             # We can get both vertical and east from the TRE data.
             Vert_InSAR, East_InSAR = InSAR_1D_Object.inputs.inputs_TRE_vert_east(new_interval_dict["tsx_filename"]);
-            Vert_InSAR = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(Vert_InSAR, new_interval_dict[
-                "tsx_bbox"]);  # bounding box vertical
-            East_InSAR = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(East_InSAR, new_interval_dict[
-                "tsx_bbox"]);  # bounding box east
+            Vert_InSAR = Vert_InSAR.impose_bounding_box(new_interval_dict["tsx_bbox"]);  # bounding box vertical
+            Vert_InSAR = Vert_InSAR.remove_nans();
+            East_InSAR = East_InSAR.impose_bounding_box(East_InSAR, new_interval_dict["tsx_bbox"]);  # bbox east
+            East_InSAR = East_InSAR.remove_nans();
             Vert_InSAR = InSAR_1D_Object.downsample.uniform_downsampling(Vert_InSAR,
                                                                          new_interval_dict[
                                                                              "tsx_downsample_interval"],
@@ -213,15 +213,15 @@ def write_tsx_tre_displacements(config):
                                                                          new_interval_dict["tsx_averaging_window"]);
 
             Total_InSAR = InSAR_1D_Object.utilities.combine_objects(Vert_InSAR, East_InSAR);
-            InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, new_interval_dict["tsx_unc"],
-                                                                  config["prep_inputs_dir"] +
-                                                                  new_interval_dict["tsx_datafile"]);  # vert+east
-            InSAR_1D_Object.outputs.write_insar_invertible_format(Vert_InSAR, new_interval_dict["tsx_unc"],
-                                                                  config["prep_inputs_dir"] +
-                                                                  new_interval_dict["tsx_vertical_datafile"]);
-            InSAR_1D_Object.outputs.write_insar_invertible_format(East_InSAR, new_interval_dict["tsx_unc"],
-                                                                  config["prep_inputs_dir"] +
-                                                                  new_interval_dict["tsx_horiz_datafile"]);
+            InSAR_1D_Object.outputs.write_insar_invertible_format(Total_InSAR, config["prep_inputs_dir"] +
+                                                                  new_interval_dict["tsx_datafile"],
+                                                                  new_interval_dict["tsx_unc"]);  # vert+east
+            InSAR_1D_Object.outputs.write_insar_invertible_format(Vert_InSAR, config["prep_inputs_dir"] +
+                                                                  new_interval_dict["tsx_vertical_datafile"],
+                                                                  new_interval_dict["tsx_unc"]);
+            InSAR_1D_Object.outputs.write_insar_invertible_format(East_InSAR, config["prep_inputs_dir"] +
+                                                                  new_interval_dict["tsx_horiz_datafile"],
+                                                                  new_interval_dict["tsx_unc"]);
             InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"] +
                                                           new_interval_dict["tsx_vertical_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] +
@@ -245,13 +245,14 @@ def write_s1_displacements(config):
             InSAR_Data = InSAR_1D_Object.inputs.inputs_cornell_ou_velocities_hdf5(new_interval_dict["s1_filename"],
                                                                                   new_interval_dict["s1_lkv_filename"],
                                                                                   new_interval_dict["s1_slicenum"]);
-            InSAR_Data = InSAR_1D_Object.utilities.impose_InSAR_bounding_box(InSAR_Data, new_interval_dict["s1_bbox"]);
+            InSAR_Data = InSAR_Data.impose_bounding_box(new_interval_dict["s1_bbox"]);
+            InSAR_Data = InSAR_Data.remove_nans();
             InSAR_Data = InSAR_1D_Object.downsample.uniform_downsampling(InSAR_Data,
                                                                          new_interval_dict["s1_downsample_interval"],
                                                                          new_interval_dict["s1_averaging_window"]);
-            InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, new_interval_dict["s1_unc"],
-                                                                  config["prep_inputs_dir"] + new_interval_dict[
-                                                                      "s1_datafile"]);
+            InSAR_1D_Object.outputs.write_insar_invertible_format(InSAR_Data, config["prep_inputs_dir"] +
+                                                                  new_interval_dict["s1_datafile"],
+                                                                  new_interval_dict["s1_unc"]);
             InSAR_obj = InSAR_1D_Object.inputs.inputs_txt(config["prep_inputs_dir"] + new_interval_dict["s1_datafile"]);
             InSAR_1D_Object.outputs.plot_insar(InSAR_obj, config["prep_inputs_dir"] + new_interval_dict["s1_plot"]);
     return;

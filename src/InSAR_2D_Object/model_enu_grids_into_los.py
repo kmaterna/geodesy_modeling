@@ -49,7 +49,7 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
     :param disp_points_color: a 1d array of floats to be plotted as colors in the disp_points fill
     """
     if params['plot_unwrapped']:
-        myobj_ref = InSAR_2D_Object.utilities.subtract_reference(insarobj, params['refidx']);  # Subtract reference pix
+        myobj_ref = insarobj.subtract_reference(insarobj, params['refidx']);  # Subtract reference pix
         InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, params['outdir'] + "/"+params['label']+"unw_phase.grd");
         InSAR_2D_Object.outputs.map_wrapped_insar(params['outdir']+"/"+params['label']+"unw_phase.grd",
                                                   params['outdir']+"/"+params['label']+params['unwrapped_plot_name'],
@@ -59,7 +59,7 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
                                                   refloc=params['refidx'], disp_points_color=disp_points_color);
 
     if params['plot_wrapped']:
-        myobj_wrapped = InSAR_2D_Object.utilities.rewrap_InSAR(insarobj, params['wavelength_mm']);
+        myobj_wrapped = insarobj.rewrap_InSAR(params['wavelength_mm']);
         InSAR_2D_Object.outputs.write_InSAR2D(myobj_wrapped, params['outdir']+"/"+params['label']+"phase.grd");
         InSAR_2D_Object.outputs.map_wrapped_insar(params['outdir']+"/"+params['label']+"phase.grd",
                                                   params['outdir']+"/"+params['label']+params["wrapped_plot_name"],

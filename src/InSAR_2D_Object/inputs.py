@@ -7,7 +7,6 @@ from Tectonic_Utils.read_write import netcdf_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from S1_batches.read_write_insar_utilities import isce_read_write
 from .class_model import InSAR_2D_Object
-from . import utilities
 
 
 def inputs_grd(los_grdfile, _rdrlosfile=None):
@@ -55,7 +54,7 @@ def inputs_phase_isce(iscefile=None, los_rdr_file=None):
     lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence);
     InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                                 lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None);
-    utilities.defensive_checks(InSAR_Obj);
+    InSAR_Obj.defensive_checks();
     return InSAR_Obj;
 
 
@@ -74,7 +73,7 @@ def inputs_scalar_isce(iscefile=None, los_rdr_file=None):
     lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence);
     InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                                 lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None);
-    utilities.defensive_checks(InSAR_Obj);
+    InSAR_Obj.defensive_checks();
     return InSAR_Obj;
 
 
@@ -105,5 +104,5 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
         los = np.multiply(los, 1000);  # convert from m to mm
     InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
                                 lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None);
-    utilities.defensive_checks(InSAR_Obj);
+    InSAR_Obj.defensive_checks();
     return InSAR_Obj;

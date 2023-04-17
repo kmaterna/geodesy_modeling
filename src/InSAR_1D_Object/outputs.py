@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import datetime as dt
 
 
-def write_insar_invertible_format(InSAR_obj, unc_min, filename):
+def write_insar_invertible_format(InSAR_obj, filename, unc_min=0):
     """
     Write InSAR displacements into insar file that can be inverted.
     Write one header line and multiple data lines.

@@ -12,7 +12,6 @@ example: gmt grd2xyz unwrap_ll.grd | gmt grdtrack -Gdsdem.grd | awk {'print $1, 
 Not used: fig = qt.plot()  # this will open a plot.show(), won't save it.
 """
 
-from kite import Scene
 from Tectonic_Utils.geodesy import geojson2txt
 from . import plot_geojson
 
@@ -29,6 +28,7 @@ def kite_downsample_isce_unw(datafile, outname,
     outname: the geojson produced
     los_rdr_file: los.rdr.geo as produced by isce must be in the same directory
     """
+    from kite import Scene
     print("Quadtree Downsampling the file %s into geojson %s " % (datafile, outname));
     sc = Scene.import_data(datafile);
     qt = sc.quadtree
