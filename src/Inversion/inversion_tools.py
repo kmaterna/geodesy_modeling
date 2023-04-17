@@ -1,19 +1,46 @@
 
 import numpy as np
-import collections
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as moment_calcs
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 
-"""
-GF_element is everything you would need to make a column of the Green's matrix and plot the impulse response function. 
-'points' is coordinates of surface trace.
-"""
-GF_element = collections.namedtuple('GF_element', ['disp_points', 'fault_name',
-                                                   'fault_dict_list', 'upper_bound', 'lower_bound',
-                                                   'slip_penalty', 'units', 'points']);
+
+class GF_element:
+    """
+    GF_element is everything you would need to make a column of the Green's matrix and
+    plot the impulse response function.
+    'points' is coordinates of surface trace of the fault, if applicable.
+
+    :param disp_points: modeled displacement_points due to unit activation of this GF_element
+    :type disp_points: list of Displacement_points objects
+    :param param_name: param_name
+    :type param_name: string
+    :param fault_dict_list: list of fault_slip_objects
+    :type fault_dict_list: list
+    :param upper_bound: highest allowed value of this GF_element
+    :type upper_bound: float
+    :param lower_bound: lowest allowed value of this GF_element
+    :type lower_bound: float
+    :param slip_penalty: a number that will be attached to smoothing in the G matrix
+    :type slip_penalty: float
+    :param units: what units is this 'unit activation' in?
+    :type units: string
+    :param points: coordinates of surface trace of fault, if provided
+    :type points: np.array
+    """
+
+    def __init__(self, disp_points, param_name, upper_bound, lower_bound, slip_penalty, units,
+                 fault_dict_list=(), points=()):
+        self.disp_points = disp_points;
+        self.param_name = param_name;
+        self.fault_dict_list = fault_dict_list;
+        self.upper_bound = upper_bound;
+        self.lower_bound = lower_bound;
+        self.slip_penalty = slip_penalty;
+        self.units = units;
+        self.points = points;
 
 
 def pair_obs_model(obs_disp_pts, model_disp_pts):
@@ -49,7 +76,7 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
     target_len = len(paired_obs);
     for gf_model in gf_elements:
         _, paired_gf = pair_obs_model(obs_disp_points, gf_model.disp_points);  # one fault or CSZ patch
-        paired_gf_elements.append(GF_element(disp_points=paired_gf, fault_name=gf_model.fault_name,
+        paired_gf_elements.append(GF_element(disp_points=paired_gf, param_name=gf_model.param_name,
                                              fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
                                              upper_bound=gf_model.upper_bound,
                                              slip_penalty=gf_model.slip_penalty, units=gf_model.units,
@@ -95,8 +122,8 @@ def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 
                                           Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
                                           refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
         rot_disp_p.append(response);
-    rot_response = GF_element(disp_points=rot_disp_p, fault_name=rot_name, fault_dict_list=[],
-                              upper_bound=1, lower_bound=-1, slip_penalty=0, units='deg/Ma', points=[]);
+    rot_response = GF_element(disp_points=rot_disp_p, param_name=rot_name, upper_bound=1, lower_bound=-1,
+                              slip_penalty=0, units='deg/Ma');
     return rot_response;
 
 
@@ -141,8 +168,8 @@ def get_GF_leveling_offset_element(obs_disp_points):
                                               Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type, refframe=None,
                                               name=None, starttime=None, endtime=None);
         total_response_pts.append(response);
-    lev_offset_gf = GF_element(disp_points=total_response_pts, fault_name='lev_offset', fault_dict_list=[],
-                               upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr', points=[]);
+    lev_offset_gf = GF_element(disp_points=total_response_pts, param_name='lev_offset',
+                               upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr');
     if lev_count == 0:
         return [];
     else:
@@ -279,7 +306,7 @@ def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
     print("Writing %s" % outfile);
     ofile = open(outfile, 'w');
     for i in range(len(M_vector)):
-        if paired_gf_elements[i].fault_name in ignore_faults:
+        if paired_gf_elements[i].param_name in ignore_faults:
             continue;
         ofile.write("> -Z%f \n" % (M_vector[i] * 10 ) );  # mm/yr
         for coord in paired_gf_elements[i].points:
@@ -288,22 +315,24 @@ def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
     return;
 
 
-def build_smoothing(gf_elements, fault_name_list, strength, lengthscale, G, obs, sigmas, distance_3d=True):
+def build_smoothing(gf_elements, param_name_list, strength, lengthscale, G, obs, sigmas, distance_3d=True,
+                    laplacian_operator=-1/4):
     """
     Make a weighted connectivity matrix that has the same number of columns as G, that can be appended to the bottom.
-    Any element within gf_element that has fault_name will have its immediate neighbors subtracted for smoothing.
+    Any gf_element that has param_name will have its immediate neighbors subtracted for smoothing.
     Append the matching number of zeros to the obs_vector.
     Assumes similar-sized patches throughout the slip distribution
 
     :param gf_elements: list of gf_element objects
     :type gf_elements: list
-    :param fault_name_list: which fault elements are we smoothing, tuple of strings
+    :param param_name_list: which fault elements are we smoothing, tuple of strings
     :param strength: lambda parameter in smoothing equation
     :param lengthscale: distance over which fault elements are smooth (i.e., correlated)
     :param G: already existing G matrix
     :param obs: already existing obs vector
     :param sigmas: already existing sigma vector
     :param distance_3d: bool, do you compute distance between fault patches in 3d way, YES or NO?
+    :param laplacian_operator: how strong do you smooth the neighbor? -1/4 (compared to 1 for base element) is default.
     """
     print("G and obs before smoothing:", np.shape(G), np.shape(obs));
     if strength == 0:
@@ -316,9 +345,9 @@ def build_smoothing(gf_elements, fault_name_list, strength, lengthscale, G, obs,
     # Operates on the first patch that it finds.
     distances = [];
     for i in range(len(gf_elements)):
-        if gf_elements[i].fault_name in fault_name_list:
+        if gf_elements[i].param_name in param_name_list:
             for j in range(i+1, len(gf_elements)):
-                if gf_elements[j].fault_name in fault_name_list:
+                if gf_elements[j].param_name in param_name_list:
                     distances.append(gf_elements[i].fault_dict_list[0].get_fault_element_distance(
                         gf_elements[j].fault_dict_list[0]));
             break;
@@ -326,13 +355,13 @@ def build_smoothing(gf_elements, fault_name_list, strength, lengthscale, G, obs,
 
     # Build the parts of the matrix for smoothing
     for i in range(len(gf_elements)):
-        if gf_elements[i].fault_name in fault_name_list:
+        if gf_elements[i].param_name in param_name_list:
             G_smoothing[i][i] = 1;
             for j in range(len(gf_elements)):
-                if gf_elements[j].fault_name in fault_name_list:
+                if gf_elements[j].param_name in param_name_list:
                     if i != j and gf_elements[i].fault_dict_list[0].get_fault_element_distance(
                             gf_elements[j].fault_dict_list[0], threedimensional=distance_3d) < critical_distance:
-                        G_smoothing[i][j] = -1/4;
+                        G_smoothing[i][j] = laplacian_operator;
 
     G_smoothing = G_smoothing * strength;  # multiplying by lambda factor
 
@@ -413,7 +442,7 @@ def write_model_params(v, residual, outfile, GF_elements=None):
     ofile.write(report_string);
     if GF_elements:
         for item in GF_elements:
-            ofile.write(item.fault_name+" ");
+            ofile.write(item.param_name+" ");
     ofile.close();
     return;
 
@@ -427,7 +456,7 @@ def write_custom_metrics(ofile, values, GF_elements):
 
     csz_fault_dicts = [];
     for value, gf_element in zip(values, GF_elements):
-        if gf_element.fault_name == 'CSZ_dist':
+        if gf_element.param_name == 'CSZ_dist':
             if gf_element.fault_dict_list[0].lat > 43:  # considering southern section only
                 continue;
             new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value/100);
@@ -439,7 +468,7 @@ def write_custom_metrics(ofile, values, GF_elements):
 
     new_patches = [];
     for value, gf_element in zip(values, GF_elements):
-        if gf_element.fault_name == 'LSFRev':
+        if gf_element.param_name == 'LSFRev':
             new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value / 100);
     lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
     ofile.write("\nLSFRev Over 300 years: equivalent to Mw");
@@ -447,7 +476,7 @@ def write_custom_metrics(ofile, values, GF_elements):
     ofile.write("%f N-m\n" % lsf_mo);
 
     for value, gf_element in zip(values, GF_elements):
-        if gf_element.fault_name == 'MadRiverRev':
+        if gf_element.param_name == 'MadRiverRev':
             new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value / 100);
     lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
     ofile.write("\nMadRiverRev Over 300 years: equivalent to Mw");
@@ -471,9 +500,9 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
     print("Writing %s" % outfile);
     ofile = open(outfile, 'w');
     for i in range(len(v)):
-        if GF_elements[i].fault_name in ignore_faults:
+        if GF_elements[i].param_name in ignore_faults:
             continue;
-        ofile.write(GF_elements[i].fault_name + ": ");
+        ofile.write(GF_elements[i].param_name + ": ");
         if GF_elements[i].units == "cm/yr":   # converting fault slip rates into mm/yr for convenience
             units = 'mm/yr';
             multiplier = 10;
@@ -524,21 +553,21 @@ def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
 
     :param GF_elements_list: list of GF_elements objects
     :param outdir: string for outdir
-    :param exclude_list: optional list of GF_element.fault_names to exclude from visualizing
+    :param exclude_list: optional list of GF_element.param_name to exclude from visualizing
     """
     if exclude_list == 'all':
         return;
-    for GF_element in GF_elements_list:
-        if GF_element.fault_name in exclude_list:   # plot these elements separately, like individual CSZ patches
+    for GF_el in GF_elements_list:
+        if GF_el.param_name in exclude_list:   # plot these elements separately, like individual CSZ patches
             continue;
-        print(GF_element.fault_name);
-        if GF_element.fault_name == "CSZ":
+        print(GF_el.param_name);
+        if GF_el.param_name == "CSZ":
             scale_arrow = (1.0, 0.010, "1 cm");
         else:
             scale_arrow = (1.0, 0.001, "1 mm");
-        library.plot_fault_slip.map_source_slip_distribution(GF_element.fault_dict_list, outdir + "/gf_" +
-                                                             GF_element.fault_name + "_only.png",
-                                                             disp_points=GF_element.disp_points,
+        library.plot_fault_slip.map_source_slip_distribution(GF_el.fault_dict_list, outdir + "/gf_" +
+                                                             GF_el.param_name + "_only.png",
+                                                             disp_points=GF_el.disp_points,
                                                              region=[-127, -119.7, 37.7, 43.3],
                                                              scale_arrow=scale_arrow,
                                                              v_labeling_interval=0.001);

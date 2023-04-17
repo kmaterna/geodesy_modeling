@@ -113,7 +113,7 @@ def read_hb_fault_gf_elements(exp_dict):
                     amount_of_slip_penalty = 100;   # optionally: force CSZ slip to be above a certain depth
                 if patch.depth < exp_dict["depth_of_forced_coupling"]:
                     lower_bound = upper_bound * 0.90;  # optionally: force shallow CSZ to full coupling
-                one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, fault_name=fault_name,
+                one_gf_element = inv_tools.GF_element(disp_points=gf_disp_points, param_name=fault_name,
                                                       fault_dict_list=[patch],
                                                       lower_bound=lower_bound,
                                                       upper_bound=upper_bound,
@@ -138,7 +138,7 @@ def read_hb_fault_gf_elements(exp_dict):
                                                                                      exp_dict["lonlatfile"]);
                     mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo1);
                     mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo2);
-            one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, fault_name=fault_name,
+            one_gf_element = inv_tools.GF_element(disp_points=mod_disp_points, param_name=fault_name,
                                                   fault_dict_list=temp,
                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
                                                   upper_bound=exp_dict["faults"][fault_name]["slip_max"],
@@ -221,7 +221,7 @@ def run_humboldt_inversion():
 
     # Make forward predictions.  Work in disp_pts as soon as possible, not matrices.
     rotation_params = ("x_rot", "y_rot", "z_rot", 'ocb_x_rot', 'ocb_y_rot', 'ocb_z_rot');
-    all_param_names = [x.fault_name for x in paired_gf_elements]
+    all_param_names = [x.param_name for x in paired_gf_elements]
     M_csz = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, ['CSZ_dist']);
     M_LSF = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, ['LSFRev']);
     M_ocb = inv_tools.unpack_model_of_target_param(M_opt, all_param_names, ['ocb_x_rot', 'ocb_y_rot', 'ocb_z_rot']);

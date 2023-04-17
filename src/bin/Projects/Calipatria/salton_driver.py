@@ -40,8 +40,7 @@ def read_gf_elements_kalin(exp_dict, obs_disp_pts):
         model_disp_pts = fst.triangle_okada.compute_disp_points_from_triangles([changed_slip], obs_disp_pts,
                                                                                poisson_ratio=0.25);
         GF_elements.append(inv_tools.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                                fault_name='kalin', lower_bound=-1, upper_bound=0, points=(),
-                                                slip_penalty=0))
+                                                param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0))
     return GF_elements;
 
 

@@ -62,7 +62,7 @@ def write_csz_dist_fault_patches(gf_elements, model_vector, outfile_gmt, outfile
     modeled_slip_patches = [];
     fault_dict_lists = [item.fault_dict_list for item in gf_elements];
     for i in range(len(gf_elements)):
-        if gf_elements[i].fault_name == 'CSZ_dist':   # CSZ patches are 1 patch per model element.
+        if gf_elements[i].param_name == 'CSZ_dist':   # CSZ patches are 1 patch per model element.
             new_patch = fault_dict_lists[i][0].change_fault_slip(model_vector[i]*10);  # mm/yr
             modeled_slip_patches.append(new_patch);
     if len(modeled_slip_patches) > 0:
