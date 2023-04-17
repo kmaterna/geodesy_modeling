@@ -140,6 +140,7 @@ def convert_disps_to_rates(disps, starttime, endtime):
 def get_file_dictionary(config_filename):
     """GET FILE NAMES"""
     this_dict = {};
+    print("Reading file %s " % config_filename);
     ifile = open(config_filename);
     for line in ifile:
         data_type = line.split(':')[0];

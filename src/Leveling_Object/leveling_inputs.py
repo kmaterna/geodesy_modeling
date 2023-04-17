@@ -3,12 +3,10 @@ Several functions (research code) for io of leveling data, including CEC Salton 
 Some input functions also exist in specific project directories instead of being consolidated here
 """
 
-import collections, pandas
+import pandas
 import datetime as dt
 import numpy as np
-
-LevStation = collections.namedtuple("LevStation", ["name", "lat", "lon", "dtarray", "leveling", "reflon", "reflat"]);
-# LevStation: list-of-objects format, one object for each station. Units of meters.
+from .LevStation import LevStation
 
 
 def inputs_brawley_leveling(data_filename, errors_filename):

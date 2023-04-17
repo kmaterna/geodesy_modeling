@@ -150,7 +150,7 @@ def drive_ou_cornell_compare(file_dict, s1_slice, lev_slice, track, outfile):
     myLev = read_leveling_data(file_dict["leveling"], file_dict["lev_error"]);
     InSAR_Data = InSAR_1D_Object.inputs.inputs_cornell_ou_velocities_hdf5(data_file, los_file, s1_slice);
     InSAR_Data = InSAR_1D_Object.utilities.remove_nans(InSAR_Data);
-    myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
+    myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1]);  # one slice
     one_to_one_comparison(myLev, InSAR_Data, "S1", outfile, label="LOS", graph_scale=50, proj_vertical=1, lkv=lkv);
     return;
 
@@ -164,7 +164,7 @@ def drive_single_uavsar_intf_compare(file_dict, bounds, uavsar_filename, los_fil
     InSAR_Data = InSAR_1D_Object.utilities.remove_nans(InSAR_Data);
     InSAR_Data = InSAR_1D_Object.utilities.flip_los_sign(InSAR_Data);
     InSAR_Data = InSAR_1D_Object.remove_ramp.remove_ramp(InSAR_Data);  # experimental step
-    myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
+    myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1]);  # one slice
     one_to_one_comparison(myLev, InSAR_Data, "UAV", outfile, label="LOS", proj_vertical=1, lkv=lkv);
     return;
 
@@ -174,7 +174,7 @@ def drive_tre_compare(file_dict, insar_key, lev_slice, outdir, outfile):
     insar_datafile = file_dict[insar_key];
     myLev = read_leveling_data(file_dict["leveling"], file_dict["lev_error"]);
     VertTSXData, EastTSXData = InSAR_1D_Object.inputs.inputs_TRE_vert_east(insar_datafile);
-    myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
+    myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1]);  # one slice
     one_to_one_comparison(myLev, VertTSXData, insar_key, outdir + outfile, label="Vertical", graph_scale=50);
     fields = general_io.read_gmt_multisegment_latlon(file_dict["field_file"], split_delimiter=',');
     InSAR_1D_Object.outputs.plot_insar(VertTSXData, outdir+"InSAR_velo.png", lons_annot=fields[0][0],
@@ -191,7 +191,7 @@ def drive_uavsar_ts_compare(file_dict, lev_slice, uav_slice, outfile):
     gps_lon, gps_lat, gps_names = np.loadtxt(file_dict["gnss_file"], dtype={'names': ('lon', 'lat', 'name'),
                                                                             'formats': (float, float, 'U4')},
                                              skiprows=1, unpack=True);
-    myLev = Leveling_Object.utilities.get_onetime_displacements(myLev, lev_slice[0], lev_slice[1]);  # one lev slice
+    myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1]);  # one slice
     myUAVSAR_insarobj = UAVSAR.utilities.get_onetime_displacements(myUAVSAR_TS, uav_slice[0], uav_slice[1]);
     myUAVSAR_insarobj = InSAR_1D_Object.utilities.flip_los_sign(myUAVSAR_insarobj);
     myUAVSAR_insarobj = InSAR_1D_Object.remove_ramp.remove_ramp(myUAVSAR_insarobj);  # experimental step

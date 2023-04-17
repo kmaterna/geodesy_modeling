@@ -17,6 +17,7 @@ def plot_leveling_displacements(leveling_stations, outfile, vmin=-0.25, vmax=0.1
     Benchmarks without data at last time-step are not shown.
     Scaling the symbols by displacement size is possible.
     """
+    print("Plotting leveling in file %s " % outfile);
     disp = [item.leveling[-1] for item in leveling_stations];
     lon = [item.lon for item in leveling_stations];
     lat = [item.lat for item in leveling_stations];
@@ -91,6 +92,7 @@ def plot_leveling_slopes(leveling_object, slopes, description, plotname):
     """
     Plot a color map of leveling benchmark slopes (slopes calculated outside this function)
     """
+    print("Making plot %s " % plotname);
     lon = [item.lon for item in leveling_object];
     lat = [item.lat for item in leveling_object];
     plt.figure();
@@ -106,6 +108,7 @@ def multi_panel_increment_plot_brawley(leveling_object_list, plotname, fields_lo
     """
     Incremental leveling plot for Brawley.  The annotations are specific to Brawley.
     """
+    print("Plotting leveling in file %s " % plotname);
     f, axarr = plt.subplots(3, 3, figsize=(30, 18));
 
     idx1, idx2 = 0, 0;
@@ -155,6 +158,8 @@ def multi_panel_increment_plot_brawley(leveling_object_list, plotname, fields_lo
 
 def multi_panel_increment_plot(leveling_object, outname, vmin=-0.07, vmax=0.07):
     """Incremental plot for leveling"""
+    print("Plotting leveling in file %s " % outname);
+
     f, axarr = plt.subplots(2, 5, figsize=(30, 18));
 
     idx1, idx2 = 0, 0;
@@ -193,6 +198,8 @@ def multi_panel_increment_plot(leveling_object, outname, vmin=-0.07, vmax=0.07):
 
 def cumulative_multi_panel_plot(leveling_object, outname, vmin=-0.30, vmax=0.20):
     """Generalized cumulative multi-panel plot for leveling data"""
+    print("Plotting leveling in file %s " % outname);
+
     f, axarr = plt.subplots(2, 5, figsize=(30, 18));  # currently hard-coded to have these plot dimensions
 
     idx1, idx2 = 0, 0;
