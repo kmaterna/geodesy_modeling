@@ -48,22 +48,23 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
                     new_u[i][j] = np.nan;
             else:  # If we want to average over a spatial window
                 avg_pixel = InSAR_obj.get_average_los_within_box(x_array[j], y_array[i], averaging_window);
-                new_obs_array[i][j] = avg_pixel.LOS[0];
-                new_obs_unc[i][j] = avg_pixel.LOS_unc[0];
-                new_e[i][j] = avg_pixel.lkv_E[0];
-                new_n[i][j] = avg_pixel.lkv_N[0];
-                new_u[i][j] = avg_pixel.lkv_U[0];
+                new_obs_array[i][j] = float(avg_pixel.LOS);
+                new_obs_unc[i][j] = float(avg_pixel.LOS_unc);  # mathematically, not sure how to handle average unc
+                new_e[i][j] = float(avg_pixel.lkv_E);
+                new_n[i][j] = float(avg_pixel.lkv_N);
+                new_u[i][j] = float(avg_pixel.lkv_U);
 
     ds_lon = np.reshape(X, (len(x_array) * len(y_array),));
     ds_lat = np.reshape(Y, (len(x_array) * len(y_array),));
     ds_LOS = np.reshape(new_obs_array, (len(x_array) * len(y_array),));
-    # ds_LOS_unc = None; # not sure how to handle average unc.
+    ds_LOS_unc = np.reshape(new_obs_unc, (len(x_array) * len(y_array),));
     ds_lkv_e = np.reshape(new_e, (len(x_array) * len(y_array),));
     ds_lkv_n = np.reshape(new_n, (len(x_array) * len(y_array),));
     ds_lkv_u = np.reshape(new_u, (len(x_array) * len(y_array),));
 
-    ds_InSAR_obj = class_model.InSAR_1D_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=None,
+    ds_InSAR_obj = class_model.InSAR_1D_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=ds_LOS_unc,
                                                lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u,
                                                starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
-    print("Done with downsampling: Ending with %d points " % (len(ds_lon)));
+    ds_InSAR_obj = ds_InSAR_obj.remove_nans(verbose=True);
+    print("Done with downsampling: Ending with %d points " % (len(ds_InSAR_obj.lon)));
     return ds_InSAR_obj;

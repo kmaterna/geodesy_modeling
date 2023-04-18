@@ -1,8 +1,8 @@
 # Tools for L-curve analysis.
 
 import json, glob, os
-from src.Inversion.l_curve_plots import plot_l_curve_coordinator
-from src.Inversion.post_inversion_tools import read_misfits_from_list_of_files
+from Geodesy_Modeling.src.Inversion.l_curve_plots import plot_l_curve_coordinator
+from Geodesy_Modeling.src.Inversion.post_inversion_tools import read_misfits_from_list_of_files
 
 
 def collect_curve_points(config):
@@ -14,10 +14,9 @@ def collect_curve_points(config):
         if os.path.isdir(i):
             print("Reading ", i);
             params = read_params_from_dir(i);
-            resultsfile = i + "/summary_stats.txt";
+            resultsfile = i + "/summary_stats_simple.txt";
             misfit = read_misfits_from_list_of_files([resultsfile], 'Average normalized misfit')[0]
-            params_array.append(params);
-            misfit_array.append(misfit);
+            params_array.append(params); misfit_array.append(misfit);
     return [params_array, misfit_array];
 
 

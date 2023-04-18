@@ -34,8 +34,8 @@ class InSAR_1D_Object:
                                        lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime);
         return newInSAR_obj;
 
-    def remove_nans(self):
-        """Remove Nans from InSAR object"""
+    def remove_nans(self, verbose=False):
+        """Remove Nans from 1D InSAR object"""
         lon, lat, LOS, LOS_unc, unit_E, unit_N, unit_U = [], [], [], [], [], [], [];
         for i in range(len(self.lon)):
             if np.isnan(self.LOS[i]):
@@ -44,12 +44,15 @@ class InSAR_1D_Object:
                 lon.append(self.lon[i]);
                 lat.append(self.lat[i]);
                 LOS.append(self.LOS[i]);
-                LOS_unc.append(self.LOS_unc[i]);   # Note: This is going to break if LOS_unc == None
+                LOS_unc.append(self.LOS_unc[i]);
                 unit_E.append(self.lkv_E[i]);
                 unit_N.append(self.lkv_N[i]);
                 unit_U.append(self.lkv_U[i]);
         newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
                                        lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime);
+        if verbose:
+            print("Removing nans from 1D InSAR obj. Starting with %d, ending with %d pixels" % (len(self.lon),
+                                                                                                len(newInSAR_obj.lon)));
         return newInSAR_obj;
 
     def flip_los_sign(self):
@@ -60,9 +63,8 @@ class InSAR_1D_Object:
 
     def get_average_los_within_box(self, target_lon, target_lat, averaging_window):
         """
-        averaging window in degrees.
+        Averaging window in degrees.
         Search the averaging window in both directions from target loc, and average the data.
-        Could this have better performance?
         """
         new_los, new_unc, new_lkvE, new_lkvN, new_lkvU = [], [], [], [], [];
         for i in range(len(self.lon)):

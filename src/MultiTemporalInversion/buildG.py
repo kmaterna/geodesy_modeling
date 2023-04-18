@@ -333,9 +333,7 @@ def beginning_calc(config):
                                               patches_f,
                                               pos_basis_list[datanum],
                                               slip_basis_f,
-                                              leveling=False,
-                                              lamb=config['G'],
-                                              mu=config['G'])
+                                              leveling=False)
 
         # ### weigh system matrix and data by the uncertainty
         # ###################################################################

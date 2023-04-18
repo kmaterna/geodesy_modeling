@@ -20,8 +20,8 @@ def welcome_and_parse(argv):
     config1 = json.load(config_file);
     subprocess.call(['mkdir', '-p', config1["output_dir_lcurve"]], shell=False);
     for i, key in enumerate(config1["faults"].keys()):
-        fault_name = config1["faults"][key]["filename"]
-        subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
+        fault_file_name = config1["faults"][key]["filename"]
+        subprocess.call(['cp', fault_file_name, config1['output_dir_lcurve']]);  # save fault files, record-keeping
     if 'G' not in config1.keys():
         config1['G'] = 30e9;  # default shear modulus is 30 GPa
     if 'resolution_test' not in config1.keys():
@@ -35,13 +35,14 @@ def iterate_many_inversions(config):
     A driver for looping multiple inversions depending on the experiment, testing the impact of alpha or smoothing.
     """
     if not config["switch_alpha"] and not config["switch_penalty"]:   # no search at all.
+        print("Check your configuration. Not searching through alpha or lamda.")
         return;
     elif config["switch_alpha"] and not config["switch_penalty"]:   # 1d search in slip penalty
         for alpha in config['range_alpha']:
             config["alpha"] = alpha;    # set the alpha
             config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";   # set the output dir
             subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
-            MultiTemporalInversion.buildG.beginning_calc(config);
+            MultiTemporalInversion.buildG.beginning_calc(config);  # the guts of drive_slippy_multitemporal.py
             MultiTemporalInversion.metrics.main_function(config);
     elif config["switch_penalty"] and not config["switch_alpha"]:   # 1d search in smoothing penalty
         for penalty in config['range_penalty']:
