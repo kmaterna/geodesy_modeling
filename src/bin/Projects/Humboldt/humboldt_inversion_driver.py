@@ -12,9 +12,11 @@ import subprocess, json, sys, argparse, os
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
+import Geodesy_Modeling.src.Inversion.metrics as metrics
 import Geodesy_Modeling.src.Inversion.readers as readers
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.disp_points_object.outputs as dpo_out
+from specific_metrics import write_custom_humboldt_metrics, write_custom_misfit_metrics
 sys.path.append("../../../_Project_Code");  # add local code
 import humboldt_readers as HR  # Also had to add into pycharm project settings.
 
@@ -118,7 +120,7 @@ def read_hb_fault_gf_elements(exp_dict):
                                                       lower_bound=lower_bound,
                                                       upper_bound=upper_bound,
                                                       slip_penalty=amount_of_slip_penalty, units='cm/yr',
-                                                      points=[]);
+                                                      points=());
                 gf_elements.append(one_gf_element);
         else:  # Reading for LSF, MRF, other fault cases
             fault_gf = exp_dict["inverse_dir"]+exp_dict["faults"][fault_name]["GF"];
@@ -236,9 +238,9 @@ def run_humboldt_inversion():
     lsf_modeled_pts = inv_tools.forward_disp_points_predictions(G, M_LSF, sigmas, paired_obs);
 
     # Output stage
-    rms_mm_h, rms_chi2_h = dpo.compute_rms.obs_vs_model_L2_horiz(paired_obs, model_disp_pts);
-    rms_mm_v, rms_chi2_v = dpo.compute_rms.obs_vs_model_L2_vertical(paired_obs, model_disp_pts);
-    rms_mm_t, rms_chi2_t = dpo.compute_rms.obs_vs_model_L2_aggregate(paired_obs, model_disp_pts);
+    rms_mm_h, rms_chi2_h = metrics.obs_vs_model_L2_horiz(paired_obs, model_disp_pts);
+    rms_mm_v, rms_chi2_v = metrics.obs_vs_model_L2_vertical(paired_obs, model_disp_pts);
+    rms_mm_t, rms_chi2_t = metrics.obs_vs_model_L2_aggregate(paired_obs, model_disp_pts);
     rms_obj = [rms_mm_h, rms_mm_v, rms_mm_t, rms_chi2_h, rms_chi2_v, rms_chi2_t];
     rms_title = "RMS: %f mm/yr" % rms_mm_t;
     print(" ", rms_title);
@@ -254,12 +256,11 @@ def run_humboldt_inversion():
     dpo_out.write_disp_points_gmt(csz_modeled_pts, outdir + '/csz_model_pred.txt', write_meas_type=True)
     dpo_out.write_disp_points_gmt(lsf_modeled_pts, outdir + '/lsf_model_pred.txt', write_meas_type=True)
 
-    inv_tools.write_model_params(M_opt, rms_mm_t, outdir + '/' + exp_dict["model_file"], paired_gf_elements)
-    inv_tools.write_summary_params(M_opt, rms_obj, outdir + '/model_results_human.txt',
+    inv_tools.write_summary_params(M_opt, outdir+'/model_results_human.txt',
                                    paired_gf_elements, ignore_faults=['CSZ_dist'], message=response.message);
-    inv_tools.write_fault_traces(M_opt, paired_gf_elements, outdir + '/fault_output.txt',
-                                 ignore_faults=['CSZ_dist', 'x_rot', 'y_rot', 'z_rot', 'lev_offset',
-                                                'ocb_x_rot', 'ocb_y_rot', 'ocb_z_rot']);
+    write_custom_misfit_metrics(outdir+'/model_results_human.txt', rms_obj);
+    write_custom_humboldt_metrics(outdir+'/model_results_human.txt', M_opt, paired_gf_elements);
+    inv_tools.write_fault_traces(np.multiply(M_opt, 10), paired_gf_elements, outdir + '/fault_output.txt');  # mm/yr
     readers.write_csz_dist_fault_patches(paired_gf_elements, M_opt, outdir+'/csz_model.gmt',
                                          outdir+'/csz_slip_distribution.txt');
     inv_tools.view_full_results(exp_dict, paired_obs, model_disp_pts, residual_pts, rot_modeled_pts,

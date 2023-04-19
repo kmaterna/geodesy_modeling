@@ -1,7 +1,6 @@
 
 import numpy as np
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
-import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as moment_calcs
 import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
@@ -40,7 +39,7 @@ class GF_element:
         self.lower_bound = lower_bound;
         self.slip_penalty = slip_penalty;
         self.units = units;
-        self.points = points;
+        self.points = points;  # coordinates of surface trace of fault, if applicable
 
 
 def pair_obs_model(obs_disp_pts, model_disp_pts):
@@ -233,6 +232,9 @@ def forward_disp_points_predictions(G, m, sigmas, paired_obs):
 def unpack_model_pred_vector(model_pred, paired_obs):
     """
     Unpack a model vector into a bunch of disp_point objects. Same logic implemented here as in the functions above.
+
+    :param model_pred: long vector of model parameters, corresponding to each component being used
+    :param paired_obs: list of disp_point_objects (shorter than model_pred vector)
     """
     disp_points_list = [];
     counter = 0;
@@ -299,20 +301,6 @@ def unpack_model_without_target_param(M_vector, parameter_names, exclude_names=(
             target_params_vector[i] = 0;
     M_target = np.multiply(M_vector, target_params_vector);
     return M_target;
-
-
-def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
-    """Write a file with fault traces and colors"""
-    print("Writing %s" % outfile);
-    ofile = open(outfile, 'w');
-    for i in range(len(M_vector)):
-        if paired_gf_elements[i].param_name in ignore_faults:
-            continue;
-        ofile.write("> -Z%f \n" % (M_vector[i] * 10 ) );  # mm/yr
-        for coord in paired_gf_elements[i].points:
-            ofile.write("%f %f\n" % (coord[0], coord[1]) );
-    ofile.close();
-    return;
 
 
 def build_smoothing(gf_elements, param_name_list, strength, lengthscale, G, obs, sigmas, distance_3d=True,
@@ -427,18 +415,42 @@ def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector, tol=1e-9):
     return new_pred_vector, new_obs_vector, new_sigma_vector;
 
 
-def write_model_params(v, residual, outfile, GF_elements=None):
-    """
-    :param v: vector of model parameters, floats
-    :param residual: float, mm/yr
-    :param outfile: string
-    :param GF_elements: optional, list of GF_element objects
+def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
+    """Write a gmt multi-segment file with fault traces (GF_element.points) and colors from values.
+    Will only write when the GF_element has the field "points".
+
+    :param M_vector: vector containing value of model parameters, floats (e.g., in mm/yr)
+    :param paired_gf_elements: matching list of GF_elements
+    :param outfile: filename, string
+    :param ignore_faults: parameter names to ignore when printing gmt file
     """
     print("Writing %s" % outfile);
+    with open(outfile, 'w') as ofile:
+        for i in range(len(M_vector)):
+            if paired_gf_elements[i].param_name in ignore_faults:
+                continue;
+            if len(paired_gf_elements[i].points) == 0:
+                continue;
+            ofile.write("> -Z%f \n" % M_vector[i]);
+            for coord in paired_gf_elements[i].points:
+                ofile.write("%f %f\n" % (coord[0], coord[1]) );
+    return;
+
+
+def write_raw_model_params(outfile, v, rms_residual=0, GF_elements=None):
+    """
+    The most general way of reporting the model vector, not especially human-readable.
+
+    :param outfile: string, filename
+    :param v: vector of model parameters, floats
+    :param rms_residual: optional, float, mm/yr
+    :param GF_elements: optional, list of paired GF_element objects to write the parameter names
+    """
+    print("Writing raw model outputs in %s" % outfile);
     ofile = open(outfile, 'w');
     for item in v:
         ofile.write(str(item)+"\n");
-    report_string = "\nRMS: %f mm/yr\n" % residual;
+    report_string = "\nRMS: %f mm/yr\n" % rms_residual;
     ofile.write(report_string);
     if GF_elements:
         for item in GF_elements:
@@ -447,51 +459,11 @@ def write_model_params(v, residual, outfile, GF_elements=None):
     return;
 
 
-def write_custom_metrics(ofile, values, GF_elements):
-    # Accounting of moment rate on the CSZ and other faults
-    # ofile : file handle
-    # values : model vector
-    # GF_elements: list of green's functions elements associated with vector of model values
-    # Specific to Humboldt project
-
-    csz_fault_dicts = [];
-    for value, gf_element in zip(values, GF_elements):
-        if gf_element.param_name == 'CSZ_dist':
-            if gf_element.fault_dict_list[0].lat > 43:  # considering southern section only
-                continue;
-            new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value/100);
-            csz_fault_dicts.append(new_patches[0]);
-    csz_mo = library.fault_slip_object.get_total_moment(csz_fault_dicts);
-    ofile.write("\nCSZ Over 300 years: equivalent to Mw");
-    ofile.write("%f \n" % moment_calcs.mw_from_moment(csz_mo*300));
-    ofile.write("%f N-m\n" % csz_mo);
-
-    new_patches = [];
-    for value, gf_element in zip(values, GF_elements):
-        if gf_element.param_name == 'LSFRev':
-            new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value / 100);
-    lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
-    ofile.write("\nLSFRev Over 300 years: equivalent to Mw");
-    ofile.write("%f \n" % moment_calcs.mw_from_moment(lsf_mo*300));
-    ofile.write("%f N-m\n" % lsf_mo);
-
-    for value, gf_element in zip(values, GF_elements):
-        if gf_element.param_name == 'MadRiverRev':
-            new_patches = library.fault_slip_object.change_fault_slip_list(gf_element.fault_dict_list, value / 100);
-    lsf_mo = library.fault_slip_object.get_total_moment(new_patches);
-    ofile.write("\nMadRiverRev Over 300 years: equivalent to Mw");
-    ofile.write("%f \n" % moment_calcs.mw_from_moment(lsf_mo*300));
-    ofile.write("%f N-m\n" % lsf_mo);
-    return;
-
-
-def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), message=''):
+def write_summary_params(v, outfile, GF_elements, ignore_faults=(), message=''):
     """
-    Write a human-readable results file, with the potential to ignore faults with distributed models for clarity.
-    The "residual" field is a bit specific to the experiment
+    Write a human-readable results file, with the potential to ignore some faults for clarity.
 
     :param v: vector of model parameters, floats
-    :param residual: array of floats, mm/yr and normalized.  This might be a little project-specific
     :param outfile: string
     :param GF_elements: list of GF_element objects
     :param ignore_faults: list of strings
@@ -515,12 +487,7 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
         ofile.write("\n");
     report_string = "\nWith %d observations\n" % (len(GF_elements[0].disp_points));
     ofile.write(report_string);
-    report_string = "RMS misfit [h, v, t]: %f %f %f mm/yr\n" % (residual[0], residual[1], residual[2]);
-    ofile.write(report_string);
-    report_string = "RMS normalized [h, v, t]: %f %f %f \n" % (residual[3], residual[4], residual[5]);
-    ofile.write(report_string);
     ofile.write("Message: "+message+"\n");
-    write_custom_metrics(ofile, v, GF_elements);  # for humboldt project
     ofile.close();
     return;
 
@@ -528,22 +495,23 @@ def write_summary_params(v, residual, outfile, GF_elements, ignore_faults=(), me
 def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, rotation_pts, norot_pts, title, region):
     # Plot the data, model, and residual in separate plots
     # Not plotting the fault patches because it takes a long time.
+    scale_arrow = (1.0, 0.010, "1 cm/yr");
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/data_only.png",
                                                          disp_points=paired_obs, region=region,
-                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+                                                         scale_arrow=scale_arrow, v_labeling_interval=0.001)
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/residuals.png",
                                                          disp_points=residual_pts, region=region,
-                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001,
+                                                         scale_arrow=scale_arrow, v_labeling_interval=0.001,
                                                          title=title);
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/model_pred.png",
                                                          disp_points=modeled_disp_points, region=region,
-                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+                                                         scale_arrow=scale_arrow, v_labeling_interval=0.001)
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/rotation_pred.png",
                                                          disp_points=rotation_pts, region=region,
-                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+                                                         scale_arrow=scale_arrow, v_labeling_interval=0.001)
     library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/faults_only_pred.png",
                                                          disp_points=norot_pts, region=region,
-                                                         scale_arrow=(1.0, 0.010, "1 cm/yr"), v_labeling_interval=0.001)
+                                                         scale_arrow=scale_arrow, v_labeling_interval=0.001)
     return;
 
 
@@ -585,23 +553,3 @@ def remove_nearfault_pts(obs_points, fault_trace_file):
     print("Removing near-fault points from file %s " % fault_trace_file);
     obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_points, trace_pts, radius_km=10);
     return obs_disp_points;
-
-
-def print_typical_uncs(obs_points):
-    """
-    Print a median uncertainty in mm for each data type
-    """
-    unc_tide_gage = [1000*x.Su_obs for x in obs_points if x.meas_type == 'tide_gage'];
-    unc_leveling = [1000*x.Su_obs for x in obs_points if x.meas_type == 'leveling'];
-    unc_east_campaign = [1000*x.Se_obs for x in obs_points if x.meas_type == 'survey'];
-    unc_north_campaign = [1000 * x.Sn_obs for x in obs_points if x.meas_type == 'survey'];
-    unc_survey = unc_east_campaign + unc_north_campaign;
-    unc_east_continuous = [1000*x.Se_obs for x in obs_points if x.meas_type == 'continuous'];
-    unc_north_continuous = [1000 * x.Sn_obs for x in obs_points if x.meas_type == 'continuous'];
-    unc_up_continuous = [1000 * x.Su_obs for x in obs_points if x.meas_type == 'continuous'];
-    unc_continuous = unc_east_continuous + unc_north_continuous + unc_up_continuous;
-    print("continuous:", np.median(unc_continuous), np.mean(unc_continuous));
-    print("survey:", np.median(unc_survey), np.mean(unc_survey));
-    print("leveling:", np.median(unc_leveling), np.mean(unc_leveling));
-    print("tide gage:", np.median(unc_tide_gage), np.mean(unc_tide_gage));
-    return;

@@ -68,8 +68,7 @@ def iterate_many_inversions(config):
 
 def make_lcurve_driver(config):
     """
-    A driver for creating an L-curve from multiple runs of an inversion, with config syntax matching slippy.
-    The syntax here needs to match the syntax output during MultiTemporalInversion.metrics.
+    A driver for creating an L-curve from multiple runs of an inversion, with config syntax matching slippy.metrics.
     """
     [params, misfits] = l_curve.collect_curve_points_slippy(top_level_dir=config["output_dir_lcurve"],
                                                             config_file_name='config.json',

@@ -13,7 +13,7 @@ import slippy.io
 
 # -------- READ FUNCTIONS ----------- #
 def read_obs_vs_predicted_object(config):
-    """Read data and model prediction files. There may be many files. """
+    """Read data and model prediction files from Slippy inversion. There may be many files. """
     obs_pos_column = np.zeros((0, 3));  # no predicted pos because it's the same as obs
     obs_disp_column = np.zeros((0,));
     pred_disp_column = np.zeros((0,));
@@ -63,14 +63,6 @@ def compound_misfit_driver(config, outfile):
     [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
     metrics = compute_compound_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
     write_compound_misfit(metrics, outfile);  # matching write function
-    return;
-
-def brawley_misfit_driver(config, outfile):
-    """Compute three metrics for gps, insar, and leveling respectively"""
-    print("Calculating metrics for Brawley inversion results.");
-    [obs_pos, obs_disp, pred_disp, obs_sigma, obs_type] = read_obs_vs_predicted_object(config);
-    metrics = compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type);
-    write_simple_misfit(metrics, outfile);  # matching write function
     return;
 
 
@@ -155,16 +147,6 @@ def write_compound_misfit(metrics, outfile):
 
     ofile.close();
     return;
-
-
-# -------- BRAWLEY EXPT MISFIT FUNCTIONS ----------- #
-def compute_brawley_misfit(obs_pos, obs_disp, pred_disp, obs_sigma, obs_type):
-    """ Ignore the western part of the domain, specific to Brawley. """
-    idx = np.where(obs_pos[:, 0] > -115.7);  # -116 is pretty global for Brawley
-    idx = idx[0]
-    obs_type = np.array(obs_type);
-    metrics = compute_simple_misfit(obs_pos[idx], obs_disp[idx], pred_disp[idx], obs_sigma[idx], obs_type[idx]);
-    return metrics;
 
 
 # -------- SLIP COMPUTE FUNCTIONS ----------- #
