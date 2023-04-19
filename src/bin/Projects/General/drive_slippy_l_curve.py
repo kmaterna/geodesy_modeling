@@ -7,6 +7,7 @@ Run Slippy across multiple choices of parameters, for l-curve analysis
 
 import sys, json, subprocess
 from Geodesy_Modeling.src import MultiTemporalInversion
+from Geodesy_Modeling.src.Inversion import l_curve, l_curve_plots
 
 
 def welcome_and_parse(argv):
@@ -52,7 +53,7 @@ def iterate_many_inversions(config):
             subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
             MultiTemporalInversion.buildG.beginning_calc(config);
             MultiTemporalInversion.metrics.main_function(config);
-    else:
+    else:  # 2d search for smoothing and slip penalty
         for alpha in config['range_alpha']:
             for penalty in config['range_penalty']:
                 for key in config["faults"].keys():
@@ -65,7 +66,20 @@ def iterate_many_inversions(config):
     return;
 
 
+def make_lcurve_driver(config):
+    """
+    A driver for creating an L-curve from multiple runs of an inversion, with config syntax matching slippy.
+    The syntax here needs to match the syntax output during MultiTemporalInversion.metrics.
+    """
+    [params, misfits] = l_curve.collect_curve_points_slippy(top_level_dir=config["output_dir_lcurve"],
+                                                            config_file_name='config.json',
+                                                            results_file_name="summary_stats_simple.txt",
+                                                            misfitname='Average normalized misfit');
+    l_curve_plots.plot_l_curve_coordinator(params, misfits, config["output_dir_lcurve"] + "/l_curve.png");
+    return;
+
+
 if __name__ == "__main__":
     config = welcome_and_parse(sys.argv);
     iterate_many_inversions(config);
-    MultiTemporalInversion.l_curve.main_driver(config);
+    make_lcurve_driver(config);

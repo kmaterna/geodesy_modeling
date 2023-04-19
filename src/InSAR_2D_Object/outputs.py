@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Tectonic_Utils.read_write import netcdf_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
-from . import inputs, utilities
+from . import inputs
 from Elastic_stresses_py.PyCoulomb import utilities as overall_utils
 
 
