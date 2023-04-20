@@ -3,10 +3,6 @@ import numpy as np
 from ..InSAR_1D_Object import class_model
 
 
-# GrdTSData = collections.namedtuple("GrdTSData", ["dtarray", "lon", "lat", "TS"]);
-# InSAR_1D_Object = collections.namedtuple('InSAR_1D_Object', ['lon', 'lat', 'LOS', 'LOS_unc',
-#                                                        'lkv_E', 'lkv_N', 'lkv_U', 'starttime', 'endtime']);
-
 def avg_uavsar_disp(TS, slicenum, row, col):
     """Average around a few pixels"""
     width_pixels = 10;

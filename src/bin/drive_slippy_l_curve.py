@@ -36,21 +36,20 @@ def iterate_many_inversions(config):
     A driver for looping multiple inversions depending on the experiment, testing the impact of alpha or smoothing.
     """
     if not config["switch_alpha"] and not config["switch_penalty"]:   # no search at all.
-        print("Check your configuration. Not searching through alpha or lamda.")
-        return;
+        print("Check your configuration. Not searching through alpha or lambda."); sys.exit(0);
     elif config["switch_alpha"] and not config["switch_penalty"]:   # 1d search in slip penalty
         for alpha in config['range_alpha']:
             config["alpha"] = alpha;    # set the alpha
-            config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";   # set the output dir
-            subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
+            config["output_dir"] = config["output_dir_lcurve"]+"/alpha_"+str(alpha)+"/";
+            subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);  # set output dir
             MultiTemporalInversion.buildG.beginning_calc(config);  # the guts of drive_slippy_multitemporal.py
             MultiTemporalInversion.metrics.main_function(config);
     elif config["switch_penalty"] and not config["switch_alpha"]:   # 1d search in smoothing penalty
         for penalty in config['range_penalty']:
             for key in config["faults"].keys():
                 config["faults"][key]["penalty"] = penalty;    # set the smoothing penalty
-            config["output_dir"] = config["output_dir_lcurve"]+"/penalty_"+str(penalty)+"/";   # set the output dir
-            subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);
+            config["output_dir"] = config["output_dir_lcurve"]+"/penalty_"+str(penalty)+"/";
+            subprocess.call(['mkdir', '-p', config["output_dir"]], shell=False);  # set output dir
             MultiTemporalInversion.buildG.beginning_calc(config);
             MultiTemporalInversion.metrics.main_function(config);
     else:  # 2d search for smoothing and slip penalty

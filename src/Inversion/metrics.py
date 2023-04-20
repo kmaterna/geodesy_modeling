@@ -37,7 +37,8 @@ def obs_vs_model_L2_aggregate(obs_disp_points, model_disp_points):
     res_tg = compute_rms.filter_disp_pts_to_vector(utilities.filter_to_meas_type(resid, "tide_gage"), ("U",));
     resid_data = res_cgps[0] + res_sgps[0] + res_lev[0] + res_tg[0];
     resid_sigma = res_cgps[1] + res_sgps[1] + res_lev[1] + res_tg[1];
-    rms_mm, reported_chi2 = compute_rms.L2_on_vector(resid_data, resid_sigma);
+    rms_m, reported_chi2 = compute_rms.L2_on_vector(resid_data, resid_sigma);
+    rms_mm = np.multiply(rms_m, 1000);
     return rms_mm, reported_chi2;
 
 
@@ -50,7 +51,8 @@ def obs_vs_model_L2_horiz(obs_disp_points, model_disp_points):
     res_sgps = compute_rms.filter_disp_pts_to_vector(utilities.filter_to_meas_type(resid, "survey"), ("E", "N"));
     resid_data = res_cgps[0] + res_sgps[0];
     resid_sigma = res_cgps[1] + res_sgps[1];
-    rms_mm, reported_chi2 = compute_rms.L2_on_vector(resid_data, resid_sigma);
+    rms_m, reported_chi2 = compute_rms.L2_on_vector(resid_data, resid_sigma);
+    rms_mm = np.multiply(rms_m, 1000);
     return rms_mm, reported_chi2;
 
 
@@ -64,5 +66,6 @@ def obs_vs_model_L2_vertical(obs_disp_points, model_disp_points):
     res_tg = compute_rms.filter_disp_pts_to_vector(utilities.filter_to_meas_type(resid, "tide_gage"), ("U",));
     resid_data = res_cgps[0] + res_lev[0] + res_tg[0];
     resid_sigma = res_cgps[1] + res_lev[1] + res_tg[1];
-    rms_mm, reported_chi2 = compute_rms.L2_on_vector(resid_data, resid_sigma);
+    rms_m, reported_chi2 = compute_rms.L2_on_vector(resid_data, resid_sigma);
+    rms_mm = np.multiply(rms_m, 1000);
     return rms_mm, reported_chi2;

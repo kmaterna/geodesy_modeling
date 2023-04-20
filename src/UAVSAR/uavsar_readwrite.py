@@ -1,13 +1,17 @@
 import datetime as dt
 import matplotlib
 import numpy as np
-import collections
 from .. import general_utils
 from Tectonic_Utils.read_write import netcdf_read_write
 from matplotlib import pyplot as plt, cm as cm
 
-# Collections
-GrdTSData = collections.namedtuple("GrdTSData", ["dtarray", "lon", "lat", "TS"]);
+# DATA STRUCTURE
+class GrdTSData:
+    def __init__(self, dtarray, lon, lat, TS):
+        self.dtarray = dtarray;
+        self.lon = lon;
+        self.lat = lat;
+        self.TS = TS;
 
 # INPUT FUNCTIONS FOR NETCDF FORMAT
 def inputs_TS_grd(filename, lonfile, latfile, day0=dt.datetime.strptime("2009-04-24", "%Y-%m-%d")):
