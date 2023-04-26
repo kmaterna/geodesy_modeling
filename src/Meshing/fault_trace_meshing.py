@@ -1,12 +1,13 @@
 """
 A small project to take a fault trace (lon/lat paris) and mesh it into chunks
 The result will be a series of rectangular mesh elements.
-The format will be the internal format used in PyCoulomb, a dictionary with geometry and slip for each patch.
+The format will be the internal format used in PyCoulomb, a class with geometry and slip for each patch.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from Tectonic_Utils.geodesy import haversine, fault_vector_functions
+from Elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as fso
 
 
 def read_surface_fault_trace(infile):
@@ -67,21 +68,20 @@ def convert_2d_segments_to_fault_dictionary(fault_segments, dip, dip_direction, 
     """
     fault_segment includes: (starting lon, starting_lat, strike, length, ending_lon, ending_lat)
     where starting_lon is probably south of ending_lon.
-    We are converting to the internal fault_dictionary format from Elastic_stresses_py
+    We are converting to the internal fault format from Elastic_stresses_py
     """
-    fault_dict_list = [];
+    fault_list = [];
     for item in fault_segments:
-        # Flip strike/dip if necessary
-        if dip_direction == 'south':
+        if dip_direction == 'south':  # Flip strike/dip if necessary
             strike = item[2] - 180;
             # Do I flip the lon/lat to the other corner here too?  Not totally sure.  Should test this.
         else:
             strike = item[2];
         downdip_width = fault_vector_functions.get_downdip_width(top_depth, bottom_depth, dip);
-        new_fault = {"strike": strike, "dip": dip, "length": item[3], "rake": rake, "slip": slip_cm / 100,
-                     "tensile": 0, "depth": top_depth, "width": downdip_width, "lon": item[0], "lat": item[1]};
-        fault_dict_list.append(new_fault);
-    return fault_dict_list;
+        new_fault = fso.FaultSlipObject(strike=strike, dip=dip, length=item[3], rake=rake, slip=slip_cm/100,
+                                        tensile=0, depth=top_depth, width=downdip_width, lon=item[0], lat=item[1]);
+        fault_list.append(new_fault);
+    return fault_list;
 
 
 def plot_surface_fault_and_segments(surface_fault, all_fault_segments, outfile="surface_segments.png"):

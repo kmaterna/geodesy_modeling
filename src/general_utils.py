@@ -32,6 +32,7 @@ def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat, 
     """
     A simpler implementation of finding the nearest pixel to a latitude/longitude point (doesn't do distance formula)
     Assumes a 2D grid of points
+    vector_lon and vector_lat don't have to be the same length.
     Throws an error if the target point is outside the domain.
 
     :param vector_lon: 1d array, longitudes
@@ -56,6 +57,7 @@ def get_many_nearest_pixels_in_vector(vector_lon, vector_lat, target_lon, target
     """
     Find the element closest to the target location in vector of lon and vector of lat.
     Fast function because of numpy math.
+    vector_lon and vector_lat must be the same length (i.e., a 1d vector of points)
 
     This implementation seems unnecessarily complex and possibly bad error handling. Might want to replace it.
     """
@@ -74,11 +76,11 @@ def find_pixels_idxs_in_ll_arrays(vector_lons, vector_lats, target_lons, target_
     """
     Get the nearest index (and neighbors) for each given coordinate.
 
-    :param vector_lons: 1D array of lon attributes
-    :param vector_lats: 1D array of lat attributes
+    :param vector_lons: 1D array of lon attributes (matching length with vector_lats)
+    :param vector_lats: 1D array of lat attributes (matching length with vector_lons)
     :param target_lons: 1d array of longitudes to be found
     :param target_lats: 1d array of latitudes to be found
-    :returns closest_index: a list that matches the length of InSAR_Data.lon
+    :returns closest_index: a list that matches the length of target_lons
     :returns close_indices: a list of lists (might return the 100 closest pixels for a given coordinate)
     """
     print("Finding target leveling pixels in vector of data");
