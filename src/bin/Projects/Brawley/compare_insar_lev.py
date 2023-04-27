@@ -22,6 +22,29 @@ from Geodesy_Modeling.src import general_utils, InSAR_1D_Object, Leveling_Object
 from Tectonic_Utils.read_write import general_io
 
 
+def get_nearest_in_pixel_list(tuple_coord_list, target_lons, target_lats):
+    """
+    Get the nearest index (and neighbors) for each given coordinate.
+
+    :param tuple_coord_list: list of matching tuples of (lon, lat)
+    :param target_lons: 1d array of longitudes to be found
+    :param target_lats: 1d array of latitudes to be found
+    :returns closest_index: a list that matches the length of target_lons
+    :returns close_indices: a list of lists (might return the 100 closest pixels for a given coordinate)
+    """
+    print("Finding target leveling pixels in vector of data");
+    closest_index, close_indices = [], [];
+    for tlon, tlat in zip(target_lons, target_lats):
+        i_found, _, closer_pts = general_utils.get_nearest_pixels_in_list(tuple_coord_list, tlon, tlat);
+        if i_found != -1:
+            closest_index.append(i_found);
+            close_indices.append(closer_pts);
+        else:
+            closest_index.append(np.nan);
+            close_indices.append(np.nan);
+    return closest_index, close_indices;
+
+
 def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, gps_lon=None, gps_lat=None,
                           gps_names=None, graph_scale=80, label="LOS", proj_vertical=0, lkv=(0, 0, 1)):
     """
@@ -40,8 +63,8 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     lon_plotting, lat_plotting = [], [];
     lon_leveling_list = [item.lon for item in myLev];
     lat_leveling_list = [item.lat for item in myLev];
-    vector_index, close_pixels = general_utils.get_nearest_in_pixel_list(InSAR_Data.get_coordinate_tuples(),
-                                                                         lon_leveling_list, lat_leveling_list);
+    vector_index, close_pixels = get_nearest_in_pixel_list(InSAR_Data.get_coordinate_tuples(),
+                                                           lon_leveling_list, lat_leveling_list);
 
     reference_insar_los = np.nanmean(np.array(proj_InSAR_Data.LOS)[close_pixels[0]]);  # InSAR disp near lev. refpixel.
     # the first element of leveling is the datum Y-1225, so it should be used as reference for InSAR
