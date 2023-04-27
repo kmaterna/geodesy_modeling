@@ -32,7 +32,7 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     for i in range(len(y_array)):
         for j in range(len(x_array)):
             if averaging_window == 0:  # If we just want to find THE nearest pixel
-                idx, min_dist, _ = general_utils.get_many_nearest_pixels_in_vector(InSAR_obj.lon, InSAR_obj.lat,
+                idx, min_dist, _ = general_utils.get_many_nearest_pixels_in_vector(InSAR_obj.get_coordinate_tuples(),
                                                                                    x_array[j], y_array[i]);
                 if min_dist < sampling_interval * 110:  # rough degrees to km conversion
                     new_obs_array[i][j] = InSAR_obj.LOS[idx];

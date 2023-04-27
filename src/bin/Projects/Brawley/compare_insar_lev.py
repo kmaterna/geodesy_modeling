@@ -40,8 +40,8 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     lon_plotting, lat_plotting = [], [];
     lon_leveling_list = [item.lon for item in myLev];
     lat_leveling_list = [item.lat for item in myLev];
-    vector_index, close_pixels = general_utils.find_pixels_idxs_in_ll_arrays(InSAR_Data.lon, InSAR_Data.lat,
-                                                                             lon_leveling_list, lat_leveling_list);
+    vector_index, close_pixels = general_utils.get_nearest_in_pixel_list(InSAR_Data.get_coordinate_tuples(),
+                                                                         lon_leveling_list, lat_leveling_list);
 
     reference_insar_los = np.nanmean(np.array(proj_InSAR_Data.LOS)[close_pixels[0]]);  # InSAR disp near lev. refpixel.
     # the first element of leveling is the datum Y-1225, so it should be used as reference for InSAR

@@ -37,8 +37,8 @@ class InSAR_2D_Object:
         :param tolerance: how close must the reference be to a viable pixel? In Degrees
         """
         if type(refidx[0]) is float:  # if refidx is lon, lat
-            idx_lon, idx_lat = general_utils.get_nearest_pixel_in_vector(self.lon, self.lat, refidx[0],
-                                                                         refidx[1], tolerance=tolerance);
+            idx_lon, idx_lat = general_utils.get_nearest_pixel_in_geocoded_array(self.lon, self.lat, refidx[0],
+                                                                                 refidx[1], min_dist_cutoff=tolerance);
             refvalue = self.LOS[idx_lon][idx_lat];
         else:  # if refidx is row, col
             refvalue = self.LOS[refidx[0]][refidx[1]];

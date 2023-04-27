@@ -80,3 +80,12 @@ class InSAR_1D_Object:
                                         lkv_N=np.nanmean(new_lkvN), lkv_U=np.nanmean(new_lkvU),
                                         starttime=self.starttime, endtime=self.endtime);
         return new_InSAR_obj;
+
+    def get_coordinate_tuples(self):
+        """
+        Return a list of tuples containing (lon, lat) for each pixel in the 1d list of pixels.
+        """
+        tuple_list = [];
+        for x, y in zip(self.lon, self.lat):
+            tuple_list.append((x, y));
+        return tuple_list;

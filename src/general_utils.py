@@ -6,10 +6,17 @@ import numpy as np
 from Tectonic_Utils.geodesy import haversine
 
 
-def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
-    """Take a raster (2d arrays with lat and lon)
-    and find the grid location closest to the target location
+def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat, min_dist_cutoff=0.25):
+    """
+    Find grid location closest to target in 2d arrays with lat and lon.
     This could be optimized with a distance formula or walking algorithm in the future.
+
+    :param raster_lon: 2d array
+    :param raster_lat: 2d array
+    :param target_lon: float
+    :param target_lat: float
+    :param min_dist_cutoff: minimum distance for error codes, in km
+    :returns: x_idx, y_idx, and minimum distance
     """
     dist = np.zeros(np.shape(raster_lon));
     lon_shape = np.shape(raster_lon);
@@ -18,7 +25,7 @@ def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
             mypt = [raster_lat[i][j], raster_lon[i][j]];
             dist[i][j] = haversine.distance((target_lat, target_lon), mypt);
     minimum_distance = np.nanmin(dist);
-    if minimum_distance < 0.25:  # if we're inside the domain.
+    if minimum_distance < min_dist_cutoff:  # if we're inside the domain.
         idx = np.where(dist == np.nanmin(dist));
         i_found = idx[0][0];
         j_found = idx[1][0];
@@ -28,43 +35,52 @@ def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat):
     return i_found, j_found, minimum_distance;
 
 
-def get_nearest_pixel_in_vector(vector_lon, vector_lat, target_lon, target_lat, tolerance=0.005):
+def get_nearest_pixel_in_geocoded_array(array_lon, array_lat, target_lon, target_lat, min_dist_cutoff=0.005):
     """
-    A simpler implementation of finding the nearest pixel to a latitude/longitude point (doesn't do distance formula)
-    Assumes a 2D grid of points
-    vector_lon and vector_lat don't have to be the same length.
+    Find the nearest pixel to a latitude/longitude point in a 2D geocoded array (doesn't do distance formula).
+    vector_lon and vector_lat don't have to be the same length, just representing a 2D grid of points.
     Throws an error if the target point is outside the domain.
+    TODO: RETURN THE DISTANCE TOO.
 
-    :param vector_lon: 1d array, longitudes
-    :param vector_lat: 1d array, latitudes
-    :param target_lon: longitude of the point of interest
-    :param target_lat: latitude of the point of interest
-    :param tolerance: tolerance in degrees
+    :param array_lon: 1d array, longitudes.
+    :param array_lat: 1d array, latitudes (doesn't have to be the same length as vector_lon).
+    :param target_lon: float, longitude of the point of interest.
+    :param target_lat: float, latitude of the point of interest
+    :param min_dist_cutoff: tolerance in degrees
     """
-    idx_lon = np.abs(vector_lon - target_lon).argmin();
-    idx_lat = np.abs(vector_lat - target_lat).argmin();
+    idx_lon = np.abs(array_lon - target_lon).argmin();
+    idx_lat = np.abs(array_lat - target_lat).argmin();
     # Throw an error if the recovered location is really far from the target (i.e., off the arrays)
-    if np.abs(target_lon - vector_lon[idx_lon]) > tolerance:
-        print("refidx[0]-InSAR_obj.lon[idx_lon]: %f degrees " % np.abs(target_lon - vector_lon[idx_lon]));
+    if np.abs(target_lon - array_lon[idx_lon]) > min_dist_cutoff:
+        print("refidx[0]-InSAR_obj.lon[idx_lon]: %f degrees " % np.abs(target_lon - array_lon[idx_lon]));
         raise ValueError("Error! Resolved Reference Pixel is not within tol of Target Reference Pixel (longitude)");
-    if np.abs(target_lat - vector_lat[idx_lat]) > tolerance:
-        print("refidx[1]-InSAR_obj.lon[idx_lat]: %f degrees " % np.abs(target_lat - vector_lat[idx_lat]));
+    if np.abs(target_lat - array_lat[idx_lat]) > min_dist_cutoff:
+        print("refidx[1]-InSAR_obj.lon[idx_lat]: %f degrees " % np.abs(target_lat - array_lat[idx_lat]));
         raise ValueError("Error! Resolved Reference Pixel is not within tol of Target Reference Pixel (latitude)");
     return idx_lon, idx_lat;
 
 
-def get_many_nearest_pixels_in_vector(vector_lon, vector_lat, target_lon, target_lat):
+def get_many_nearest_pixels_in_vector(tuple_coord_list, target_lon, target_lat, close_threshold=0.0009,
+                                      min_dist_cutoff=0.003):
     """
     Find the element closest to the target location in vector of lon and vector of lat.
     Fast function because of numpy math.
-    vector_lon and vector_lat must be the same length (i.e., a 1d vector of points)
-
     This implementation seems unnecessarily complex and possibly bad error handling. Might want to replace it.
+
+
+    :param tuple_coord_list: list of matching tuples of (lon, lat)
+    :param target_lon: float
+    :param target_lat: float
+    :param close_threshold: distance in degrees where a pixel is "close".  Default 0.0009 degrees.
+    :param min_dist_cutoff: distance wherein the closest pixel is still too far to be useful. Default 0.003 degrees.
+    :returns: idx of closest pixel, distance of minimum pixel, idx of all pixels where distance is < a certain value.
     """
+    vector_lon = [x[0] for x in tuple_coord_list];
+    vector_lat = [x[1] for x in tuple_coord_list];
     dist = np.sqrt(np.power(np.subtract(vector_lon, target_lon), 2) + np.power(np.subtract(vector_lat, target_lat), 2));
     minimum_distance = np.nanmin(dist);
-    close_pixels = np.where(dist < 0.0009);  # the runner-up close pixels, about 100 of them
-    if minimum_distance < 0.003:  # if we're inside the domain.
+    close_pixels = np.where(dist < close_threshold);  # the runner-up close pixels, about 100 of them
+    if minimum_distance < min_dist_cutoff:  # if we're inside the domain.
         idx = np.where(dist == np.nanmin(dist));
         i_found = idx[0][0];
     else:  # if we're outside the domain, return an error code.
@@ -72,12 +88,11 @@ def get_many_nearest_pixels_in_vector(vector_lon, vector_lat, target_lon, target
     return i_found, minimum_distance, close_pixels;
 
 
-def find_pixels_idxs_in_ll_arrays(vector_lons, vector_lats, target_lons, target_lats):
+def get_nearest_in_pixel_list(tuple_coord_list, target_lons, target_lats):
     """
     Get the nearest index (and neighbors) for each given coordinate.
 
-    :param vector_lons: 1D array of lon attributes (matching length with vector_lats)
-    :param vector_lats: 1D array of lat attributes (matching length with vector_lons)
+    :param tuple_coord_list: list of matching tuples of (lon, lat)
     :param target_lons: 1d array of longitudes to be found
     :param target_lats: 1d array of latitudes to be found
     :returns closest_index: a list that matches the length of target_lons
@@ -86,7 +101,7 @@ def find_pixels_idxs_in_ll_arrays(vector_lons, vector_lats, target_lons, target_
     print("Finding target leveling pixels in vector of data");
     closest_index, close_indices = [], [];
     for tlon, tlat in zip(target_lons, target_lats):
-        i_found, mindist, closer_pts = get_many_nearest_pixels_in_vector(vector_lons, vector_lats, tlon, tlat);
+        i_found, mindist, closer_pts = get_many_nearest_pixels_in_vector(tuple_coord_list, tlon, tlat);
         if i_found != -1:
             closest_index.append(i_found);
             close_indices.append(closer_pts);
