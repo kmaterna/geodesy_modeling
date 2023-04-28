@@ -69,7 +69,7 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     Can do LOS or projected pseudo-vertical, depending on experimental step
     """
     if proj_vertical:  # experimental step
-        proj_InSAR_Data = InSAR_1D_Object.utilities.proj_los_into_vertical_no_horiz(InSAR_Data, const_lkv=lkv);
+        proj_InSAR_Data = InSAR_Data.proj_los_into_vertical_no_horiz(InSAR_Data, const_lkv=lkv);
     else:
         proj_InSAR_Data = InSAR_Data;
 

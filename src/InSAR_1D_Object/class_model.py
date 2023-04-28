@@ -1,4 +1,5 @@
 import numpy as np
+from Tectonic_Utils.geodesy import insar_vector_functions as ivs
 
 
 class InSAR_1D_Object:
@@ -81,6 +82,27 @@ class InSAR_1D_Object:
                                         starttime=self.starttime, endtime=self.endtime);
         return new_InSAR_obj;
 
+    def proj_los_into_vertical_no_horiz(self, const_lkv=()):
+        """
+        Project LOS deformation into psudo-vertical, assuming no horizontal motion.
+        The look vector can be a constant approximation applied to all pixels, or it can be derived from
+        pixel-by-pixel look vectors.
+
+        :param const_lkv: list of 3 floats, normalized look vector components E, N, U
+        """
+        new_los = [];
+        for i in range(len(self.lon)):
+            if len(const_lkv) == 3:
+                new_los.append(ivs.proj_los_into_vertical_no_horiz(self.LOS[i], const_lkv));
+            else:
+                specific_lkv = [self.lkv_E[i], self.lkv_N[i], self.lkv_U[i]];
+                new_los.append(ivs.proj_los_into_vertical_no_horiz(self.LOS[i], specific_lkv));
+        newInSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=new_los, LOS_unc=self.LOS_unc,
+                                       lkv_E=np.zeros(np.shape(self.lon)), lkv_N=np.zeros(np.shape(self.lon)),
+                                       lkv_U=np.ones(np.shape(self.lon)), starttime=self.starttime,
+                                       endtime=self.endtime);
+        return newInSAR_obj;
+
     def get_coordinate_tuples(self):
         """
         Return a list of tuples containing (lon, lat) for each pixel in the 1d list of pixels.
@@ -93,8 +115,26 @@ class InSAR_1D_Object:
     def subtract_reference_pixel(self, refvalue):
         """
         Subtract a value from the LOS.
+
+        :param refvalue: float, in the same units as LOS data.
         """
         new_InSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, refvalue),
                                         LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
                                         starttime=self.starttime, endtime=self.endtime);
         return new_InSAR_obj;
+
+    def check_internal_sanity(self):
+        lenx = len(self.lon);
+        if len(self.lat) != lenx:
+            return 0;
+        if len(self.LOS) != lenx:
+            return 0;
+        if len(self.LOS_unc) != lenx:
+            return 0;
+        if len(self.lkv_E) != lenx:
+            return 0;
+        if len(self.lkv_N) != lenx:
+            return 0;
+        if len(self.lkv_U) != lenx:
+            return 0;
+        return 1;

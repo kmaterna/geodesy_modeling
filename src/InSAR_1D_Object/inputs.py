@@ -21,6 +21,7 @@ def inputs_txt(insar_textfile, starttime=dt.datetime.strptime("19900101", "%Y%m%
     :param starttime: optional, beginning of InSAR interval, dt.datetime object
     :param endtime: optional, end of InSAR interval, dt.datetime object
     """
+    print("Reading file %s " % insar_textfile);
     [lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(insar_textfile, unpack=True, skiprows=1);
     InSAR_Obj = InSAR_1D_Object(lon=lon_meas, lat=lat_meas, LOS=disp*1000, LOS_unc=sig*1000, lkv_E=unit_e, lkv_N=unit_n,
                                 lkv_U=unit_u, starttime=starttime, endtime=endtime);

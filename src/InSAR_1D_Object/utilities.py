@@ -1,15 +1,14 @@
 """
-Utilities on 1D InSAR_Obj
-InSAR_1D_Object = ['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']
+Utilities on 1D InSAR_Obj: ['lon','lat','LOS','LOS_unc','lkv_E','lkv_N','lkv_U','starttime','endtime']
 LOS is in mm
 """
 
 import numpy as np
 from .class_model import InSAR_1D_Object
-from Tectonic_Utils.geodesy import insar_vector_functions
+from Tectonic_Utils.geodesy import insar_vector_functions as ivs
 
 
-def combine_objects(Obj1, Obj2):
+def combine_objects(Obj1: InSAR_1D_Object, Obj2: InSAR_1D_Object):
     """
     Simply stack two objects, combining their pixels in the simplest way possible
     """
@@ -36,22 +35,20 @@ def combine_objects(Obj1, Obj2):
 def similar_pixel_tuples(tup1, tup2):
     tol = 1e-4;
     retval = 0;
-    if np.abs(tup1[0] - tup2[0]) < tol:
-        if np.abs(tup1[1] - tup2[1]) < tol:
-            retval = 1;
+    if np.abs(tup1[0] - tup2[0]) < tol and np.abs(tup1[1] - tup2[1]) < tol:
+        retval = 1;
     return retval;
 
 
-def collect_common_pixels(Obj1, Obj2):
+def collect_common_pixels(Obj1: InSAR_1D_Object, Obj2: InSAR_1D_Object):
     """
-    Take two InSAR objects (like Asc and Desc) and return two objects where the pixels are identical.
+    Take two InSAR objects (like Asc and Desc) and filter to return two objects where the pixels are identical.
     Ignores pixels that have NaN in one dataset or the other
     Preparing for vector decomposition.
     """
-    Obj1_tuples_list = [(Obj1.lon[x], Obj1.lat[x]) for x in range(len(Obj1.lon))];
-    Obj2_tuples_list = [(Obj2.lon[x], Obj2.lat[x]) for x in range(len(Obj2.lon))];
-    common_lon, common_lat = [], [];
-    los1, los_unc1, lkv_e1, lkv_n1, lkv_u1 = [], [], [], [], [];
+    Obj1_tuples_list = Obj1.get_coordinate_tuples();
+    Obj2_tuples_list = Obj2.get_coordinate_tuples();
+    common_lon, common_lat, los1, los_unc1, lkv_e1, lkv_n1, lkv_u1 = [], [], [], [], [], [], [];
     los2, los_unc2, lkv_e2, lkv_n2, lkv_u2 = [], [], [], [], [];
     for i, pixel in enumerate(Obj1_tuples_list):
         find_idx = [similar_pixel_tuples(x, pixel) for x in Obj2_tuples_list];
@@ -76,11 +73,10 @@ def collect_common_pixels(Obj1, Obj2):
                                   lkv_N=lkv_n1, lkv_U=lkv_u1, starttime=Obj1.starttime, endtime=Obj1.endtime);
     common_Obj2 = InSAR_1D_Object(lon=common_lon, lat=common_lat, LOS=los2, LOS_unc=los_unc2, lkv_E=lkv_e2,
                                   lkv_N=lkv_n2, lkv_U=lkv_u2, starttime=Obj1.starttime, endtime=Obj1.endtime);
-
     return common_Obj1, common_Obj2;
 
 
-def decompose_asc_desc_vert_horizontal(asc_obj, desc_obj):
+def decompose_asc_desc_vert_horizontal(asc_obj: InSAR_1D_Object, desc_obj: InSAR_1D_Object):
     """
     Turn an ascending and descending object on the same pixels into vertical and horizontal.
     Appendix 1, Samieie-Esfahany et al., 2010
@@ -89,12 +85,10 @@ def decompose_asc_desc_vert_horizontal(asc_obj, desc_obj):
     """
     vert, horz = [], [];
     for i in range(len(asc_obj.LOS)):
-        [flight_asc, inc_asc] = insar_vector_functions.look_vector2flight_incidence_angles(asc_obj.lkv_E[i],
-                                                                                           asc_obj.lkv_N[i],
-                                                                                           asc_obj.lkv_U[i]);
-        [flight_desc, inc_desc] = insar_vector_functions.look_vector2flight_incidence_angles(desc_obj.lkv_E[i],
-                                                                                             desc_obj.lkv_N[i],
-                                                                                             desc_obj.lkv_U[i]);
+        [flight_asc, inc_asc] = ivs.look_vector2flight_incidence_angles(asc_obj.lkv_E[i], asc_obj.lkv_N[i],
+                                                                        asc_obj.lkv_U[i]);
+        [flight_desc, inc_desc] = ivs.look_vector2flight_incidence_angles(desc_obj.lkv_E[i], desc_obj.lkv_N[i],
+                                                                          desc_obj.lkv_U[i]);
         obs_vector = np.array([asc_obj.LOS[i], desc_obj.LOS[i]]);
         cos_theta_asc = np.cos(np.deg2rad(inc_asc));
         sin_theta_asc = np.sin(np.deg2rad(inc_asc));
@@ -117,22 +111,16 @@ def decompose_asc_desc_vert_horizontal(asc_obj, desc_obj):
                                lkv_U=np.zeros(np.shape(vert)), starttime=asc_obj.starttime, endtime=asc_obj.endtime);
     return Vert_obj, Horz_obj;
 
+def average_list_of_objects(list_of_InSAR_objs):
+    """
+    Take the average of several matching InSAR objects. Useful for stacking a bunch of co-registered interferograms.
 
-def proj_los_into_vertical_no_horiz(InSAR_obj, const_lkv=None):
+    :param list_of_InSAR_objs: list of several 1d insar objects with matching pixels.
     """
-    Project LOS deformation into psudo-vertical, assuming no horizontal motion.
-    The look vector can be a constant approximation applied to all pixels, or it can be derived from
-    pixel-by-pixel look vectors.
-    """
-    new_los = [];
-    for i in range(len(InSAR_obj.lon)):
-        if const_lkv is None:
-            specific_lkv = [InSAR_obj.lkv_E[i], InSAR_obj.lkv_N[i], InSAR_obj.lkv_U[i]];
-            new_los.append(insar_vector_functions.proj_los_into_vertical_no_horiz(InSAR_obj.LOS[i], specific_lkv));
-        else:
-            new_los.append(insar_vector_functions.proj_los_into_vertical_no_horiz(InSAR_obj.LOS[i], const_lkv));
-    newInSAR_obj = InSAR_1D_Object(lon=InSAR_obj.lon, lat=InSAR_obj.lat, LOS=new_los, LOS_unc=InSAR_obj.LOS_unc,
-                                   lkv_E=np.zeros(np.shape(InSAR_obj.lon)), lkv_N=np.zeros(np.shape(InSAR_obj.lon)),
-                                   lkv_U=np.ones(np.shape(InSAR_obj.lon)),
-                                   starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime);
+    ob0 = list_of_InSAR_objs[0];
+    mean_los = [];
+    for i in range(len(ob0.LOS)):
+        mean_los.append(np.mean([x.LOS[i] for x in list_of_InSAR_objs]));
+    newInSAR_obj = InSAR_1D_Object(lon=ob0.lon, lat=ob0.lat, LOS=mean_los, LOS_unc=ob0.LOS_unc, lkv_E=ob0.lkv_E,
+                                   lkv_N=ob0.lkv_N, lkv_U=ob0.lkv_U, starttime=ob0.starttime, endtime=ob0.endtime);
     return newInSAR_obj;

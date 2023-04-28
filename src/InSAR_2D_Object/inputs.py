@@ -26,28 +26,13 @@ def inputs_grd(los_grdfile, _rdrlosfile=None):
     return InSAR_Obj;
 
 
-def get_isce_lon_lat(iscefile=None, los_rdr_file=None):
-    """
-    Return 1d arrays for longitude and latitude based on isce filenames. Read from iscefile if given; otherwise los.rdr.
-    """
-    if iscefile:
-        lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml');
-    elif los_rdr_file:
-        lon, lat = isce_read_write.get_xarray_yarray_from_xml(los_rdr_file + '.xml');
-    else:
-        raise ValueError("Error! No valid filenames provided.");
-    return lon, lat;
-
-
-def inputs_phase_isce(iscefile=None, los_rdr_file=None):
+def inputs_phase_isce(iscefile, los_rdr_file=None):
     """
     Create a 2D InSAR object from ISCE phase data.  Returns the scalar field in LOS, such as wrapped phase.
     """
-    lon, lat = get_isce_lon_lat(iscefile, los_rdr_file);
-    LOS = np.empty((len(lat), len(lon)));
+    lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml');
     incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)));
-    if iscefile:
-        LOS = isce_read_write.read_phase_data(iscefile);
+    LOS = isce_read_write.read_phase_data(iscefile);
     if los_rdr_file:
         incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1);
         azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2);
@@ -58,15 +43,13 @@ def inputs_phase_isce(iscefile=None, los_rdr_file=None):
     return InSAR_Obj;
 
 
-def inputs_scalar_isce(iscefile=None, los_rdr_file=None):
+def inputs_scalar_isce(iscefile, los_rdr_file=None):
     """
     Create a 2D InSAR object from ISCE data.  Returns the scalar field in LOS, such as unwrapped phase.
     """
-    lon, lat = get_isce_lon_lat(iscefile, los_rdr_file);
-    LOS = np.empty((len(lat), len(lon)));
+    lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml');
     incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)));
-    if iscefile:
-        LOS = isce_read_write.read_scalar_data(iscefile);
+    LOS = isce_read_write.read_scalar_data(iscefile);
     if los_rdr_file:
         incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1);
         azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2);
