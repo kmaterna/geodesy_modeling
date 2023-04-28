@@ -6,8 +6,8 @@ import pygmt
 import numpy as np
 import matplotlib.pyplot as plt
 from Tectonic_Utils.read_write import netcdf_read_write
-from Tectonic_Utils.geodesy import insar_vector_functions
 from . import inputs
+from .. import general_utils
 from Elastic_stresses_py.PyCoulomb import utilities as overall_utils
 
 
@@ -89,11 +89,7 @@ def add_text_annotation(fig, text_annot, region, proj):
 
 
 def add_flight_vector(fig, flight_heading, look_dir, region):
-    [x_flight, y_flight] = insar_vector_functions.get_unit_vector_from_heading(flight_heading);
-    if look_dir == 'right':
-        [x_los, y_los] = insar_vector_functions.get_unit_vector_from_heading(flight_heading + 90);
-    else:
-        [x_los, y_los] = insar_vector_functions.get_unit_vector_from_heading(flight_heading - 90);
+    x_flight, y_flight, x_los, y_los = general_utils.get_los_and_flight_vectors(flight_heading, look_dir);
     fig.text(x=region[0], y=region[2], text='LOS', offset=str(0.6 + 0.4 * x_los) + "i/0.45i",
              fill='white', font="10p,Helvetica,black");  # LOS text annotation
     fig.plot(x=[region[0]], y=[region[2]], style='v0.2c+e+gblack+h0+p1p,black+z' + str(1.0),

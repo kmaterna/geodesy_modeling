@@ -3,7 +3,7 @@ Mathematical functions independent of object specifics
 """
 
 import numpy as np
-from Tectonic_Utils.geodesy import haversine
+from Tectonic_Utils.geodesy import haversine, insar_vector_functions
 
 
 def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat, min_dist_cutoff_km=0.25):
@@ -140,3 +140,20 @@ def wrap_float(def_meas, wavelength):
     """
     wrapped_phase = np.mod(def_meas, wavelength/2) * (4*np.pi / wavelength) - np.pi;
     return wrapped_phase;
+
+
+def get_los_and_flight_vectors(flight_heading, look_dir='right'):
+    """
+    Return the unit vectors pointing in the flight direction and look direction
+
+    :param flight_heading: degrees CW from north.
+    :param look_dir: string, 'right' or 'left'.
+    """
+    [x_flight, y_flight] = insar_vector_functions.get_unit_vector_from_heading(flight_heading);
+    if look_dir == 'right':
+        [x_los, y_los] = insar_vector_functions.get_unit_vector_from_heading(flight_heading + 90);
+    elif look_dir == 'left':
+        [x_los, y_los] = insar_vector_functions.get_unit_vector_from_heading(flight_heading - 90);
+    else:
+        raise ValueError("Error! Invalid look_dir; look_dir must be right or left.");
+    return x_flight, y_flight, x_los, y_los;
