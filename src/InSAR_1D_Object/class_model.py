@@ -7,10 +7,10 @@ class InSAR_1D_Object:
     The vector entries represent one pixel each.
     Displacements are Displacements, not velocities (for now)
     """
-    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime, endtime):
-        self.lon = lon;  # 1d vector
-        self.lat = lat;  # 1d vector
-        self.LOS = LOS;  # 1d vector of displacements, in mm
+    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None):
+        self.lon = lon;  # list or 1d vector
+        self.lat = lat;  # list or 1d vector
+        self.LOS = LOS;  # list or 1d vector of displacements, in mm
         self.LOS_unc = LOS_unc;   # 1d vector, in mm
         self.lkv_E = lkv_E;  # Ground to Satellite, 1d vector
         self.lkv_N = lkv_N;  # Ground to Satellite, 1d vector
@@ -89,3 +89,12 @@ class InSAR_1D_Object:
         for x, y in zip(self.lon, self.lat):
             tuple_list.append((x, y));
         return tuple_list;
+
+    def subtract_reference_pixel(self, refvalue):
+        """
+        Subtract a value from the LOS.
+        """
+        new_InSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, refvalue),
+                                        LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
+                                        starttime=self.starttime, endtime=self.endtime);
+        return new_InSAR_obj;

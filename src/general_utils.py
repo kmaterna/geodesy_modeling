@@ -88,19 +88,6 @@ def get_nearest_pixels_in_list(tuple_coord_list, target_lon, target_lat, close_t
     return i_found, minimum_distance, close_pixels;
 
 
-def compute_difference_metrics_on_same_pixels(list1, list2):
-    """
-    :param list1: a 1d array of LOS data from platform 1 (like Leveling)
-    :param list2: a matching 1d array of LOS data from platform 2 (like UAVSAR)
-    :returns: average misfit value, and r^2 coefficient.
-    """
-    misfit_metric = np.nanmean(np.abs(np.subtract(list1, list2)));  # average deviation from 1-to-1
-    corr_matrix = np.corrcoef(list1, list2)
-    corr = corr_matrix[0, 1]
-    r2 = corr ** 2
-    return misfit_metric, r2;
-
-
 def convert_rates_to_disps(LOS_rates, starttime, endtime):
     """
     Compute displacement = rate * time

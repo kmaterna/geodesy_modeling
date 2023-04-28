@@ -8,7 +8,7 @@ class InSAR_2D_Object:
     A generalized 2D Grid InSAR format where all data fields are 2D grids.
     Displacements in mm (if LOS is a displacement measurement instead of phase or other)
     """
-    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime, endtime):
+    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None):
         self.lon = lon;  # 1d array
         self.lat = lat;  # 1d array
         self.LOS = LOS;  # displacements, in mm, 2d Grid

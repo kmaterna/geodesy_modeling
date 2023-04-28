@@ -33,20 +33,32 @@ def write_insar_invertible_format(InSAR_obj, filename, unc_min=0):
     return;
 
 
-def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_annot=None):
+def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_annot=None, refpix=None,
+               title=None, colormap='viridis'):
     """lons_annot and lat_annot are for lines to annotate the plot, such as faults or field boundaries"""
     print("Plotting insar in file %s " % plotname);
-    plt.figure(dpi=300, figsize=(8, 8));
+    plt.figure(dpi=300, figsize=(5, 5));
     if vmin is not None:
-        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow', vmin=vmin, vmax=vmax);
+        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap, vmin=vmin, vmax=vmax);
     else:
-        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=18, cmap='rainbow');
+        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap);
     if lons_annot:
         plt.plot(lons_annot, lats_annot, color='darkred');
+    if refpix:
+        plt.plot(refpix[0], refpix[1], '.', color='red');
+    if title:
+        plt.title(title);
+    else:
+        starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m");
+        endtime = dt.datetime.strftime(InSAR_Obj.endtime, "%Y-%m");
+        plt.title("InSAR with %d Points from %s to %s" % (len(InSAR_Obj.LOS), starttime, endtime));
     cb = plt.colorbar();
     cb.set_label('Displacement (mm)', fontsize=16);
-    starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m");
-    endtime = dt.datetime.strftime(InSAR_Obj.endtime, "%Y-%m");
-    plt.title("InSAR with %d Points from %s to %s" % (len(InSAR_Obj.LOS), starttime, endtime));
     plt.savefig(plotname);
+    return;
+
+def plot_look_vectors(_InSAR_Obj, _plotname):
+    """
+    Visualize the look vectors for gut-checking.
+    """
     return;

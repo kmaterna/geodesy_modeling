@@ -22,6 +22,19 @@ from Geodesy_Modeling.src import general_utils, InSAR_1D_Object, Leveling_Object
 from Tectonic_Utils.read_write import general_io
 
 
+def compute_difference_metrics_on_same_pixels(list1, list2):
+    """
+    :param list1: a 1d array of LOS data from platform 1 (like Leveling)
+    :param list2: a matching 1d array of LOS data from platform 2 (like UAVSAR)
+    :returns: average misfit value, and r^2 coefficient.
+    """
+    misfit_metric = np.nanmean(np.abs(np.subtract(list1, list2)));  # average deviation from 1-to-1
+    corr_matrix = np.corrcoef(list1, list2)
+    corr = corr_matrix[0, 1]
+    r2 = corr ** 2
+    return misfit_metric, r2;
+
+
 def get_nearest_in_pixel_list(tuple_coord_list, target_lons, target_lats):
     """
     Get the nearest index (and neighbors) for each given coordinate.
@@ -83,7 +96,7 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
                 lon_plotting.append(lon_leveling_list[i]);
                 lat_plotting.append(lat_leveling_list[i]);
     # Computing misfit
-    misfit_metric, r2 = general_utils.compute_difference_metrics_on_same_pixels(oto_lev, oto_tsx);
+    misfit_metric, r2 = compute_difference_metrics_on_same_pixels(oto_lev, oto_tsx);
 
     # Comparison plot between leveling and InSAR
     fig, axarr = plt.subplots(2, 2, figsize=(14, 10));
