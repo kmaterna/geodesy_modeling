@@ -177,7 +177,7 @@ def get_GF_leveling_offset_element(obs_disp_points):
 
 def get_displacement_directions(obs_disp_point, model_point):
     """
-    Code up the logic for which components we model for each GNSS/leveling/tidegage point, etc
+    Code up the logic for which components we model for each GNSS/leveling/tidegage/insar point, etc
     """
     if obs_disp_point.meas_type == "continuous":
         disps = np.array([model_point.dE_obs, model_point.dN_obs, model_point.dU_obs]);
@@ -191,10 +191,55 @@ def get_displacement_directions(obs_disp_point, model_point):
     elif obs_disp_point.meas_type == "tide_gage":
         disps = np.array([model_point.dU_obs]);
         sigmas = np.array([model_point.Su_obs]);
+    elif obs_disp_point.meas_type == "insar":
+        disps = np.array([model_point.dE_obs]);
+        sigmas = np.array([model_point.Se_obs]);
     else:
         disps = np.array([model_point.dE_obs, model_point.dN_obs, model_point.dU_obs]);
         sigmas = np.array([model_point.Se_obs, model_point.Sn_obs, model_point.Su_obs]);
     return disps, sigmas;
+
+
+def unpack_model_pred_vector(model_pred, paired_obs):
+    """
+    Unpack a model vector into a bunch of disp_point objects. Same logic implemented here as in the functions above.
+
+    :param model_pred: long vector of model parameters, corresponding to each component being used
+    :param paired_obs: list of disp_point_objects (shorter than model_pred vector)
+    """
+    disp_points_list = [];
+    counter = 0;
+    for i in range(len(paired_obs)):
+        if paired_obs[i].meas_type == "survey":
+            E = model_pred[counter];
+            N = model_pred[counter+1];
+            U = np.nan;
+            counter = counter+2;
+        elif paired_obs[i].meas_type == "leveling":
+            E, N = np.nan, np.nan;
+            U = model_pred[counter];
+            counter = counter+1;
+        elif paired_obs[i].meas_type == "tide_gage":
+            E, N = np.nan, np.nan;
+            U = model_pred[counter];
+            counter = counter+1;
+        elif paired_obs[i].meas_type == "insar":
+            E = model_pred[counter];
+            N, U = np.nan, np.nan;
+            counter = counter+1;
+        else:
+            E = model_pred[counter];
+            N = model_pred[counter+1];
+            U = model_pred[counter+2];
+            counter = counter+3;
+
+        new_disp_point = cc.Displacement_points(lon=paired_obs[i].lon, lat=paired_obs[i].lat,
+                                                dE_obs=E, dN_obs=N, dU_obs=U,
+                                                Se_obs=0, Sn_obs=0, Su_obs=0,
+                                                name=paired_obs[i].name, meas_type=paired_obs[i].meas_type,
+                                                refframe=paired_obs[i].refframe, starttime=None, endtime=None);
+        disp_points_list.append(new_disp_point);
+    return disp_points_list;
 
 
 def buildG_column(GF_disp_points, obs_disp_points):
@@ -227,44 +272,6 @@ def forward_disp_points_predictions(G, m, sigmas, paired_obs):
     model_pred = G.dot(m) * sigmas;
     model_disp_points = unpack_model_pred_vector(model_pred, paired_obs);
     return model_disp_points;
-
-
-def unpack_model_pred_vector(model_pred, paired_obs):
-    """
-    Unpack a model vector into a bunch of disp_point objects. Same logic implemented here as in the functions above.
-
-    :param model_pred: long vector of model parameters, corresponding to each component being used
-    :param paired_obs: list of disp_point_objects (shorter than model_pred vector)
-    """
-    disp_points_list = [];
-    counter = 0;
-    for i in range(len(paired_obs)):
-        if paired_obs[i].meas_type == "survey":
-            E = model_pred[counter];
-            N = model_pred[counter+1];
-            U = np.nan;
-            counter = counter+2;
-        elif paired_obs[i].meas_type == "leveling":
-            E, N = np.nan, np.nan;
-            U = model_pred[counter];
-            counter = counter+1;
-        elif paired_obs[i].meas_type == "tide_gage":
-            E, N = np.nan, np.nan;
-            U = model_pred[counter];
-            counter = counter+1;
-        else:
-            E = model_pred[counter];
-            N = model_pred[counter+1];
-            U = model_pred[counter+2];
-            counter = counter+3;
-
-        new_disp_point = cc.Displacement_points(lon=paired_obs[i].lon, lat=paired_obs[i].lat,
-                                                dE_obs=E, dN_obs=N, dU_obs=U,
-                                                Se_obs=0, Sn_obs=0, Su_obs=0,
-                                                name=paired_obs[i].name, meas_type=paired_obs[i].meas_type,
-                                                refframe=paired_obs[i].refframe, starttime=None, endtime=None);
-        disp_points_list.append(new_disp_point);
-    return disp_points_list;
 
 
 def unpack_model_of_target_param(M_vector, parameter_names, target_names=()):
@@ -553,3 +560,58 @@ def remove_nearfault_pts(obs_points, fault_trace_file):
     print("Removing near-fault points from file %s " % fault_trace_file);
     obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_points, trace_pts, radius_km=10);
     return obs_disp_points;
+
+
+def write_insar_greens_functions(GF_elements, outfile):
+    """
+    Serialize a bunch of InSAR Green's Functions into written text file, in meters, with rows for each InSAR point:
+    For each observation point: lon, lat, dLOS1, dLOS2, dLOS3.... [n fault patches].
+
+    :param GF_elements: list of GF_elements with InSAR displacements in disp_points.
+    :param outfile: string
+    """
+    print("Writing file %s " % outfile);
+    for item in GF_elements:
+        if item.meas_type != 'insar':
+            raise ValueError("Error! In this function, we can only serialize GF_elements with meas_type == insar.");
+    ofile = open(outfile, 'w');
+    for i, pt in enumerate(GF_elements[0].disp_points):
+        ofile.write('%f %f ' % (pt.lon, pt.lat));
+        point_displacements = [GF_el.disp_points[i].dE_obs for GF_el in GF_elements];
+        for x in point_displacements:
+            ofile.write(str(x)+" ");
+        ofile.write("\n");
+    ofile.close();
+    return;
+
+
+def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bound=0, upper_bound=0):
+    """
+    Read pre-computed green's functions in the format matching the write-function.
+    Currently, only works for triangles.
+
+    :param gf_file: string, filename
+    :param fault_patches: list of fault_slip_objects or fault_slip_triangles
+    :param param_name: string
+    :param lower_bound: float
+    :param upper_bound: float
+    """
+    GF_elements = [];
+    gf_data_array = np.loadtxt(gf_file);
+    lons, lats = gf_data_array[:, 0], gf_data_array[:, 1];
+    model_disp_pts = [];
+    for tlon, tlat in zip(lons, lats):
+        mdp = cc.Displacement_points(lon=tlon, lat=tlat, dE_obs=0, dN_obs=0, dU_obs=0, Se_obs=0, Sn_obs=0, Su_obs=0,
+                                     name='', starttime='', endtime='', meas_type='insar', refframe='');
+        model_disp_pts.append(mdp);
+
+    for i, tri in enumerate(fault_patches):  # right now, only the triangle version is written.
+        changed_slip = tri.change_fault_slip(rtlat=1, dipslip=0, tensile=0);  # triangle-specific
+        changed_slip = changed_slip.change_reference_loc();  # triangle-specific interface
+        index = i+2;  # moving to the correct column in the GF file, skipping lon and lat.
+        los_defo = gf_data_array[:, index];
+        model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
+        GF_elements.append(GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
+                                      param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound,
+                                      slip_penalty=0));
+    return GF_elements;

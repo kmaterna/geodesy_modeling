@@ -42,7 +42,11 @@ class InSAR_2D_Object:
             refvalue = self.LOS[idx_lon][idx_lat];
         else:  # if refidx is row, col
             refvalue = self.LOS[refidx[0]][refidx[1]];
-        new_InSAR_obj = InSAR_2D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, refvalue),
+        new_InSAR_obj = self.subtract_value(refvalue);
+        return new_InSAR_obj;
+
+    def subtract_value(self, value):
+        new_InSAR_obj = InSAR_2D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
                                         LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
                                         lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime);
         return new_InSAR_obj;

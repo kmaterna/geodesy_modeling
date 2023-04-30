@@ -35,6 +35,19 @@ def compute_difference_metrics_on_same_pixels(list1, list2):
     return misfit_metric, r2;
 
 
+def get_file_dictionary(config_filename):
+    """GET FILE NAMES"""
+    this_dict = {};
+    print("Reading file %s " % config_filename);
+    ifile = open(config_filename);
+    for line in ifile:
+        data_type = line.split(':')[0];
+        total_data_files = line.split()[1];  # assuming one file per list entry
+        this_dict[data_type] = total_data_files;
+    ifile.close();
+    return this_dict;
+
+
 def get_nearest_in_pixel_list(tuple_coord_list, target_lons, target_lats):
     """
     Get the nearest index (and neighbors) for each given coordinate.
@@ -238,7 +251,7 @@ def drive_uavsar_ts_compare(file_dict, lev_slice, uav_slice, outfile):
 
 if __name__ == "__main__":
     config_filename = sys.argv[1];
-    file_dict = general_utils.get_file_dictionary(config_filename);
+    file_dict = get_file_dictionary(config_filename);
 
     # # TSX experiment: 2012-2013, leveling slice 3-4
     drive_tre_compare(file_dict, 'tsx', lev_slice=[3, 4], outdir="TSX/", outfile="one_to_one_34.png");

@@ -1,5 +1,6 @@
 import numpy as np
 from Tectonic_Utils.geodesy import insar_vector_functions as ivs
+from Elastic_stresses_py.PyCoulomb import coulomb_collections as cc
 
 
 class InSAR_1D_Object:
@@ -112,13 +113,25 @@ class InSAR_1D_Object:
             tuple_list.append((x, y));
         return tuple_list;
 
-    def subtract_reference_pixel(self, refvalue):
+    def get_disp_points(self):
+        """
+        Return a list of disp_points corresponding to the 1D pixel list. dE_obs and Se_obs contains LOS/unc in m.
+        """
+        disp_point_list = []
+        for i in range(len(self.lon)):
+            disp_point_list.append(cc.Displacement_points(lon=self.lon[i], lat=self.lat[i], dE_obs=self.LOS[i]*0.001,
+                                                          dN_obs=0, dU_obs=0, Se_obs=self.LOS_unc[i]*0.001, Sn_obs=0,
+                                                          Su_obs=0, meas_type='insar', name='', refframe='',
+                                                          starttime=None, endtime=None));
+        return disp_point_list;
+
+    def subtract_value(self, value):
         """
         Subtract a value from the LOS.
 
-        :param refvalue: float, in the same units as LOS data.
+        :param value: float, in the same units as LOS data.
         """
-        new_InSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, refvalue),
+        new_InSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
                                         LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
                                         starttime=self.starttime, endtime=self.endtime);
         return new_InSAR_obj;

@@ -118,19 +118,6 @@ def convert_disps_to_rates(disps, starttime, endtime):
     return LOS_rates;
 
 
-def get_file_dictionary(config_filename):
-    """GET FILE NAMES"""
-    this_dict = {};
-    print("Reading file %s " % config_filename);
-    ifile = open(config_filename);
-    for line in ifile:
-        data_type = line.split(':')[0];
-        total_data_files = line.split()[1];  # assuming one file per list entry
-        this_dict[data_type] = total_data_files;
-    ifile.close();
-    return this_dict;
-
-
 def wrap_float(def_meas, wavelength):
     """
     Wrap a float or array (already referenced to refpixel) by a given wavelength. Tested.

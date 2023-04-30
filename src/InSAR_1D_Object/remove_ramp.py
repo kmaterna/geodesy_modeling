@@ -35,11 +35,12 @@ def remove_constant_filewise(insar_textfile, constant_removed_file, ref_coord=No
     return;
 
 
-def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
+def remove_constant_insarformat(InSAR_Obj: InSAR_1D_Object, ref_coord=None):
     """
     Remove a constant from the InSAR_Obj.
     If ref_coord, then remove ref_coord.
     If not, then remove the median value.
+
     :param InSAR_Obj: 1D insar object
     :param ref_coord: [lon, lat] of point constrained to be zero.
     :returns: 1D insar object
@@ -50,14 +51,11 @@ def remove_constant_insarformat(InSAR_Obj, ref_coord=None):
         constant = InSAR_Obj.LOS[nearest_index];
     else:
         constant = np.nanmedian(InSAR_Obj.LOS);
-    new_disp = [x - constant for x in InSAR_Obj.LOS];
-    new_InSAR_Obj = InSAR_1D_Object(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
-                                    lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,
-                                    starttime=InSAR_Obj.starttime, endtime=InSAR_Obj.endtime);
+    new_InSAR_Obj = InSAR_Obj.subtract_value(constant);
     return new_InSAR_Obj;
 
 
-def remove_ramp(InSAR_Obj, ref_coord=None):
+def remove_ramp(InSAR_Obj: InSAR_1D_Object, ref_coord=None):
     """"
     Plane equation: ax + by + c = z
     Solving Ax = B
