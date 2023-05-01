@@ -1,6 +1,6 @@
 import numpy as np
 from Tectonic_Utils.geodesy import insar_vector_functions as ivs
-from Elastic_stresses_py.PyCoulomb import coulomb_collections as cc
+from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 
 
 class InSAR_1D_Object:
@@ -119,10 +119,9 @@ class InSAR_1D_Object:
         """
         disp_point_list = []
         for i in range(len(self.lon)):
-            disp_point_list.append(cc.Displacement_points(lon=self.lon[i], lat=self.lat[i], dE_obs=self.LOS[i]*0.001,
-                                                          dN_obs=0, dU_obs=0, Se_obs=self.LOS_unc[i]*0.001, Sn_obs=0,
-                                                          Su_obs=0, meas_type='insar', name='', refframe='',
-                                                          starttime=None, endtime=None));
+            disp_point_list.append(Displacement_points(lon=self.lon[i], lat=self.lat[i], dE_obs=self.LOS[i]*0.001,
+                                                       dN_obs=0, dU_obs=0, Se_obs=self.LOS_unc[i]*0.001, Sn_obs=0,
+                                                       Su_obs=0, meas_type='insar'));
         return disp_point_list;
 
     def subtract_value(self, value):

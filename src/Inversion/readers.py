@@ -1,5 +1,5 @@
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
-from Elastic_stresses_py.PyCoulomb import coulomb_collections as cc
+from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 
 
 def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 52), unit_slip=False):
@@ -39,12 +39,11 @@ def read_distributed_GF(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 3
                 norm_factor = 0.010 / fault_patches[i].slip;  # normalizing to 1 cm/yr Green's Function
             else:
                 norm_factor = 1;
-            disp_point = cc.Displacement_points(lon=gps_disp_locs[j].lon, lat=gps_disp_locs[j].lat,
-                                                dE_obs=-xdisps[counter] * norm_factor,  # negative means backslip
-                                                dN_obs=-ydisps[counter] * norm_factor,
-                                                dU_obs=-zdisps[counter] * norm_factor,
-                                                Se_obs=0, Sn_obs=0, Su_obs=0, name="", meas_type='model',
-                                                starttime=None, endtime=None, refframe=None);
+            disp_point = Displacement_points(lon=gps_disp_locs[j].lon, lat=gps_disp_locs[j].lat,
+                                             dE_obs=-xdisps[counter] * norm_factor,  # negative means backslip
+                                             dN_obs=-ydisps[counter] * norm_factor,
+                                             dU_obs=-zdisps[counter] * norm_factor,
+                                             Se_obs=0, Sn_obs=0, Su_obs=0, meas_type='model');
             counter = counter + 1;
             disp_points_one_patch.append(disp_point);
             if counter == len(gps_disp_locs):

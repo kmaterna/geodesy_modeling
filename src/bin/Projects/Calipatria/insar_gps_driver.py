@@ -46,8 +46,7 @@ def compute_insar_gf_elements_kalin(fault_file: str, insar_object: InSAR_1D_Obje
         # PROJECT 3D DISPLACEMENTS INTO LOS
         los_defo = [];
         for i in range(len(all_disp_points)):
-            x = dpo.utilities.project_into_los(model_disp_pts[i], insar_object.lkv_E[i], insar_object.lkv_N[i],
-                                               insar_object.lkv_U[i]);
+            x = model_disp_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i], insar_object.lkv_U[i]);
             los_defo.append(x);
 
         model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
@@ -85,8 +84,8 @@ if __name__ == "__main__":
 
     desc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_desc']);
     obs_disp_pts = desc_insar.get_disp_points();  # get the locations and data of InSAR points
-    GF_elements_desc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], desc_insar);
-    inv_tools.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
+    # GF_elements_desc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], desc_insar);
+    # inv_tools.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
     GF_elements_desc = read_gf_elements_kalin(exp_dict['fault_file'], "desc_insar_gfs.txt");
 
     # asc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_asc']);
@@ -128,8 +127,8 @@ if __name__ == "__main__":
 
     fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
                                                        color_mappable=lambda x: x.get_rtlat_slip());
-    fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png',
-                                                     fault_traces_from_file=outdir+"/temp-outfile.txt");
+    # fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png',
+    #                                                  fault_traces_from_file=outdir+"/temp-outfile.txt");
     fst.fault_slip_triangle.write_gmt_vertical_fault_file(modeled_faults, outdir+'/vertical_fault.txt',
                                                           color_mappable=lambda x: x.get_rtlat_slip(), strike=225);
 

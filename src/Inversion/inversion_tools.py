@@ -1,7 +1,7 @@
 
 import numpy as np
 from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
-import Elastic_stresses_py.PyCoulomb.coulomb_collections as cc
+from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 
@@ -111,15 +111,15 @@ def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 
     rot_disp_p = [];
     for obs_item in obs_disp_points:
         coords = [obs_item.lon, obs_item.lat];
-        if dpo.utilities.is_within_bbox(obs_item, target_region):
+        if obs_item.is_within_bbox(target_region):
             mult = 1;
         else:
             mult = 0;
         response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, ep);
-        response = cc.Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
-                                          dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2],
-                                          Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type,
-                                          refframe=obs_item.refframe, name=obs_item.name, starttime=None, endtime=None);
+        response = Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
+                                       dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2], Se_obs=0,
+                                       Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type, refframe=obs_item.refframe,
+                                       name=obs_item.name);
         rot_disp_p.append(response);
     rot_response = GF_element(disp_points=rot_disp_p, param_name=rot_name, upper_bound=1, lower_bound=-1,
                               slip_penalty=0, units='deg/Ma');
@@ -158,14 +158,12 @@ def get_GF_leveling_offset_element(obs_disp_points):
     lev_count = 0;
     for item in obs_disp_points:
         if item.meas_type == "leveling":
-            response = cc.Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=1,
-                                              Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type, refframe=None,
-                                              name=None, starttime=None, endtime=None);
+            response = Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=1,
+                                           Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type);
             lev_count += 1;
         else:
-            response = cc.Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=0,
-                                              Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type, refframe=None,
-                                              name=None, starttime=None, endtime=None);
+            response = Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=0,
+                                           Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type);
         total_response_pts.append(response);
     lev_offset_gf = GF_element(disp_points=total_response_pts, param_name='lev_offset',
                                upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr');
@@ -233,11 +231,9 @@ def unpack_model_pred_vector(model_pred, paired_obs):
             U = model_pred[counter+2];
             counter = counter+3;
 
-        new_disp_point = cc.Displacement_points(lon=paired_obs[i].lon, lat=paired_obs[i].lat,
-                                                dE_obs=E, dN_obs=N, dU_obs=U,
-                                                Se_obs=0, Sn_obs=0, Su_obs=0,
-                                                name=paired_obs[i].name, meas_type=paired_obs[i].meas_type,
-                                                refframe=paired_obs[i].refframe, starttime=None, endtime=None);
+        new_disp_point = Displacement_points(lon=paired_obs[i].lon, lat=paired_obs[i].lat, dE_obs=E, dN_obs=N, dU_obs=U,
+                                             Se_obs=0, Sn_obs=0, Su_obs=0, name=paired_obs[i].name,
+                                             meas_type=paired_obs[i].meas_type, refframe=paired_obs[i].refframe);
         disp_points_list.append(new_disp_point);
     return disp_points_list;
 
@@ -601,8 +597,8 @@ def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bou
     lons, lats = gf_data_array[:, 0], gf_data_array[:, 1];
     model_disp_pts = [];
     for tlon, tlat in zip(lons, lats):
-        mdp = cc.Displacement_points(lon=tlon, lat=tlat, dE_obs=0, dN_obs=0, dU_obs=0, Se_obs=0, Sn_obs=0, Su_obs=0,
-                                     name='', starttime='', endtime='', meas_type='insar', refframe='');
+        mdp = Displacement_points(lon=tlon, lat=tlat, dE_obs=0, dN_obs=0, dU_obs=0, Se_obs=0, Sn_obs=0, Su_obs=0,
+                                  meas_type='insar');
         model_disp_pts.append(mdp);
 
     for i, tri in enumerate(fault_patches):  # right now, only the triangle version is written.
