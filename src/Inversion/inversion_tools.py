@@ -567,9 +567,6 @@ def write_insar_greens_functions(GF_elements, outfile):
     :param outfile: string
     """
     print("Writing file %s " % outfile);
-    for item in GF_elements:
-        if item.meas_type != 'insar':
-            raise ValueError("Error! In this function, we can only serialize GF_elements with meas_type == insar.");
     ofile = open(outfile, 'w');
     for i, pt in enumerate(GF_elements[0].disp_points):
         ofile.write('%f %f ' % (pt.lon, pt.lat));

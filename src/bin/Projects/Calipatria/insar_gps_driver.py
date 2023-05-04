@@ -91,8 +91,8 @@ if __name__ == "__main__":
     # asc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_asc']);
     # obs_disp_pts = asc_insar.get_disp_points();  # get the locations and data of InSAR points
     # GF_elements_asc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], asc_insar);
-    # inv_tools.write_insar_greens_functions(GF_elements_desc, "asc_insar_gfs.txt");
-    # GF_elements_asc = read_gf_elements_kalin(exp_dict['fault_file'], "asc_insar_gfs.txt");
+    # inv_tools.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
+    # GF_elements_desc = read_gf_elements_kalin(exp_dict['fault_file'], "asc_insar_gfs.txt");
 
     # # COMPUTE STAGE: INVERSE.
     list_of_gf_columns = [];
