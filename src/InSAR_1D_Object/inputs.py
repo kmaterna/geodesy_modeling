@@ -9,6 +9,7 @@ from S1_batches.read_write_insar_utilities import isce_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from ..general_utils import convert_rates_to_disps
 from .class_model import InSAR_1D_Object
+from Elastic_stresses_py.PyCoulomb.fault_slip_triangle.file_io import io_other
 
 
 def inputs_txt(insar_textfile, starttime=dt.datetime.strptime("19900101", "%Y%m%d"),
@@ -167,3 +168,21 @@ def quick_convert_one_timeslice_to_disp(rateslice, date_intformat):
                   dt.datetime.strptime(str(date_intformat[1]), "%Y%m%d")];
     disps = convert_rates_to_disps(ratevector, datevector[0], datevector[1]);
     return disps, datevector;
+
+def inputs_lohman_mcguire_2007(filename):
+    """
+    Read the Envisat data from the supplementary information of Lohman and McGuire 2007.
+    Interferogram is from 21 August 2005 to 25 September 2005 (track 84, frame 2943).
+    """
+    xs, ys, los_list = np.loadtxt(filename, unpack=True);
+    lon, lat, data = [], [], [];
+    for x, y, los in zip(xs, ys, los_list):
+        latlontuple = io_other.convert_points_to_wgs84(x, y);
+        lat.append(latlontuple[0])
+        lon.append(latlontuple[1]);
+        data.append(10 * los);  # convert cm to mm.
+    placeholder = np.zeros(np.shape(data));
+    InSAR_data = InSAR_1D_Object(lon=lon, lat=lat, LOS=data, LOS_unc=placeholder, lkv_E=placeholder, lkv_N=placeholder,
+                                 lkv_U=placeholder, starttime=dt.datetime.strptime('21-08-2005', '%d-%m-%Y'),
+                                 endtime=dt.datetime.strptime('25-09-2005', '%d-%m-%Y'));
+    return InSAR_data;

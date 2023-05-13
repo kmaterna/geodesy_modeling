@@ -52,8 +52,11 @@ def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_
     if title:
         plt.title(title);
     else:
-        starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m");
-        endtime = dt.datetime.strftime(InSAR_Obj.endtime, "%Y-%m");
+        if InSAR_Obj.starttime is None:
+            starttime, endtime = ' ', ' ';
+        else:
+            starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m");
+            endtime = dt.datetime.strftime(InSAR_Obj.endtime, "%Y-%m");
         plt.title("InSAR with %d Points from %s to %s" % (len(InSAR_Obj.LOS), starttime, endtime));
     cb = plt.colorbar();
     cb.set_label('Displacement (mm)', fontsize=16);
