@@ -77,38 +77,55 @@ def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts):
         ofile.write("Equivalent to: %f\n" % mo.mw_from_moment(total_moment));
     return;
 
+def compute_all_the_GFS(desc_pts: InSAR_1D_Object, asc_pts: InSAR_1D_Object):
+    """ One-time function to compute and write ascending and descending green's functions (takes a few minutes)."""
+    GF_elements_desc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], desc_pts);
+    inv_tools.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
+    GF_elements_asc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], asc_pts);
+    inv_tools.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
+    return;
+
+def combine_two_matching_lists_of_GF_elements(gf1, gf2):
+    new_gf_elements = [];
+    for i in range(len(gf1)):
+        x = inv_tools.GF_element(disp_points=gf1[i].disp_points + gf2[i].disp_points, param_name=gf1[i].param_name,
+                                 fault_dict_list=gf1[i].fault_dict_list, upper_bound=gf1[i].upper_bound,
+                                 lower_bound=gf1[i].lower_bound, slip_penalty=gf1[i].slip_penalty, units=gf1[i].units);
+        new_gf_elements.append(x);
+    return new_gf_elements;
+
 
 if __name__ == "__main__":
     exp_dict = configure();
     outdir = exp_dict['outdir'];
 
-    desc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_desc']);
-    obs_disp_pts = desc_insar.get_disp_points();  # get the locations and data of InSAR points
-    # GF_elements_desc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], desc_insar);
-    # inv_tools.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
-    GF_elements_desc = read_gf_elements_kalin(exp_dict['fault_file'], "desc_insar_gfs.txt");
+    # INPUT STAGE:
+    desc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_desc']);  # get list of insar data
+    asc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_asc']);
+    obs_disp_pts_desc = desc_insar.get_disp_points();  # get locations and data of InSAR points
+    obs_disp_pts_asc = asc_insar.get_disp_points();
+    GF_elements_desc = read_gf_elements_kalin(exp_dict['fault_file'], "desc_insar_gfs.txt");  # get GFs
+    GF_elements_asc = read_gf_elements_kalin(exp_dict['fault_file'], "asc_insar_gfs.txt");
 
-    # asc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_asc']);
-    # obs_disp_pts = asc_insar.get_disp_points();  # get the locations and data of InSAR points
-    # GF_elements_asc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], asc_insar);
-    # inv_tools.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
-    # GF_elements_desc = read_gf_elements_kalin(exp_dict['fault_file'], "asc_insar_gfs.txt");
+    # SWITCH: Determine which data goes inside the inversion
+    GF_elements = combine_two_matching_lists_of_GF_elements(GF_elements_desc, GF_elements_asc);  # if multiple datasets
+    obs_disp_pts = obs_disp_pts_desc + obs_disp_pts_asc;  # if multiple datasets
 
     # # COMPUTE STAGE: INVERSE.
     list_of_gf_columns = [];
-    for gf in GF_elements_desc:
+    for gf in GF_elements:
         G_one_col = inv_tools.buildG_column(gf.disp_points, gf.disp_points);  # for one fault model parameter
         list_of_gf_columns.append(G_one_col);
     G = np.concatenate(tuple(list_of_gf_columns), axis=1);
     obs, sigmas = inv_tools.build_obs_vector(obs_disp_pts);
     G /= sigmas[:, None];
     w_obs = obs / sigmas;
-    G, w_obs, sigmas = inv_tools.build_smoothing(GF_elements_desc, ('kalin',), exp_dict["smoothing"],
+    G, w_obs, sigmas = inv_tools.build_smoothing(GF_elements, ('kalin',), exp_dict["smoothing"],
                                                  exp_dict["smoothing_length"], G, w_obs, sigmas);
     plt.imshow(G, vmin=-3, vmax=3); plt.savefig(outdir+"/G_matrix.png");
 
     # Money line: Constrained inversion
-    lb, ub = [x.lower_bound for x in GF_elements_desc], [x.upper_bound for x in GF_elements_desc];
+    lb, ub = [x.lower_bound for x in GF_elements], [x.upper_bound for x in GF_elements];
     response = scipy.optimize.lsq_linear(G, w_obs, bounds=(lb, ub), max_iter=1500, method='bvls');
     M_opt = response.x;  # parameters of best-fitting model
     #
@@ -119,8 +136,8 @@ if __name__ == "__main__":
     #
     # Unpack into a collection of fault triangles with optimal slip values
     modeled_faults = [];
-    for i in range(len(GF_elements_desc)):
-        [new_fault] = GF_elements_desc[i].fault_dict_list;
+    for i in range(len(GF_elements)):
+        [new_fault] = GF_elements[i].fault_dict_list;
         new_fault = new_fault.change_fault_slip(rtlat=M_opt[i]);
         modeled_faults.append(new_fault);
     total_moment = fst.fault_slip_triangle.get_total_moment(modeled_faults)

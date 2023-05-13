@@ -253,7 +253,7 @@ def buildG_column(GF_disp_points, obs_disp_points):
 
 def build_obs_vector(obs_disp_points):
     """
-    Build observation 1D-vector
+    Build observation 1D-vector.
     """
     obs, sigmas = [], [];
     for item in obs_disp_points:
