@@ -20,6 +20,7 @@ import datetime as dt
 import sys
 from Geodesy_Modeling.src import general_utils, InSAR_1D_Object, Leveling_Object, UAVSAR
 from Tectonic_Utils.read_write import general_io
+from .brawley_io import get_file_dictionary
 
 
 def compute_difference_metrics_on_same_pixels(list1, list2):
@@ -33,19 +34,6 @@ def compute_difference_metrics_on_same_pixels(list1, list2):
     corr = corr_matrix[0, 1]
     r2 = corr ** 2
     return misfit_metric, r2;
-
-
-def get_file_dictionary(config_filename):
-    """GET FILE NAMES"""
-    this_dict = {};
-    print("Reading file %s " % config_filename);
-    ifile = open(config_filename);
-    for line in ifile:
-        data_type = line.split(':')[0];
-        total_data_files = line.split()[1];  # assuming one file per list entry
-        this_dict[data_type] = total_data_files;
-    ifile.close();
-    return this_dict;
 
 
 def get_nearest_in_pixel_list(tuple_coord_list, target_lons, target_lats):
