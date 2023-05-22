@@ -11,26 +11,26 @@ import matplotlib.cm as cm
 
 # -------------- WRITE FUNCTIONS ------------- #
 
-def plot_leveling_displacements(leveling_stations, outfile, vmin=-0.25, vmax=0.15, scale=False, title=None):
+def plot_leveling_displacements(LevList, outfile, vmin=-0.25, vmax=0.15, scale=False, title=None):
     """
     Map the displacements of a leveling object at the last time-step
     Benchmarks without data at last time-step are not shown.
     Scaling the symbols by displacement size is possible.
     """
     print("Plotting leveling in file %s " % outfile);
-    disp = [item.leveling[-1] for item in leveling_stations];
-    lon = [item.lon for item in leveling_stations];
-    lat = [item.lat for item in leveling_stations];
+    disp = [item.leveling[-1] for item in LevList];
+    lon = [item.lon for item in LevList];
+    lat = [item.lat for item in LevList];
     color_boundary_object = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax);
     custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='rainbow');
     plt.figure(figsize=(8, 6), dpi=300);
     if scale:
-        for i, item in enumerate(leveling_stations):
+        for i, item in enumerate(LevList):
             dot_color = custom_cmap.to_rgba(disp[i]);
             plt.plot(item.lon, item.lat, marker='o', markersize=abs(disp[i]) * 60, color=dot_color, fillstyle="full");
     else:
         plt.scatter(lon, lat, c=disp, s=60, cmap='rainbow');
-    plt.plot(leveling_stations[0].reflon, leveling_stations[0].reflat, marker='*', markersize=20, color='black');
+    plt.plot(LevList[0].reflon, LevList[0].reflat, marker='*', markersize=20, color='black');
     custom_cmap.set_array(np.arange(vmin, vmax))
     cb = plt.colorbar(custom_cmap);
     cb.set_label("Leveling displacements (m)");
@@ -42,26 +42,51 @@ def plot_leveling_displacements(leveling_stations, outfile, vmin=-0.25, vmax=0.1
     return;
 
 
-def write_leveling_invertible_format(myLev, idx1, idx2, unc, filename):
+def write_leveling_invertible_format(LevList, idx1, idx2, unc, filename):
     """
-    One header line
-    One datum line (assuming whole network is with respect to same reference datum)
-    Lon, lat, disp, sigma, 0, 0, 1 (in m)
+    One header line.
+    One datum line (assuming whole network is with respect to same reference datum).
+    Lon, lat, disp, sigma, 0, 0, 1 (in m).
+
+    :param LevList: list of Leveling objects
+    :param idx1: int
+    :param idx2: int
+    :param unc: float, in meters
+    :param filename: string
     """
     print("Writing leveling to file %s " % filename);
     ofile = open(filename, 'w');
     ofile.write("# Displacement for %s to %s: Lon, Lat, disp(m), sigma, 0, 0, 1 \n" %
-                (dt.datetime.strftime(myLev[0].dtarray[idx1], "%Y-%m-%d"),
-                 dt.datetime.strftime(myLev[0].dtarray[idx2], "%Y-%m-%d")))
+                (dt.datetime.strftime(LevList[0].dtarray[idx1], "%Y-%m-%d"),
+                 dt.datetime.strftime(LevList[0].dtarray[idx2], "%Y-%m-%d")))
     # write reference line, hard coded to be 0
-    ofile.write("%f %f 0.0 %f 0 0 1\n" % (myLev[0].reflon, myLev[0].reflat, unc) );
+    ofile.write("%f %f 0.0 %f 0 0 1\n" % (LevList[0].reflon, LevList[0].reflat, unc));
     # write all other lines
-    for station in myLev:
+    for station in LevList:
         if station.lon == station.reflon and station.lat == station.reflat:
             continue;
         data = station.leveling[idx2] - station.leveling[idx1];
         if ~np.isnan(data):
             ofile.write("%f %f %f %f 0 0 1\n" % (station.lon, station.lat, data, unc))
+    ofile.close();
+    return;
+
+
+def write_leveling_slopes(LevList, slopes, filename, unc=0):
+    """
+    :param LevList: list of leveling objects
+    :param slopes: list of floats
+    :param filename: string
+    :param unc: float
+    """
+    print("Writing leveling to file %s " % filename);
+    ofile = open(filename, 'w');
+    ofile.write("# Slopes for leveling stations: lon, lat, slope[m/yr], uncertainty[m/yr], lkvE, lkvN, lkvU\n");
+    ofile.write("%f %f 0.0 %f 0 0 1\n" % (LevList[0].reflon, LevList[0].reflat, unc));
+    for station, slope in zip(LevList, slopes):
+        if station.lon == station.reflon and station.lat == station.reflat:
+            continue;
+        ofile.write("%f %f %f %f 0 0 1\n" % (station.lon, station.lat, slope, unc))
     ofile.close();
     return;
 
@@ -77,34 +102,43 @@ def plot_simple_leveling(txtfile, plotname):
     return;
 
 
-def basic_ts_plot(leveling_object, plotname):
-    """Plot the traces of time-dependent position at each leveling benchmark"""
+def basic_ts_plot(LevList, plotname, title=None):
+    """Plot the traces of time-dependent position at each leveling benchmark.
+
+    :param LevList: list of Leveling objects
+    :param plotname: string
+    :param title: string, optional
+    """
     plt.figure(figsize=(10, 7), dpi=300);
-    for item in leveling_object:
+    for item in LevList:
         plt.plot(item.dtarray, item.leveling);
     plt.xlabel('Time');
     plt.ylabel('Leveling (m)');
+    if title:
+        plt.title(title);
+    else:
+        plt.title("Timeseries from %d leveling stations " % (len(LevList)) );
     plt.savefig(plotname);
     return;
 
 
-def plot_leveling_slopes(leveling_object, slopes, description, plotname):
+def plot_leveling_slopes(LevList, slopes, description, plotname):
     """
     Plot a color map of leveling benchmark slopes (slopes calculated outside this function)
     """
     print("Making plot %s " % plotname);
-    lon = [item.lon for item in leveling_object];
-    lat = [item.lat for item in leveling_object];
+    lon = [item.lon for item in LevList];
+    lat = [item.lat for item in LevList];
     plt.figure();
     plt.scatter(lon, lat, c=slopes, s=40, vmin=-0.020, vmax=0.020, cmap='RdBu');
-    plt.plot(leveling_object[0].reflon, leveling_object[0].reflat, marker='*');
+    plt.plot(LevList[0].reflon, LevList[0].reflat, marker='*');
     plt.title(description, fontsize=20);
     plt.colorbar(label='Displacement Rate (m/yr)');
     plt.savefig(plotname);
     return;
 
 
-def multi_panel_increment_plot_brawley(leveling_object_list, plotname, fields_lon, fields_lat):
+def multi_panel_increment_plot_brawley(LevList, plotname, fields_lon, fields_lat):
     """
     Incremental leveling plot for Brawley.  The annotations are specific to Brawley.
     """
@@ -112,21 +146,21 @@ def multi_panel_increment_plot_brawley(leveling_object_list, plotname, fields_lo
     f, axarr = plt.subplots(3, 3, figsize=(30, 18));
 
     idx1, idx2 = 0, 0;
-    num_plots = np.shape(leveling_object_list[0].leveling);
-    lons = [x.lon for x in leveling_object_list];
-    lats = [x.lat for x in leveling_object_list];
+    num_plots = np.shape(LevList[0].leveling);
+    lons = [x.lon for x in LevList];
+    lats = [x.lat for x in LevList];
     vmin = -6.0;
     vmax = 6.0;
     annotations = ['T1', 'T2', 'T3', 'T4A', 'T4B/C', 'T4D', 'T4E', 'T4F', 'T5'];
 
     for i in range(1, num_plots[0]):
-        later_data = [x.leveling[i] for x in leveling_object_list];
-        earlier_data = [x.leveling[i-1] for x in leveling_object_list];
+        later_data = [x.leveling[i] for x in LevList];
+        earlier_data = [x.leveling[i-1] for x in LevList];
         data = [];
         for j in range(len(earlier_data)):
             data.append((later_data[j]-earlier_data[j]) * 100);  # units of centimeters
-        str1 = dt.datetime.strftime(leveling_object_list[0].dtarray[i-1], "%Y-%b");
-        str2 = dt.datetime.strftime(leveling_object_list[0].dtarray[i], "%Y-%b");
+        str1 = dt.datetime.strftime(LevList[0].dtarray[i - 1], "%Y-%b");
+        str2 = dt.datetime.strftime(LevList[0].dtarray[i], "%Y-%b");
         label = str1 + " to " + str2;
         print(label)
 
@@ -156,25 +190,25 @@ def multi_panel_increment_plot_brawley(leveling_object_list, plotname, fields_lo
     return;
 
 
-def multi_panel_increment_plot(leveling_object, outname, vmin=-0.07, vmax=0.07):
+def multi_panel_increment_plot(LevList, outname, vmin=-0.07, vmax=0.07):
     """Incremental plot for leveling"""
     print("Plotting leveling in file %s " % outname);
 
     f, axarr = plt.subplots(2, 5, figsize=(30, 18));
 
     idx1, idx2 = 0, 0;
-    num_plots = len(leveling_object[0].leveling);
-    lons = [x.lon for x in leveling_object];
-    lats = [x.lat for x in leveling_object];
+    num_plots = len(LevList[0].leveling);
+    lons = [x.lon for x in LevList];
+    lats = [x.lat for x in LevList];
 
     for i in range(1, num_plots):
-        later_data = [x.leveling[i] for x in leveling_object];
-        earlier_data = [x.leveling[i-1] for x in leveling_object];
+        later_data = [x.leveling[i] for x in LevList];
+        earlier_data = [x.leveling[i-1] for x in LevList];
         data = [];
         for j in range(len(earlier_data)):
             data.append(later_data[j] - earlier_data[j]);
-        str1 = dt.datetime.strftime(leveling_object[0].dtarray[i-1], "%Y-%m");
-        str2 = dt.datetime.strftime(leveling_object[0].dtarray[i], "%Y-%m");
+        str1 = dt.datetime.strftime(LevList[0].dtarray[i - 1], "%Y-%m");
+        str2 = dt.datetime.strftime(LevList[0].dtarray[i], "%Y-%m");
         label = str1 + " to " + str2;
         print(label)
 
@@ -196,20 +230,20 @@ def multi_panel_increment_plot(leveling_object, outname, vmin=-0.07, vmax=0.07):
     return;
 
 
-def cumulative_multi_panel_plot(leveling_object, outname, vmin=-0.30, vmax=0.20):
+def cumulative_multi_panel_plot(LevList, outname, vmin=-0.30, vmax=0.20):
     """Generalized cumulative multi-panel plot for leveling data"""
     print("Plotting leveling in file %s " % outname);
 
     f, axarr = plt.subplots(2, 5, figsize=(30, 18));  # currently hard-coded to have these plot dimensions
 
     idx1, idx2 = 0, 0;
-    num_plots = len(leveling_object[0].leveling);
-    lons = [x.lon for x in leveling_object];
-    lats = [x.lat for x in leveling_object];
+    num_plots = len(LevList[0].leveling);
+    lons = [x.lon for x in LevList];
+    lats = [x.lat for x in LevList];
 
     for i in range(1, num_plots):
-        data = [x.leveling[i] for x in leveling_object];
-        label = dt.datetime.strftime(leveling_object[0].dtarray[i], "%Y-%m");
+        data = [x.leveling[i] for x in LevList];
+        label = dt.datetime.strftime(LevList[0].dtarray[i], "%Y-%m");
         single_panel_plot(axarr[idx2][idx1], lons, lats, data, vmin, vmax, label, 80);
         idx1 = idx1 + 1;
         if idx1 == 5:   # 5 rows

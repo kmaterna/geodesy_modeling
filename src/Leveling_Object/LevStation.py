@@ -4,22 +4,22 @@ from scipy import stats
 
 class LevStation:
     """
-    LevStation: list-of-objects format, one object for each station. Units of meters.
+    LevStation: One object for each station. Units of meters.  Should be aggregated into lists-of-objects.
     """
     def __init__(self, name, lat, lon, dtarray, leveling, reflon, reflat):
-        self.name = name;
-        self.lon = lon;
-        self.lat = lat;
-        self.dtarray = dtarray;
-        self.leveling = leveling;  # units of meters.
-        self.reflon = reflon;
-        self.reflat = reflat;
+        self.name = name;  # string
+        self.lon = lon;  # float
+        self.lat = lat;  # float
+        self.dtarray = dtarray;  # list of dt.datetime objects
+        self.leveling = leveling;  # list of floats, units of meters.
+        self.reflon = reflon;  # float
+        self.reflat = reflat;  # float
 
     def detrend_by_slope(self, slope):
         """
         Remove a slope (in m/yr) from leveling displacement object.
 
-        :param slope: meters/year
+        :param slope: float, meters/year
         """
         date_int_array = [x.toordinal() for x in self.dtarray];
         detrended_data = np.subtract(self.leveling, [self.leveling[0] + slope * (1/365.24) *
@@ -70,9 +70,9 @@ def find_trend_list(LevList, start_time, end_time):
     """
     Returns the slope of the leveling time series observations between start_time and end_time, in meters/year
 
-    LevList : leveling object
-    start_time : datetime object
-    end_time: datetime object
+    :param LevList : leveling object
+    :param start_time : datetime object
+    :param end_time: datetime object
     """
     return [station.find_slope(start_time, end_time) for station in LevList];
 
@@ -80,6 +80,10 @@ def find_trend_list(LevList, start_time, end_time):
 def detrend_leveling_object_list(LevList, slopes):
     """
     Remove a set of slopes (in m/yr) from leveling displacement objects
+
+    :param LevList: a list of Leveling objects
+    :param slopes: list of floats, matching the list of stations in LevList
+    :returns: a list of Leveling objects
     """
     detrended_lev_list = [];
     for i, station in enumerate(LevList):
