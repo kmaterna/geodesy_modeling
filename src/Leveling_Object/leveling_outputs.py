@@ -72,12 +72,13 @@ def write_leveling_invertible_format(LevList, idx1, idx2, unc, filename):
     return;
 
 
-def write_leveling_slopes(LevList, slopes, filename, unc=0):
+def write_leveling_slopes(LevList, slopes, filename, unc=0, write_nans=True):
     """
     :param LevList: list of leveling objects
     :param slopes: list of floats
     :param filename: string
     :param unc: float
+    :param write_nans: bool, optional. Default True.
     """
     print("Writing leveling to file %s " % filename);
     ofile = open(filename, 'w');
@@ -85,6 +86,8 @@ def write_leveling_slopes(LevList, slopes, filename, unc=0):
     ofile.write("%f %f 0.0 %f 0 0 1\n" % (LevList[0].reflon, LevList[0].reflat, unc));
     for station, slope in zip(LevList, slopes):
         if station.lon == station.reflon and station.lat == station.reflat:
+            continue;
+        if np.isnan(slope) and not write_nans:   # if we ignore nans.
             continue;
         ofile.write("%f %f %f %f 0 0 1\n" % (station.lon, station.lat, slope, unc))
     ofile.close();
