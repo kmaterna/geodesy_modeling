@@ -24,6 +24,7 @@ def glob_and_drive_1d_lcurve(target_dir='.', name_of_printed_config="configs_use
     smoothings = read_param_from_list_of_config_files(config_files, paramname);
     misfits = read_misfits_from_list_of_files(results_files, misfitname);
     l_curve_plots.plot_1d_curve(smoothings, misfits, xlabel, outname, corner_point);
+    l_curve_plots.write_1d_curve(smoothings, misfits, target_dir+"/lcurve_points.txt");
     return;
 
 

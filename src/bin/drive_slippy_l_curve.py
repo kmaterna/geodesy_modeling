@@ -73,7 +73,7 @@ def make_lcurve_driver(config):
                                                             config_file_name='config.json',
                                                             results_file_name="summary_stats_simple.txt",
                                                             misfitname='Average normalized misfit');
-    l_curve_plots.plot_l_curve_coordinator(params, misfits, config["output_dir_lcurve"] + "/l_curve.png");
+    l_curve_plots.plot_l_curve_coordinator(params, misfits, config["output_dir_lcurve"]);
     return;
 
 

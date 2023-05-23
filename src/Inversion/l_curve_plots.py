@@ -3,6 +3,18 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+def write_1d_curve(param_values, misfits, filename):
+    """
+    Write the values that get plotted into the L-curve, in case you'd like to have them later.
+    """
+    print("Writing file %s " % filename);
+    with open(filename, 'w') as ofile:
+        ofile.write("# smoothing, 1/smoothing, misfit\n");
+        for x, y in zip(param_values, misfits):
+            ofile.write("%f %f %f \n" % (x, 1/x, y) );
+    return;
+
+
 def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
     """
     Make 1D plot for L-curve
@@ -112,15 +124,23 @@ def chosen_axis_annotations(ax):
     return ax;
 
 
-def plot_l_curve_coordinator(params, misfits, outfile):
-    """ Coordiantor function for driving l-curve plots """
+def plot_l_curve_coordinator(params, misfits, outdir):
+    """
+    Coordinator function for driving l-curve plots
+
+    :param params: list
+    :param misfits: list
+    :param outdir: string
+    """
     all_alphas = [x[0] for x in params];
     all_penalties = [x[1] for x in params];
     if len(set(all_alphas)) == 1:
-        plot_1d_curve(all_penalties, misfits, 'Smoothing Penalty', outfile.split('.')[0] + "_smoothing.png");
+        plot_1d_curve(all_penalties, misfits, 'Smoothing Penalty', outdir + "/l_curve_smoothing.png");
+        write_1d_curve(all_penalties, misfits, outdir + "l_curve_points.txt");
     elif len(set(all_penalties)) == 1:
-        plot_1d_curve(all_alphas, misfits, 'Slip Penalty, alpha', outfile.split('.')[0] + "_slip.png");
+        plot_1d_curve(all_alphas, misfits, 'Slip Penalty, alpha', outdir + "/l_curve_slip.png");
+        write_1d_curve(all_alphas, misfits, outdir + "l_curve_points.txt");
     else:
         plot_2d_curve(all_alphas, all_penalties, misfits, '1/alpha (slip)', '1/smoothing (smoothing)',
-                      outfile.split('.')[0] + "_2d.png");
+                      outdir + "/l_curve_2d.png");
     return;
