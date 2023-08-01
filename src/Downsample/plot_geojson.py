@@ -46,7 +46,7 @@ def plot_downsampled_InSAR(pixel_list, plot_name, vmin=None, vmax=None):
 
     # New figure for standard deviation of pixels
     plt.figure(figsize=(16, 8), dpi=300);
-    color_boundary_object = matplotlib.colors.Normalize(vmin=0.0, vmax=40, clip=True);
+    color_boundary_object = matplotlib.colors.Normalize(vmin=0.0, vmax=5, clip=True);
     custom_cmap = cm.ScalarMappable(norm=color_boundary_object, cmap='rainbow');
 
     # Getting lat and lon information for plotting.

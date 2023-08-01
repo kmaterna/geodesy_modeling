@@ -19,14 +19,15 @@ from . import plot_geojson
 def kite_downsample_isce_unw(datafile, outname,
                              epislon=1, nan_allowed=0.99, tile_size_min=0.002, tile_size_max=0.010):
     """
-    -------- quadtree downsample an interferogram ---------
-    epsilon - variance cutoff before the quadtree splits
-    nan_allowed - fraction of pixels that can be nan and still get used
-    tile_size_min - degrees
-    tile_size_max - degrees
-    datafile: .unw.geo file with a matching .xml in the same directory
-    outname: the geojson produced
-    los_rdr_file: los.rdr.geo as produced by isce must be in the same directory
+    Quadtree downsample an interferogram.
+    NOTE los_rdr_file: los.rdr.geo as produced by isce must be in the same directory
+
+    :param datafile: .unw.geo file with a matching .xml in the same directory
+    :param outname: the geojson produced
+    :param epislon: variance cutoff before the quadtree splits
+    :param nan_allowed: fraction of pixels that can be nan and still get used
+    :param tile_size_min: degrees
+    :param tile_size_max: degrees
     """
     from kite import Scene
     print("Quadtree Downsampling the file %s into geojson %s " % (datafile, outname));
@@ -39,14 +40,35 @@ def kite_downsample_isce_unw(datafile, outname,
     qt.export_geojson(outname);
     return;
 
+def kite_downsample(fname, outname, epislon=1, nan_allowed=0.99, tile_size_min=0.002, tile_size_max=0.010):
+    """
+    Quadtree downsample an interferogram.
 
-def geojson_to_outputs(geojsonfile, plotfile, textfile, bbox=(-180, 180, -90, 90), std_min=0.001):
+    :param fname: already-formatted kite file (.npz)
+    :param outname: the geojson produced
+    :param epislon: variance cutoff before the quadtree splits
+    :param nan_allowed: fraction of pixels that can be nan and still get used
+    :param tile_size_min: degrees
+    :param tile_size_max: degrees
+    """
+    from kite import Scene
+    print("Quadtree Downsampling the file %s into geojson %s " % (fname, outname));
+    sc = Scene.load(fname);
+    qt = sc.quadtree
+    qt.epsilon = epislon
+    qt.nan_allowed = nan_allowed
+    qt.tile_size_min = tile_size_min
+    qt.tile_size_max = tile_size_max
+    qt.export_geojson(outname);
+    return;
+
+
+def geojson_to_outputs(geojsonfile, plotfile, textfile, bbox=(-180, 180, -90, 90), std_min=0.001, vmin=-120, vmax=20):
     """
     Plot downsampled data and standard deviation.
     Write a text file for inversion.
-    The functions here live in Tectonic-Utils
     """
     pixel_list = geojson2txt.read_geojson(geojsonfile);
-    plot_geojson.plot_downsampled_InSAR(pixel_list, plotfile, vmin=-120, vmax=20);
+    plot_geojson.plot_downsampled_InSAR(pixel_list, plotfile, vmin=vmin, vmax=vmax);
     geojson2txt.pixels_to_txt(pixel_list, textfile, bbox, std_min);  # can take a bbox optionally
     return;
