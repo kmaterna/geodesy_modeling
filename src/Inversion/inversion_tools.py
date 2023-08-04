@@ -1,45 +1,9 @@
 
 import numpy as np
-from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
 from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
-
-
-class GF_element:
-    """
-    GF_element is everything you would need to make a column of the Green's matrix and
-    plot the impulse response function.
-    'points' is coordinates of surface trace of the fault, if applicable.
-
-    :param disp_points: modeled displacement_points due to unit activation of this GF_element
-    :type disp_points: list of Displacement_points objects
-    :param param_name: param_name
-    :type param_name: string
-    :param fault_dict_list: list of fault_slip_objects
-    :type fault_dict_list: list
-    :param upper_bound: highest allowed value of this GF_element
-    :type upper_bound: float
-    :param lower_bound: lowest allowed value of this GF_element
-    :type lower_bound: float
-    :param slip_penalty: a number that will be attached to smoothing in the G matrix
-    :type slip_penalty: float
-    :param units: what units is this 'unit activation' in?
-    :type units: string
-    :param points: coordinates of surface trace of fault, if provided
-    :type points: np.array
-    """
-
-    def __init__(self, disp_points, param_name, upper_bound, lower_bound, slip_penalty, units,
-                 fault_dict_list=(), points=()):
-        self.disp_points = disp_points;
-        self.param_name = param_name;
-        self.fault_dict_list = fault_dict_list;
-        self.upper_bound = upper_bound;
-        self.lower_bound = lower_bound;
-        self.slip_penalty = slip_penalty;
-        self.units = units;
-        self.points = points;  # coordinates of surface trace of fault, if applicable
+from .GF_element.GF_element import GF_element
 
 
 def pair_obs_model(obs_disp_pts, model_disp_pts):
@@ -83,94 +47,6 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
         if len(paired_gf) != target_len:
             raise ValueError("ERROR! Not all points have green's functions.");
     return paired_obs, paired_gf_elements;
-
-
-def add_gfs(single_gfs):
-    """
-    Take some gf_elements and add their green's functions together.
-
-    :param single_gfs: list of gf_objects with the same modeled_disp_points lists
-    :returns: list of disp_points
-    """
-    new_pts = single_gfs[0];
-    for i in range(1, len(single_gfs)):
-        new_pts = dpo.utilities.add_disp_points(new_pts, single_gfs[i]);
-    return new_pts;
-
-
-def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 90), rot_name=''):
-    """
-    Build one GF_elements for a horizontal rotation of GNSS velocities about some axis
-
-    :param obs_disp_points: list of disp_points
-    :param ep: [lon, lat, rate] of euler pole for desired rotation
-    :param target_region: list of lon/lon/lat/lat for bounding box
-    :param rot_name: string, optional metadata for naming the rotation (ex: ocb_)
-    :returns: one GF_element with rotation displacements in x, y, and z directions
-    """
-    rot_disp_p = [];
-    for obs_item in obs_disp_points:
-        coords = [obs_item.lon, obs_item.lat];
-        if obs_item.is_within_bbox(target_region):
-            mult = 1;
-        else:
-            mult = 0;
-        response_to_rot = euler_pole.point_rotation_by_Euler_Pole(coords, ep);
-        response = Displacement_points(lon=obs_item.lon, lat=obs_item.lat, dE_obs=mult*response_to_rot[0],
-                                       dN_obs=mult*response_to_rot[1], dU_obs=mult*response_to_rot[2], Se_obs=0,
-                                       Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type, refframe=obs_item.refframe,
-                                       name=obs_item.name);
-        rot_disp_p.append(response);
-    rot_response = GF_element(disp_points=rot_disp_p, param_name=rot_name, upper_bound=1, lower_bound=-1,
-                              slip_penalty=0, units='deg/Ma');
-    return rot_response;
-
-
-def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90), rot_name=''):
-    """
-    Build 3 GF_elements for horizontal rotation of GNSS velocities due to reference frames
-    X rotation: [0, 0, 1] Euler Pole
-    Y rotation: [90, 0, 1] Euler Pole
-    Z rotation: [0, 89.99, 1] Euler Pole
-
-    :param obs_disp_points: list of disp_points
-    :param target_region: list of lon/lon/lat/lat for bounding box
-    :param rot_name: string, optional metadata for naming the rotation (ex: ocb_)
-    :returns: list of 3 GF_elements with rotation displacements in x, y, and z directions
-    """
-    xresponse = get_GF_rotation_element(obs_disp_points, ep=[0, 0, 1],  rot_name=rot_name+'x_rot',
-                                        target_region=target_region);  # X direction
-    yresponse = get_GF_rotation_element(obs_disp_points, ep=[90, 0, 1],  rot_name=rot_name+'y_rot',
-                                        target_region=target_region);  # Y direction
-    zresponse = get_GF_rotation_element(obs_disp_points, ep=[0, 89.99, 1],  rot_name=rot_name+'z_rot',
-                                        target_region=target_region);  # Z direction
-    return [xresponse, yresponse, zresponse];
-
-
-def get_GF_leveling_offset_element(obs_disp_points):
-    """
-    Build a GF_element for a reference frame leveling offset column of the GF matrix
-
-    :param obs_disp_points: list of disp_point_objects
-    :returns: a list of 1 GF_element, or an empty list if there is no leveling in this dataset
-    """
-    total_response_pts = [];
-    lev_count = 0;
-    for item in obs_disp_points:
-        if item.meas_type == "leveling":
-            response = Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=1,
-                                           Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type);
-            lev_count += 1;
-        else:
-            response = Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=0,
-                                           Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type);
-        total_response_pts.append(response);
-    lev_offset_gf = GF_element(disp_points=total_response_pts, param_name='lev_offset',
-                               upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr');
-    if lev_count == 0:
-        return [];
-    else:
-        return [lev_offset_gf];
 
 
 def get_displacement_directions(obs_disp_point, model_point):
@@ -518,33 +394,6 @@ def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, r
     return;
 
 
-def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
-    """
-    Aside to the main calculation, just view each GF.
-
-    :param GF_elements_list: list of GF_elements objects
-    :param outdir: string for outdir
-    :param exclude_list: optional list of GF_element.param_name to exclude from visualizing
-    """
-    if exclude_list == 'all':
-        return;
-    for GF_el in GF_elements_list:
-        if GF_el.param_name in exclude_list:   # plot these elements separately, like individual CSZ patches
-            continue;
-        print(GF_el.param_name);
-        if GF_el.param_name == "CSZ":
-            scale_arrow = (1.0, 0.010, "1 cm");
-        else:
-            scale_arrow = (1.0, 0.001, "1 mm");
-        library.plot_fault_slip.map_source_slip_distribution(GF_el.fault_dict_list, outdir + "/gf_" +
-                                                             GF_el.param_name + "_only.png",
-                                                             disp_points=GF_el.disp_points,
-                                                             region=[-127, -119.7, 37.7, 43.3],
-                                                             scale_arrow=scale_arrow,
-                                                             v_labeling_interval=0.001);
-    return;
-
-
 def remove_nearfault_pts(obs_points, fault_trace_file):
     """
     Wraps dpo.utilities.filter_to_remove_near_fault so that we can pass a filename.
@@ -556,55 +405,3 @@ def remove_nearfault_pts(obs_points, fault_trace_file):
     print("Removing near-fault points from file %s " % fault_trace_file);
     obs_disp_points = dpo.utilities.filter_to_remove_near_fault(obs_points, trace_pts, radius_km=10);
     return obs_disp_points;
-
-
-def write_insar_greens_functions(GF_elements, outfile):
-    """
-    Serialize a bunch of InSAR Green's Functions into written text file, in meters, with rows for each InSAR point:
-    For each observation point: lon, lat, dLOS1, dLOS2, dLOS3.... [n fault patches].
-
-    :param GF_elements: list of GF_elements with InSAR displacements in disp_points.
-    :param outfile: string
-    """
-    print("Writing file %s " % outfile);
-    ofile = open(outfile, 'w');
-    for i, pt in enumerate(GF_elements[0].disp_points):
-        ofile.write('%f %f ' % (pt.lon, pt.lat));
-        point_displacements = [GF_el.disp_points[i].dE_obs for GF_el in GF_elements];
-        for x in point_displacements:
-            ofile.write(str(x)+" ");
-        ofile.write("\n");
-    ofile.close();
-    return;
-
-
-def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bound=0, upper_bound=0):
-    """
-    Read pre-computed green's functions in the format matching the write-function.
-    Currently, only works for triangles.
-
-    :param gf_file: string, filename
-    :param fault_patches: list of fault_slip_objects or fault_slip_triangles
-    :param param_name: string
-    :param lower_bound: float
-    :param upper_bound: float
-    """
-    GF_elements = [];
-    gf_data_array = np.loadtxt(gf_file);
-    lons, lats = gf_data_array[:, 0], gf_data_array[:, 1];
-    model_disp_pts = [];
-    for tlon, tlat in zip(lons, lats):
-        mdp = Displacement_points(lon=tlon, lat=tlat, dE_obs=0, dN_obs=0, dU_obs=0, Se_obs=0, Sn_obs=0, Su_obs=0,
-                                  meas_type='insar');
-        model_disp_pts.append(mdp);
-
-    for i, tri in enumerate(fault_patches):  # right now, only the triangle version is written.
-        changed_slip = tri.change_fault_slip(rtlat=1, dipslip=0, tensile=0);  # triangle-specific
-        changed_slip = changed_slip.change_reference_loc();  # triangle-specific interface
-        index = i+2;  # moving to the correct column in the GF file, skipping lon and lat.
-        los_defo = gf_data_array[:, index];
-        model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
-        GF_elements.append(GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                      param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound,
-                                      slip_penalty=0));
-    return GF_elements;

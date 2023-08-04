@@ -14,7 +14,7 @@ import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
 import argparse, json, subprocess
-
+from Geodesy_Modeling.src.Inversion.GF_element import GF_element
 
 def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
@@ -39,8 +39,9 @@ def read_gf_elements_kalin(exp_dict, obs_disp_pts):
         changed_slip = changed_slip.change_reference_loc();
         model_disp_pts = fst.triangle_okada.compute_disp_points_from_triangles([changed_slip], obs_disp_pts,
                                                                                poisson_ratio=0.25);
-        GF_elements.append(inv_tools.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                                param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0))
+        GF_elements.append(
+            GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
+                                  param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0))
     return GF_elements;
 
 

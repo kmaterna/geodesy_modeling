@@ -7,9 +7,10 @@ Inverting gnss and InSAR data in the Salton Sea for slip on the Kalin Fault.
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
-import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.InSAR_1D_Object as InSAR_1D
+import Geodesy_Modeling.src.Inversion.GF_element.GF_element as GF_element
+import Geodesy_Modeling.src.Inversion.GF_element.readers_writers as GF_element_rw
 from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
@@ -51,8 +52,9 @@ def compute_insar_gf_elements_kalin(fault_file: str, insar_object: InSAR_1D_Obje
 
         model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
         model_disp_pts = dpo.utilities.mult_disp_points_by(model_disp_pts, -1);  # sign convention
-        GF_elements.append(inv_tools.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                                param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0));
+        GF_elements.append(
+            GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
+                                  param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0));
     print("Computed Green's functions for %d triangles" % len(GF_elements));
     return GF_elements;
 
@@ -61,8 +63,8 @@ def read_gf_elements_kalin(fault_file: str, gf_file: str):
     """Read a list of fault triangle elements and their associated GF's for use in inversion. """
     print("Reading pre-computed InSAR Green's functions.");
     fault_tris = fst.file_io.io_other.read_brawley_lohman_2005(fault_file);
-    GF_elements = inv_tools.read_insar_greens_functions(gf_file, fault_tris, param_name='kalin', lower_bound=-1,
-                                                        upper_bound=0);
+    GF_elements = GF_element_rw.read_insar_greens_functions(gf_file, fault_tris, param_name='kalin', lower_bound=-1,
+                                                            upper_bound=0);
     return GF_elements;
 
 
@@ -80,17 +82,17 @@ def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts):
 def compute_all_the_GFS(desc_pts: InSAR_1D_Object, asc_pts: InSAR_1D_Object):
     """ One-time function to compute and write ascending and descending green's functions (takes a few minutes)."""
     GF_elements_desc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], desc_pts);
-    inv_tools.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
+    GF_element_rw.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
     GF_elements_asc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], asc_pts);
-    inv_tools.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
+    GF_element_rw.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
     return;
 
 def combine_two_matching_lists_of_GF_elements(gf1, gf2):
     new_gf_elements = [];
     for i in range(len(gf1)):
-        x = inv_tools.GF_element(disp_points=gf1[i].disp_points + gf2[i].disp_points, param_name=gf1[i].param_name,
-                                 fault_dict_list=gf1[i].fault_dict_list, upper_bound=gf1[i].upper_bound,
-                                 lower_bound=gf1[i].lower_bound, slip_penalty=gf1[i].slip_penalty, units=gf1[i].units);
+        x = GF_element.GF_element(disp_points=gf1[i].disp_points + gf2[i].disp_points, param_name=gf1[i].param_name,
+                                  fault_dict_list=gf1[i].fault_dict_list, upper_bound=gf1[i].upper_bound,
+                                  lower_bound=gf1[i].lower_bound, slip_penalty=gf1[i].slip_penalty, units=gf1[i].units);
         new_gf_elements.append(x);
     return new_gf_elements;
 
