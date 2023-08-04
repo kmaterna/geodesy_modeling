@@ -4,7 +4,6 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 from Tectonic_Utils.geodesy import fault_vector_functions as fvf
 from .GF_element import GF_element
 import scipy.io
-import numpy as np
 
 def write_csz_dist_fault_patches(gf_elements, model_results_vector, outfile_gmt, outfile_txt):
     """Write out slip results for a distributed CSZ model into GMT format"""
@@ -86,23 +85,19 @@ def extract_given_patch_helper(nodes, idx):
     return xs, ys, depths;
 
 
-def read_GFs_matlab_CSZ(gf_file, patch_number):
+def read_GFs_matlab_CSZ(gf_file):
     """
     Read the Green's functions for the CSZ calculated in Materna et al., 2019 by Noel Bartlow.
     Returns a list of Green's Functions elements.
     """
     print("Reading file %s " % gf_file);
-    data_structure = scipy.io.loadmat(gf_file);
+    data_structure = scipy.io.loadmat(gf_file);  # a large dictionary object
     kern = data_structure['Kern'];  # 165 x 303 (E, N, U for each grid element);
     fault_patches, nodes = read_matlab_CSZ_patches(gf_file);
 
-    # Discovering what's inside
-    for item in data_structure.keys():
-        print(item, np.shape(data_structure[item]));
-
     num_gf_elements = len(fault_patches);
     gf_elements = [];
-    for patch_num in range(num_gf_elements):
+    for patch_number in range(num_gf_elements):
         model_disp_points = [];
         for i in range(len(data_structure['Lons'])):
             new_item = Displacement_points(lon=data_structure['Lons'][i][0], lat=data_structure['Lats'][i][0],
