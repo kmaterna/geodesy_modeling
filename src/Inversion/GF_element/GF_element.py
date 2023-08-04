@@ -27,16 +27,31 @@ class GF_element:
     :type points: np.array
     """
 
-    def __init__(self, disp_points, param_name, upper_bound, lower_bound, slip_penalty, units,
+    def __init__(self, disp_points, param_name='', upper_bound=0, lower_bound=0, slip_penalty=0, units='',
                  fault_dict_list=(), points=()):
         self.disp_points = disp_points;
         self.param_name = param_name;
-        self.fault_dict_list = fault_dict_list;
         self.upper_bound = upper_bound;
         self.lower_bound = lower_bound;
         self.slip_penalty = slip_penalty;
         self.units = units;
+        self.fault_dict_list = fault_dict_list;
         self.points = points;  # coordinates of surface trace of fault, if applicable
+
+    def set_param_name(self, param_name):
+        self.param_name = param_name;
+
+    def set_lower_bound(self, lower_bound):
+        self.lower_bound = lower_bound;
+
+    def set_upper_bound(self, upper_bound):
+        self.upper_bound = upper_bound;
+
+    def set_units(self, units_str):
+        self.units = units_str;
+
+    def set_slip_penalty(self, slip_penalty):
+        self.slip_penalty = slip_penalty;
 
 
 def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 90), rot_name=''):

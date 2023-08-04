@@ -105,29 +105,26 @@ def read_hb_fault_gf_elements(exp_dict):
     for i in range(len(exp_dict["exp_faults"])):  # for each fault
         fault_name = exp_dict["exp_faults"][i];
         if fault_name == "CSZ_dist":  # Reading for distributed CSZ patches as unit slip.
-            one_patch_dps, csz_patches, maxslip = GF_element_rw.read_distributed_GF_static1d(exp_dict["inverse_dir"] +
-                                                                                             exp_dict["faults"]["CSZ"][
-                                                                                                 "GF"],
-                                                                                             exp_dict["inverse_dir"] +
-                                                                                             exp_dict["faults"]["CSZ"][
-                                                                                                 "geometry"],
-                                                                                             exp_dict["lonlatfile"],
-                                                                                             unit_slip=True,
-                                                                                             latlonbox=(
-                                                                                             -127, -120, 38, 44.5));
-            for gf_disp_points, patch, max0 in zip(one_patch_dps, csz_patches, maxslip):
-                lower_bound = exp_dict["faults"]["CSZ"]["slip_min"];  # default lower bound, probabaly zero
-                upper_bound = max0 * 130;  # upper bound about 40 mm/yr; from max_slip from geometry; units in cm
+            csz_GF_elements, maxslip = GF_element_rw.read_distributed_GF_static1d(exp_dict["inverse_dir"] +
+                                                                                  exp_dict["faults"]["CSZ"]["GF"],
+                                                                                  exp_dict["inverse_dir"] +
+                                                                                  exp_dict["faults"]["CSZ"]["geometry"],
+                                                                                  exp_dict["lonlatfile"],
+                                                                                  unit_slip=True,
+                                                                                  latlonbox=(-127, -120, 38, 44.5));
+            for gf_element, max0 in zip(csz_GF_elements, maxslip):  # experimental steps
+                gf_element.set_lower_bound(exp_dict["faults"]["CSZ"]["slip_min"]);  # default lower bound, probably zero
+                gf_element.set_upper_bound(max0 * 130);  # upper bound about 40 mm/yr; from geometry; units in cm
+                gf_element.set_param_name('CSZ_dist');
                 amount_of_slip_penalty = 1;
+                patch = gf_element.fault_dict_list[0];
                 if patch.depth > exp_dict["max_depth_csz_slip"]:
                     amount_of_slip_penalty = 100;  # optionally: force CSZ slip to be above a certain depth
                 if patch.depth < exp_dict["depth_of_forced_coupling"]:
-                    lower_bound = upper_bound * 0.90;  # optionally: force shallow CSZ to full coupling
-                one_gf_element = GF_element.GF_element(disp_points=gf_disp_points, param_name=fault_name,
-                                                       fault_dict_list=[patch], lower_bound=lower_bound,
-                                                       upper_bound=upper_bound, slip_penalty=amount_of_slip_penalty,
-                                                       units='cm/yr', points=());
-                gf_elements.append(one_gf_element);
+                    gf_element.set_lower_bound(gf_element.upper_bound * 0.90);  # optionally: force shallow CSZ coupled
+                gf_element.set_slip_penalty(amount_of_slip_penalty);
+                gf_element.set_units('cm/yr');
+                gf_elements.append(gf_element);
         else:  # Reading for LSF, MRF, other fault cases
             fault_gf = exp_dict["inverse_dir"] + exp_dict["faults"][fault_name]["GF"];
             fault_geom = exp_dict["inverse_dir"] + exp_dict["faults"][fault_name]["geometry"];

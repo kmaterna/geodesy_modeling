@@ -11,6 +11,7 @@ import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.InSAR_1D_Object as InSAR_1D
 import Geodesy_Modeling.src.Inversion.GF_element.GF_element as GF_element
 import Geodesy_Modeling.src.Inversion.GF_element.readers_writers as GF_element_rw
+import src.Inversion.GF_element.rw_insar_gfs
 from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
@@ -63,8 +64,8 @@ def read_gf_elements_kalin(fault_file: str, gf_file: str):
     """Read a list of fault triangle elements and their associated GF's for use in inversion. """
     print("Reading pre-computed InSAR Green's functions.");
     fault_tris = fst.file_io.io_other.read_brawley_lohman_2005(fault_file);
-    GF_elements = GF_element_rw.read_insar_greens_functions(gf_file, fault_tris, param_name='kalin', lower_bound=-1,
-                                                            upper_bound=0);
+    GF_elements = src.Inversion.GF_element.rw_insar_gfs.read_insar_greens_functions(gf_file, fault_tris, param_name='kalin', lower_bound=-1,
+                                                                                    upper_bound=0);
     return GF_elements;
 
 
@@ -82,9 +83,9 @@ def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts):
 def compute_all_the_GFS(desc_pts: InSAR_1D_Object, asc_pts: InSAR_1D_Object):
     """ One-time function to compute and write ascending and descending green's functions (takes a few minutes)."""
     GF_elements_desc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], desc_pts);
-    GF_element_rw.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
+    src.Inversion.GF_element.rw_insar_gfs.write_insar_greens_functions(GF_elements_desc, "desc_insar_gfs.txt");
     GF_elements_asc = compute_insar_gf_elements_kalin(exp_dict['fault_file'], asc_pts);
-    GF_element_rw.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
+    src.Inversion.GF_element.rw_insar_gfs.write_insar_greens_functions(GF_elements_asc, "asc_insar_gfs.txt");
     return;
 
 def combine_two_matching_lists_of_GF_elements(gf1, gf2):

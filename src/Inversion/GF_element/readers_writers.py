@@ -1,8 +1,10 @@
-import numpy as np
-from Elastic_stresses_py.PyCoulomb import fault_slip_object as fso, disp_points_object as dpo
+from Elastic_stresses_py.PyCoulomb import fault_slip_object as fso
 from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
-from src.Inversion.GF_element import GF_element
-
+import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
+from Tectonic_Utils.geodesy import fault_vector_functions as fvf
+from .GF_element import GF_element
+import scipy.io
+import numpy as np
 
 def write_csz_dist_fault_patches(gf_elements, model_results_vector, outfile_gmt, outfile_txt):
     """Write out slip results for a distributed CSZ model into GMT format"""
@@ -22,11 +24,11 @@ def write_csz_dist_fault_patches(gf_elements, model_results_vector, outfile_gmt,
 
 def read_distributed_GF_static1d(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 52), unit_slip=False):
     """
-    Read results of Fred's Static1D file (e.g., stat2C.outCascadia), getting partially into the GF_element object.
+    Read results of Fred's Static1D file (e.g., stat2C.outCascadia), getting into a minimal GF_element object.
     We also restrict the range of fault elements using a bounding box
     If unit_slip, we divide by the imposed slip rate to get a 1 cm/yr Green's Function.
     Returns a list of lists of disp_point objects, and a matching list of fault patches.
-    We get partially into the GF_element object; the rest of the way research-specific code in the Humboldt driver.
+    We get into a minimal GF_element object; the rest of the way research-specific code in the Humboldt driver.
     """
     fault_patches = fso.file_io.io_static1d.read_stat2C_geometry(geom_file);
     gps_disp_locs = fso.file_io.io_static1d.read_disp_points_from_static1d(latlonfile);
@@ -46,6 +48,7 @@ def read_distributed_GF_static1d(gf_file, geom_file, latlonfile, latlonbox=(-127
     counter = 0;
     norm_factor = 1;
     disp_points_all_patches, all_patches, given_slip = [], [], [];
+    GF_elements = [];
     for i in range(len(fault_patches)):
         if not fault_patches[i].is_within_bbox(latlonbox):  # can restrict to the southern patches if desired
             counter = counter + len(gps_disp_locs);
@@ -65,62 +68,77 @@ def read_distributed_GF_static1d(gf_file, geom_file, latlonfile, latlonbox=(-127
             counter = counter + 1;
             disp_points_one_patch.append(disp_point);
             if counter == len(gps_disp_locs):
-                break;
-        disp_points_all_patches.append(disp_points_one_patch);
+                break
         fault_slip_patch = fault_patches[i].change_fault_slip(fault_patches[i].slip * norm_factor);
-        all_patches.append(fault_slip_patch);
+
+        new_gf = GF_element(fault_dict_list=[fault_slip_patch], disp_points=disp_points_one_patch);
+        GF_elements.append(new_gf);
         given_slip.append(fault_patches[i].slip);  # in mm
 
-    return disp_points_all_patches, all_patches, given_slip;
+    return GF_elements, given_slip;
 
 
-def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bound=0, upper_bound=0):
+def extract_given_patch_helper(nodes, idx):
+    """ nodes = 1859 x 3.  idx = [a b c]."""
+    xs = [nodes[idx[0]-1][0], nodes[idx[1]-1][0], nodes[idx[2]-1][0], nodes[idx[0]-1][0]];
+    ys = [nodes[idx[0]-1][1], nodes[idx[1]-1][1], nodes[idx[2]-1][1], nodes[idx[0]-1][1]];
+    depths = [nodes[idx[0]-1][2], nodes[idx[1]-1][2], nodes[idx[2]-1][2], nodes[idx[0]-1][2]];
+    return xs, ys, depths;
+
+
+def read_GFs_matlab_CSZ(gf_file, patch_number):
     """
-    Read pre-computed green's functions in the format matching the write-function.
-    Currently, only works for triangles.
-
-    :param gf_file: string, filename
-    :param fault_patches: list of fault_slip_objects or fault_slip_triangles
-    :param param_name: string
-    :param lower_bound: float
-    :param upper_bound: float
+    Read the Green's functions for the CSZ calculated in Materna et al., 2019 by Noel Bartlow.
+    Returns a list of Green's Functions elements.
     """
-    GF_elements = [];
-    gf_data_array = np.loadtxt(gf_file);
-    lons, lats = gf_data_array[:, 0], gf_data_array[:, 1];
-    model_disp_pts = [];
-    for tlon, tlat in zip(lons, lats):
-        mdp = Displacement_points(lon=tlon, lat=tlat, dE_obs=0, dN_obs=0, dU_obs=0, Se_obs=0, Sn_obs=0, Su_obs=0,
-                                  meas_type='insar');
-        model_disp_pts.append(mdp);
+    print("Reading file %s " % gf_file);
+    data_structure = scipy.io.loadmat(gf_file);
+    kern = data_structure['Kern'];  # 165 x 303 (E, N, U for each grid element);
+    fault_patches, nodes = read_matlab_CSZ_patches(gf_file);
 
-    for i, tri in enumerate(fault_patches):  # right now, only the triangle version is written.
-        changed_slip = tri.change_fault_slip(rtlat=1, dipslip=0, tensile=0);  # triangle-specific
-        changed_slip = changed_slip.change_reference_loc();  # triangle-specific interface
-        index = i+2;  # moving to the correct column in the GF file, skipping lon and lat.
-        los_defo = gf_data_array[:, index];
-        model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
-        GF_elements.append(GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                                 param_name=param_name, lower_bound=lower_bound,
-                                                 upper_bound=upper_bound, slip_penalty=0));
-    return GF_elements;
+    # Discovering what's inside
+    for item in data_structure.keys():
+        print(item, np.shape(data_structure[item]));
+
+    num_gf_elements = len(fault_patches);
+    gf_elements = [];
+    for patch_num in range(num_gf_elements):
+        model_disp_points = [];
+        for i in range(len(data_structure['Lons'])):
+            new_item = Displacement_points(lon=data_structure['Lons'][i][0], lat=data_structure['Lats'][i][0],
+                                           dE_obs=kern[(3*i)][patch_number], dN_obs=kern[(3*i)+1][patch_number],
+                                           dU_obs=kern[(3*i)+2][patch_number]);
+            model_disp_points.append(new_item);  # Read model disp_points associated with one fault patch.
+        fault_patches[patch_number] = fault_patches[patch_number].change_fault_slip(1.0, 0, 0);
+
+        one_GF = GF_element(disp_points=model_disp_points, param_name=str(patch_number), units='meters',
+                            fault_dict_list=[fault_patches[patch_number]]);
+        gf_elements.append(one_GF);
+    return gf_elements;
 
 
-def write_insar_greens_functions(GF_elements, outfile):
+def read_matlab_CSZ_patches(gf_file):
     """
-    Serialize a bunch of InSAR Green's Functions into written text file, in meters, with rows for each InSAR point:
-    For each observation point: lon, lat, dLOS1, dLOS2, dLOS3.... [n fault patches].
-
-    :param GF_elements: list of GF_elements with InSAR displacements in disp_points.
-    :param outfile: string
+    Read matlab file format in Materna et al., 2019.
+    Returns a list of triangular fault patches and a list of node points.
     """
-    print("Writing file %s " % outfile);
-    ofile = open(outfile, 'w');
-    for i, pt in enumerate(GF_elements[0].disp_points):
-        ofile.write('%f %f ' % (pt.lon, pt.lat));
-        point_displacements = [GF_el.disp_points[i].dE_obs for GF_el in GF_elements];
-        for x in point_displacements:
-            ofile.write(str(x)+" ");
-        ofile.write("\n");
-    ofile.close();
-    return;
+    print("Reading file %s " % gf_file);
+    data_structure = scipy.io.loadmat(gf_file);
+    nodes = data_structure['nd_ll'];  # all the nodes for the entire CSZ, a big array from Canada to MTJ.
+    elements = data_structure['el'];  # elements
+
+    # Open all the fault patches
+    fault_patches = [];
+    for i, item in enumerate(elements):
+        xs, ys, depths = extract_given_patch_helper(nodes, item);
+        reflon, reflat = xs[0], ys[0];
+        v1x, v1y = fvf.latlon2xy_single(xs[0], ys[0], reflon, reflat);
+        v2x, v2y = fvf.latlon2xy_single(xs[1], ys[1], reflon, reflat);
+        v3x, v3y = fvf.latlon2xy_single(xs[2], ys[2], reflon, reflat);
+        new_ft = fst.fault_slip_triangle.TriangleFault(vertex1=[v1x*1000, v1y*1000, depths[0]*1000],
+                                                       vertex2=[v2x*1000, v2y*1000, depths[1]*1000],
+                                                       vertex3=[v3x*1000, v3y*1000, depths[2]*1000],
+                                                       lon=reflon, lat=reflat, depth=depths[0],
+                                                       rtlat_slip=0, dip_slip=0);
+        fault_patches.append(new_ft);
+    return fault_patches, nodes;
