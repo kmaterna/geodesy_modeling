@@ -14,16 +14,25 @@ import matplotlib.pyplot as plt
 
 filedict = {
     "gf_file": "/Users/kmaterna/Documents/B_Research/GEOPHYS_DATA/Meshes/CSZ_Bartlow/2014_inversion_homog.mat",
-    "data_file": "../stack/calculated_displacements.txt"
+    "data_file": "../stack/calculated_displacements.txt"  # Needed to remove P335 and P794 b/c of huge outliers.
 };
-# Needed to remove P335 and P794 because it was a huge outlier.
+"""
+TRY AN EXACT SOLUTION AND SEE WHAT HAPPENS
+Knobs that can be changed: 
+Vertical uncertainty
+Laplacian Smoothing
+Laplacian Smoothing length
+Tikhonov regularization
+Number of fault patches
+Range of GNSS stations
+"""
 
 def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''', default=0.5);
     p.add_argument('--outdir', type=str, help='''Output directory''', default='test_output/');
     exp_dict = vars(p.parse_args())
-    exp_dict["smoothing_length"] = 5;  # smooth adjacent patches with some wiggle room
+    exp_dict["smoothing_length"] = 25;  # smooth adjacent patches with some wiggle room
     subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
@@ -44,13 +53,16 @@ def run_main():
     exp_dict = configure();
     outdir = exp_dict['outdir'];
 
+    # Reading step
     GF_elements = gf_rw.read_GFs_matlab_CSZ(filedict['gf_file']);
+    GF_elements = [x for x in GF_elements if x.fault_dict_list[0].depth > -50];
     for item in GF_elements:
         item.set_lower_bound(0);
         item.set_upper_bound(1);
-        item.set_slip_penalty(-0.3 * item.fault_dict_list[0].depth);
+        item.set_slip_penalty(50);  # a tunable parameter
     obs_data_points = dpo.io_gmt.read_disp_points_gmt(filedict['data_file']);
     obs_data_points = dpo.utilities.filter_to_remove_nans(obs_data_points);
+    obs_data_points = dpo.utilities.filter_by_bounding_box(obs_data_points, (-126, -122, 39.5, 41.5));
 
     # COMPUTE STAGE: INVERSE.
     list_of_gf_columns = [];
@@ -90,23 +102,14 @@ def run_main():
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,
                                                      fault_traces_from_file=outdir+"/temp-outfile.txt",
                                                      scale_arrow=(1.0, 0.001, "1 mm"),
-                                                     region=(-125, -122, 38.5, 42));
+                                                     region=(-124.7, -122, 39.05, 41.8), vert_mult=1000,
+                                                     vert_disp_units='mm', vmin=-2, vmax=6);
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_data_points,
-                                                     scale_arrow=(1.0, 0.001, "1 mm"));
+                                                     scale_arrow=(1.0, 0.001, "1 mm"),
+                                                     region=(-124.7, -122, 39.05, 41.8), vert_mult=1000,
+                                                     vert_disp_units='mm', vmin=-2, vmax=6);
 
     write_misfit_report(exp_dict, obs_data_points, model_disp_pts, total_moment);
-    # subprocess.call(['./gmt_plot.sh', outdir]);   # plotting the results in pretty GMT plots
-    #
-    # # Do a special experiment: while the fault elements are in computer memory, let's forward predict their
-    # # displacement everywhere.
-    # newfaults = [];
-    # for fault in modeled_faults:  # have to change the reference location.
-    #     newfaults.append(fault.change_reference_loc((-115.7, 33.1)));
-    #
-    # grid_pts = dpo.utilities.generate_grid_of_disp_points(-115.90, -115.2, 32.9, 33.3, 0.005, 0.005);
-    # model_grid = fst.triangle_okada.compute_disp_points_from_triangles(newfaults, grid_pts, poisson_ratio=0.25);
-    # PyCoulomb.io_additionals.write_disp_points_results(model_grid, outdir+'/modeled_grid_pts.txt');
-
     return;
 
 
