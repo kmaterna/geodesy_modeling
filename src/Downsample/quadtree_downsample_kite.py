@@ -12,8 +12,7 @@ example: gmt grd2xyz unwrap_ll.grd | gmt grdtrack -Gdsdem.grd | awk {'print $1, 
 Not used: fig = qt.plot()  # this will open a plot.show(), won't save it.
 """
 
-from Tectonic_Utils.geodesy import geojson2txt
-from . import plot_geojson
+from . import plot_geojson, geojson2txt
 
 
 def kite_downsample_isce_unw(datafile, outname,

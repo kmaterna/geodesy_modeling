@@ -103,7 +103,8 @@ def run_main():
                                                      fault_traces_from_file=outdir+"/temp-outfile.txt",
                                                      scale_arrow=(1.0, 0.001, "1 mm"),
                                                      region=(-124.7, -122, 39.05, 41.8), vert_mult=1000,
-                                                     vert_disp_units='mm', vmin=-2, vmax=6);
+                                                     vert_disp_units='mm', vmin=-2, vmax=6,
+                                                     slip_cbar_opts=(-0.1, 0.1, 0.001));
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_data_points,
                                                      scale_arrow=(1.0, 0.001, "1 mm"),
                                                      region=(-124.7, -122, 39.05, 41.8), vert_mult=1000,
