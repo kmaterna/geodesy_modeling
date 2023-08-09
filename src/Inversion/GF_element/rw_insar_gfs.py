@@ -29,7 +29,7 @@ def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bou
             changed_slip = changed_slip.change_reference_loc();  # triangle-specific interface
             index = i+2;  # moving to the correct column in the GF file, skipping lon and lat.
             los_defo = gf_data_array[:, index];
-            model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
+            model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo);
             GF_elements.append(GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
                                           param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound));
 
@@ -38,7 +38,7 @@ def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bou
             changed_slip = patch.change_fault_slip(new_slip=1, new_rake=180, new_tensile=0);
             index = i+2;  # moving to the correct column in the GF file, skipping lon and lat.
             los_defo = gf_data_array[:, index];
-            model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
+            model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo);
             GF_elements.append(GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
                                           param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound));
     return GF_elements;

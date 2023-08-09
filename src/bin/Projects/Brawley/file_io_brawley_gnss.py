@@ -1,7 +1,6 @@
 """
 Research-specific read functions to preprocess GNSS time series in special ways.
-Reference: Timeseries = collections.namedtuple("Timeseries",
-['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su', 'EQtimes']);  # in mm
+Reference: Timeseries = ['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'Se', 'Su', 'EQtimes']);  # in mm
 """
 
 import datetime as dt

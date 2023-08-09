@@ -77,6 +77,7 @@ def get_displacement_directions(obs_disp_point, model_point):
 def unpack_model_pred_vector(model_pred, paired_obs):
     """
     Unpack a model vector into a bunch of disp_point objects. Same logic implemented here as in the functions above.
+    In the future, this can be done with a dictionary or look-up table passed into the function.
 
     :param model_pred: long vector of model parameters, corresponding to each component being used
     :param paired_obs: list of disp_point_objects (shorter than model_pred vector)

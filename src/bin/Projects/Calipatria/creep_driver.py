@@ -4,31 +4,19 @@
 A cute little script starting off the process of inverting gnss data in the Salton Sea for slip
 """
 
-import Geodesy_Modeling.src.InSAR_1D_Object as InSAR_1D
-from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
+import Geodesy_Modeling.src.InSAR_1D_Object as InSAR_1D
+from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Inversion.GF_element.rw_insar_gfs as rw_gf
+from Geodesy_Modeling.src.Inversion.GF_element import GF_element
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
 import argparse, json, subprocess
-from Geodesy_Modeling.src.Inversion.GF_element import GF_element
-
-class inputs_obj:
-    def __init__(self, zerolon, zerolat, source):
-        self.zerolon = zerolon
-        self.zerolat = zerolat
-        self.source_object = source
-        return;
-
-class params_obj:
-    def __init__(self, alpha, nu):
-        self.alpha = alpha
-        self.nu = nu
 
 def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
@@ -50,22 +38,21 @@ def compute_insar_gf_elements(fault_file: str, insar_object: InSAR_1D_Object):
     all_disp_points = insar_object.get_disp_points();   # get the locations of InSAR points
 
     for patch in fault_patches:
-        changed_slip = patch.change_fault_slip(new_slip=1, new_rake=180, new_tensile=0);
-        pycoulomb_fault = changed_slip.fault_object_to_coulomb_fault(-115.8, 33.1)
-        inputs = inputs_obj(zerolon=-115.8, zerolat=33.1, source=[pycoulomb_fault]);
-        params = params_obj(2/3, 0.25);
+        changed_slip_fault = patch.change_fault_slip(new_slip=1, new_rake=180);
+        pycoulomb_fault = changed_slip_fault.fault_object_to_coulomb_fault(zerolon_system=-115.8, zerolat_system=33.1);
+        inputs = PyCoulomb.configure_calc.configure_default_displacement_input(source_object=[pycoulomb_fault],
+                                                                               zerolon=-115.8, zerolat=33.1, bbox=());
+        params = PyCoulomb.configure_calc.configure_default_displacement_params(mu=30e9, lame1=30e9);
         model_disp_pts = PyCoulomb.run_dc3d.compute_ll_def(inputs, params, all_disp_points);
 
-        # PROJECT 3D DISPLACEMENTS INTO LOS
-        los_defo = [];
-        for i in range(len(all_disp_points)):
-            x = model_disp_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i], insar_object.lkv_U[i]);
-            los_defo.append(x);
+        # PROJECT 3D DISPLACEMENTS INTO LOS. LIST OF FLOATS.
+        los_defo = [model_disp_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i],
+                                                       insar_object.lkv_U[i]) for i in range(len(all_disp_points))];
 
-        model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
+        model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo);
         model_disp_pts = dpo.utilities.mult_disp_points_by(model_disp_pts, -1);  # sign convention
-        GF_elements.append(GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                                 param_name='shf'));
+        GF_elements.append(GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip_fault],
+                                                 units='m', param_name='shf'));
     print("Computed Green's functions for %d patches" % len(GF_elements));
     return GF_elements;
 
@@ -136,12 +123,14 @@ if __name__ == "__main__":
                                                         color_mappable=lambda x: x.get_rtlat_slip());
     fso.file_io.io_slippy.write_slippy_distribution(modeled_faults, outdir+'/model_fault_patches.txt');
     for x in model_disp_pts:
-        x.set_vert_value(x.dE_obs);
+        x.set_vert_value(x.dE_obs); x.set_east_value(0); x.set_north_value(0);
     for x in obs_disp_pts:
-        x.set_vert_value(x.dE_obs);
+        x.set_vert_value(x.dE_obs); x.set_east_value(0); x.set_north_value(0);
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,
-                                                     fault_traces_from_dict=modeled_faults, vmin=-0.015, vmax=0.015);
+                                                     fault_traces_from_dict=modeled_faults, vmin=-0.015, vmax=0.015,
+                                                     region=(-115.90, -115.6, 32.79, 33.11), map_scale=15);
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_disp_pts,
-                                                     fault_traces_from_dict=modeled_faults, vmin=-0.015, vmax=0.015);
+                                                     fault_traces_from_dict=modeled_faults, vmin=-0.015, vmax=0.015,
+                                                     region=(-115.90, -115.6, 32.79, 33.11), map_scale=15);
     write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts);
     subprocess.call(['./gmt_plot.sh', outdir]);   # plotting the results in pretty GMT plots
