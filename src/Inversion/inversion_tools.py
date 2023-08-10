@@ -3,18 +3,19 @@ import numpy as np
 from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
+import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 from .GF_element.GF_element import GF_element
 
 
-def pair_obs_model(obs_disp_pts, model_disp_pts):
+def pair_obs_model(obs_disp_pts, model_disp_pts, tol=0.001):
     """
     Filters two lists of disp_points objects, just pairing the objects together where their locations match
 
-    :param obs_disp_pts: list of disp_points objects
-    :param model_disp_pts: list of disp_points objects
-    :returns: list of disp_point_obj, list of disp_point_obj
+    :param obs_disp_pts: list of disp_points objects, length n
+    :param model_disp_pts: list of disp_points objects, length m
+    :param tol: tolerance, default 0.001 degrees
+    :returns: list of disp_point_obj, list of disp_point_obj, with matching lengths p
     """
-    tol = 0.001;
     paired_model, paired_obs = [], [];
     for obs_item in obs_disp_pts:
         for model_item in model_disp_pts:
@@ -25,20 +26,21 @@ def pair_obs_model(obs_disp_pts, model_disp_pts):
     return paired_obs, paired_model;
 
 
-def pair_gf_elements_with_obs(obs_disp_points, gf_elements):
+def pair_gf_elements_with_obs(obs_disp_points, gf_elements, tol=0.001):
     """
     Take list of GF_elements, and list of obs_disp_points. Pare them down to a matching set of points in same order.
     The assumption is that all gf_elements have same points inside them (because we take first one as representative)
 
     :param obs_disp_points: list of disp_points
     :param gf_elements: a list of gf_elements with all the same points inside them
+    :param tol: tolerance for pairing station with station, in degrees
     :returns: paired_obs (list of disp_points), paired_gf_elements (list of gf_elements)
     """
     paired_gf_elements = [];  # a list of GF_element objects
-    paired_obs, _ = pair_obs_model(obs_disp_points, gf_elements[0].disp_points);  # get paired obs disp_points
+    paired_obs, _ = pair_obs_model(obs_disp_points, gf_elements[0].disp_points, tol=tol);  # get paired obs disp_points
     target_len = len(paired_obs);
     for gf_model in gf_elements:
-        _, paired_gf = pair_obs_model(obs_disp_points, gf_model.disp_points);  # one fault or CSZ patch
+        _, paired_gf = pair_obs_model(obs_disp_points, gf_model.disp_points, tol=tol);  # one fault or CSZ patch
         paired_gf_elements.append(GF_element(disp_points=paired_gf, param_name=gf_model.param_name,
                                              fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
                                              upper_bound=gf_model.upper_bound,
@@ -121,6 +123,8 @@ def buildG_column(GF_disp_points, obs_disp_points):
     Returns a single column of nx1.
     """
     GF_col = [];
+    if len(GF_disp_points) != len(obs_disp_points):
+        raise ValueError("Error! Length of modeled and observe vectors do not agree.");
     for g_item, obs in zip(GF_disp_points, obs_disp_points):
         new_values, _ = get_displacement_directions(obs, g_item);
         GF_col = np.concatenate((GF_col, new_values));
@@ -369,6 +373,26 @@ def write_summary_params(v, outfile, GF_elements, ignore_faults=(), message=''):
     ofile.write(report_string);
     ofile.write("Message: "+message+"\n");
     ofile.close();
+    return;
+
+
+def write_standard_misfit_report(outdir, obs_disp_pts, model_disp_pts, total_moment):
+    """
+    Write a standard type of misfit report into a text file.
+
+    :param outdir: string
+    :param obs_disp_pts: list of disp_point_objects
+    :param model_disp_pts: list of disp_point_objects
+    :param total_moment: float, total moment of the slip
+    """
+    [_all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_disp_pts, model_disp_pts);
+    with open(outdir+'/metrics.txt', 'w') as ofile:
+        print('Avg misfit (mm):', avg_misfit_norm);
+        print("total moment (N-m): ", total_moment);
+        print("Equivalent to:", mo.mw_from_moment(total_moment));
+        ofile.write('Avg misfit: %f mm\n' % avg_misfit_norm);
+        ofile.write("total moment (N-m): %f\n" % total_moment);
+        ofile.write("Equivalent to: %f\n" % mo.mw_from_moment(total_moment));
     return;
 
 

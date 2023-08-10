@@ -32,6 +32,7 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
         return ["%.2f" % z for z in V]
 
     # Linear scale
+    outfilename = outfile.split('.')[0]+"_log.png"
     plt.figure(figsize=(6, 6), dpi=300);
     plt.plot(param, misfit, '.', markersize=14);
     plt.xlabel("1/"+axis_name, fontsize=16);
@@ -78,7 +79,8 @@ def plot_1d_curve(param_values, misfit, axis_name, outfile, corner_point=None):
     ax2.set_xlabel(axis_name + " Parameter", fontsize=16)
     ax2.tick_params(axis='x', labelsize=16)
     plt.tight_layout()
-    plt.savefig(outfile.split('.')[0]+"_log.png");
+    print("Plotting file %s " % outfilename);
+    plt.savefig(outfilename);
     return;
 
 

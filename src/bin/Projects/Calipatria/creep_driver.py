@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-A cute little script starting off the process of inverting gnss data in the Salton Sea for slip
+A cute little script starting off the process of inverting InSAR for slip
 """
 
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
@@ -12,7 +12,6 @@ from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.Inversion.GF_element.rw_insar_gfs as rw_gf
 from Geodesy_Modeling.src.Inversion.GF_element import GF_element
-import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
@@ -63,17 +62,6 @@ def read_gf_elements(fault_file: str, gf_file: str):
     GF_elements = rw_gf.read_insar_greens_functions(gf_file, fault_patches, param_name='shf', lower_bound=0,
                                                     upper_bound=0.3);
     return GF_elements;
-
-def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts):
-    [_all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_disp_pts, model_disp_pts);
-    with open(exp_dict["outdir"]+'/metrics.txt', 'w') as ofile:
-        print('Avg misfit (mm):', avg_misfit_norm);
-        print("total moment (N-m): ", total_moment);
-        print("Equivalent to Mw:", mo.mw_from_moment(total_moment));
-        ofile.write('Avg misfit: %f mm\n' % avg_misfit_norm);
-        ofile.write("total moment (N-m): %f\n" % total_moment);
-        ofile.write("Equivalent to Mw: %f\n" % mo.mw_from_moment(total_moment));
-    return;
 
 
 if __name__ == "__main__":
@@ -132,5 +120,5 @@ if __name__ == "__main__":
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_disp_pts,
                                                      fault_traces_from_dict=modeled_faults, vmin=-0.015, vmax=0.015,
                                                      region=(-115.90, -115.6, 32.79, 33.11), map_scale=15);
-    write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts);
+    inv_tools.write_standard_misfit_report(exp_dict['outdir'], obs_disp_pts, model_disp_pts, total_moment);
     subprocess.call(['./gmt_plot.sh', outdir]);   # plotting the results in pretty GMT plots

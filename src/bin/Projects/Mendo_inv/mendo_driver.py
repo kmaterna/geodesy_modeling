@@ -6,48 +6,34 @@ import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
-import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import json, argparse, subprocess
 import scipy.optimize
 import numpy as np
 import matplotlib.pyplot as plt
 
 filedict = {
-    "gf_file": "/Users/kmaterna/Documents/B_Research/GEOPHYS_DATA/Meshes/CSZ_Bartlow/2014_inversion_homog.mat",
-    "data_file": "../stack/calculated_displacements.txt"  # Needed to remove P335 and P794 b/c of huge outliers.
+    "gf_file": "../../../../GEOPHYS_DATA/Meshes/CSZ_Bartlow/2014_inversion_het.mat",
+    "data_file": "../../stack/calculated_displacements.txt",
+    "sample_gf_file": "../../Visualize_GFs/gf_pred_file.txt"
 };
 """
-TRY AN EXACT SOLUTION AND SEE WHAT HAPPENS
 Knobs that can be changed: 
-Vertical uncertainty
-Laplacian Smoothing
-Laplacian Smoothing length
-Tikhonov regularization
-Number of fault patches
-Range of GNSS stations
+    FIXED: Vertical uncertainty, Number of fault patches, Range of GNSS stations
+    TUNABLE: Laplacian Smoothing, Laplacian Smoothing length, Tikhonov regularization
 """
 
 def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
-    p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''', default=0.5);
+    p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''', default=20);
     p.add_argument('--outdir', type=str, help='''Output directory''', default='test_output/');
+    p.add_argument('--tikhonov0', type=float, help='''strength of minimum-norm penalty''', default=30)
     exp_dict = vars(p.parse_args())
-    exp_dict["smoothing_length"] = 25;  # smooth adjacent patches with some wiggle room
+    exp_dict["smoothing_length"] = 10;  # smooth adjacent patches with some wiggle room
     subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
     return exp_dict;
 
-def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts, total_moment):
-    [_all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_disp_pts, model_disp_pts);
-    with open(exp_dict["outdir"]+'/metrics.txt', 'w') as ofile:
-        print('Avg misfit (mm):', avg_misfit_norm);
-        print("total moment (N-m): ", total_moment);
-        print("Equivalent to:", mo.mw_from_moment(total_moment));
-        ofile.write('Avg misfit: %f mm\n' % avg_misfit_norm);
-        ofile.write("total moment (N-m): %f\n" % total_moment);
-        ofile.write("Equivalent to: %f\n" % mo.mw_from_moment(total_moment));
-    return;
 
 def run_main():
     exp_dict = configure();
@@ -57,15 +43,16 @@ def run_main():
     GF_elements = gf_rw.read_GFs_matlab_CSZ(filedict['gf_file']);
     GF_elements = [x for x in GF_elements if x.fault_dict_list[0].depth > -50];
     for item in GF_elements:
-        item.set_lower_bound(0);
-        item.set_upper_bound(1);
-        item.set_slip_penalty(50);  # a tunable parameter
+        item.set_lower_bound(0); item.set_upper_bound(1);
+        item.set_slip_penalty(exp_dict['tikhonov0']  - 0.1*item.fault_dict_list[0].depth);  # - item.fault_dict_list[0].depth a tunable parameter
     obs_data_points = dpo.io_gmt.read_disp_points_gmt(filedict['data_file']);
     obs_data_points = dpo.utilities.filter_to_remove_nans(obs_data_points);
-    obs_data_points = dpo.utilities.filter_by_bounding_box(obs_data_points, (-126, -122, 39.5, 41.5));
+    obs_data_points = dpo.utilities.filter_by_bounding_box(obs_data_points, (-126, -122, 39.65, 41.5));
+    obs_data_points = dpo.utilities.filter_to_remove_outliers(obs_data_points, 0.02, verbose=True);  # remove P335/P794
 
     # COMPUTE STAGE: INVERSE.
     list_of_gf_columns = [];
+    obs_data_points, GF_elements = inv_tools.pair_gf_elements_with_obs(obs_data_points, GF_elements, tol=0.014);
     for gf in GF_elements:
         G_one_col = inv_tools.buildG_column(gf.disp_points, obs_data_points);  # for one fault model parameter
         list_of_gf_columns.append(G_one_col);
@@ -99,18 +86,17 @@ def run_main():
 
     fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
                                                        color_mappable=lambda x: x.get_rtlat_slip());
+    scale_arrow = (1.0, 0.001, "1 mm");
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,
                                                      fault_traces_from_file=outdir+"/temp-outfile.txt",
-                                                     scale_arrow=(1.0, 0.001, "1 mm"),
-                                                     region=(-124.7, -122, 39.05, 41.8), vert_mult=1000,
-                                                     vert_disp_units='mm', vmin=-2, vmax=6,
-                                                     slip_cbar_opts=(-0.1, 0.1, 0.001));
+                                                     region=(-125.0, -122, 39.05, 41.8), vert_mult=1000,
+                                                     vert_disp_units='mm', vmin=-2, vmax=6, scale_arrow=scale_arrow,
+                                                     slip_cbar_opts=(-0.06, 0.06, 0.001));
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_data_points,
-                                                     scale_arrow=(1.0, 0.001, "1 mm"),
-                                                     region=(-124.7, -122, 39.05, 41.8), vert_mult=1000,
-                                                     vert_disp_units='mm', vmin=-2, vmax=6);
+                                                     region=(-125.0, -122, 39.05, 41.8), vert_mult=1000,
+                                                     vert_disp_units='mm', vmin=-2, vmax=6, scale_arrow=scale_arrow);
 
-    write_misfit_report(exp_dict, obs_data_points, model_disp_pts, total_moment);
+    inv_tools.write_standard_misfit_report(exp_dict["outdir"], obs_data_points, model_disp_pts, total_moment);
     return;
 
 
