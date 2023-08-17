@@ -3,6 +3,7 @@ Mathematical functions independent of object specifics
 """
 
 import numpy as np
+import scipy
 from Tectonic_Utils.geodesy import haversine, insar_vector_functions
 
 
@@ -116,6 +117,19 @@ def convert_disps_to_rates(disps, starttime, endtime):
     interval_years = tdelta.days / 365.24;  # number of years spanned by given velocity.
     LOS_rates = [i / interval_years for i in disps];
     return LOS_rates;
+
+
+def detrend_signal(x, y):
+    """
+    Remove an overall trend from a 1D timeseries signal, ignoring nans
+    """
+    x_nonans = x[np.where(~np.isnan(y))];
+    y_nonans = y[np.where(~np.isnan(y))];
+    A = np.vstack((x_nonans, np.ones(np.shape(x_nonans)))).T;
+    coeffs = scipy.linalg.lstsq(np.array(A), np.array(y_nonans));  # the actual optimization step
+    model_coeffs = coeffs[0];  # model: [z = ax + c]
+    full_model = model_coeffs[0]*x + model_coeffs[1] * np.ones(np.shape(x));
+    return y-full_model;
 
 
 def wrap_float(def_meas, wavelength):
