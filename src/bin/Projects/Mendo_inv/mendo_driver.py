@@ -44,7 +44,7 @@ def run_main():
     GF_elements = [x for x in GF_elements if x.fault_dict_list[0].depth > -50];
     for item in GF_elements:
         item.set_lower_bound(0); item.set_upper_bound(1);
-        item.set_slip_penalty(exp_dict['tikhonov0']  - 0.1*item.fault_dict_list[0].depth);  # - item.fault_dict_list[0].depth a tunable parameter
+        item.set_slip_penalty(exp_dict['tikhonov0'] - 0.1*item.fault_dict_list[0].depth);  # - item.fault_dict_list[0].depth a tunable parameter
     obs_data_points = dpo.io_gmt.read_disp_points_gmt(filedict['data_file']);
     obs_data_points = dpo.utilities.filter_to_remove_nans(obs_data_points);
     obs_data_points = dpo.utilities.filter_by_bounding_box(obs_data_points, (-126, -122, 39.65, 41.5));

@@ -1,7 +1,6 @@
 from Elastic_stresses_py.PyCoulomb import fault_slip_object as fso
 from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
-from Tectonic_Utils.geodesy import fault_vector_functions as fvf
 from .GF_element import GF_element
 import scipy.io
 
@@ -77,23 +76,16 @@ def read_distributed_GF_static1d(gf_file, geom_file, latlonfile, latlonbox=(-127
     return GF_elements, given_slip;
 
 
-def extract_given_patch_helper(nodes, idx):
-    """ nodes = 1859 x 3.  idx = [a b c]."""
-    xs = [nodes[idx[0]-1][0], nodes[idx[1]-1][0], nodes[idx[2]-1][0], nodes[idx[0]-1][0]];
-    ys = [nodes[idx[0]-1][1], nodes[idx[1]-1][1], nodes[idx[2]-1][1], nodes[idx[0]-1][1]];
-    depths = [nodes[idx[0]-1][2], nodes[idx[1]-1][2], nodes[idx[2]-1][2], nodes[idx[0]-1][2]];
-    return xs, ys, depths;
-
-
 def read_GFs_matlab_CSZ(gf_file):
     """
     Read the Green's functions for the CSZ calculated in Materna et al., 2019 by Noel Bartlow.
     Returns a list of Green's Functions elements.
     """
+
     print("Reading file %s " % gf_file);
     data_structure = scipy.io.loadmat(gf_file);  # a large dictionary object
     kern = data_structure['Kern'];  # 165 x 303 (E, N, U for each grid element);
-    fault_patches, nodes = read_matlab_CSZ_patches(gf_file);
+    fault_patches, nodes = fst.file_io.io_other.read_csz_bartlow_2019(gf_file);
 
     num_gf_elements = len(fault_patches);
     gf_elements = [];
@@ -110,30 +102,3 @@ def read_GFs_matlab_CSZ(gf_file):
                             fault_dict_list=[fault_patches[patch_number]]);
         gf_elements.append(one_GF);
     return gf_elements;
-
-
-def read_matlab_CSZ_patches(gf_file):
-    """
-    Read matlab file format in Materna et al., 2019.
-    Returns a list of triangular fault patches and a list of node points.
-    """
-    print("Reading file %s " % gf_file);
-    data_structure = scipy.io.loadmat(gf_file);
-    nodes = data_structure['nd_ll'];  # all the nodes for the entire CSZ, a big array from Canada to MTJ.
-    elements = data_structure['el'];  # elements
-
-    # Open all the fault patches
-    fault_patches = [];
-    for i, item in enumerate(elements):
-        xs, ys, depths = extract_given_patch_helper(nodes, item);
-        reflon, reflat = xs[0], ys[0];
-        v1x, v1y = fvf.latlon2xy_single(xs[0], ys[0], reflon, reflat);
-        v2x, v2y = fvf.latlon2xy_single(xs[1], ys[1], reflon, reflat);
-        v3x, v3y = fvf.latlon2xy_single(xs[2], ys[2], reflon, reflat);
-        new_ft = fst.fault_slip_triangle.TriangleFault(vertex1=[v1x*1000, v1y*1000, depths[0]*1000],
-                                                       vertex2=[v2x*1000, v2y*1000, depths[1]*1000],
-                                                       vertex3=[v3x*1000, v3y*1000, depths[2]*1000],
-                                                       lon=reflon, lat=reflat, depth=depths[0],
-                                                       rtlat_slip=0, dip_slip=0);
-        fault_patches.append(new_ft);
-    return fault_patches, nodes;
