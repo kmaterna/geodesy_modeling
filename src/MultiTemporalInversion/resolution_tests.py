@@ -10,7 +10,7 @@ Option 3: invert 100 iterations of the data, and take the standard deviation of 
 
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy
+import scipy, os
 import slippy.basis
 
 def analyze_model_resolution_matrix(G, num_obs, outdir):
@@ -21,7 +21,7 @@ def analyze_model_resolution_matrix(G, num_obs, outdir):
     # Show big-G matrix for all times, all data
     plt.figure(figsize=(12, 8), dpi=300);
     plt.imshow(G, vmin=-0.02, vmax=0.02, aspect=1);
-    plt.savefig(outdir + "/G_resolution.png");
+    plt.savefig(os.path.join(outdir, "G_resolution.png"));
 
     # Model Resolution Matrix
     Ggi = scipy.linalg.pinv(G);  # Replace all smoothing with zeros for second half of this expression
@@ -36,13 +36,13 @@ def analyze_model_resolution_matrix(G, num_obs, outdir):
     # Viewing the diagonal elements of R (might be helpful?)
     plt.figure();
     plt.plot(np.diag(Rmatrix));
-    plt.savefig(outdir + '/model_resolution_diagonal.png');
+    plt.savefig(os.path.join(outdir, 'model_resolution_diagonal.png'));
 
     # Viewing the total picture of R: shows the model resolution along the diagonal.
     plt.figure(figsize=(12, 8), dpi=300);
     plt.imshow(Rmatrix, aspect=1);
     plt.colorbar();
-    plt.savefig(outdir + "/Rmatrix.png");
+    plt.savefig(os.path.join(outdir, "Rmatrix.png"));
     return np.diag(Rmatrix), sig_slipb;
 
 

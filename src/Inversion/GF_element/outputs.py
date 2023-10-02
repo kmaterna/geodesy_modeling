@@ -1,4 +1,5 @@
 from Elastic_stresses_py.PyCoulomb import fault_slip_object as library
+import os
 
 
 def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
@@ -19,8 +20,8 @@ def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
             scale_arrow = (1.0, 0.010, "1 cm");
         else:
             scale_arrow = (1.0, 0.001, "1 mm");
-        library.plot_fault_slip.map_source_slip_distribution(GF_el.fault_dict_list, outdir + "/gf_" +
-                                                             GF_el.param_name + "_only.png",
+        library.plot_fault_slip.map_source_slip_distribution(GF_el.fault_dict_list, os.path.join(outdir, "gf_" +
+                                                             GF_el.param_name + "_only.png"),
                                                              disp_points=GF_el.disp_points,
                                                              region=[-127, -119.7, 37.7, 43.3],
                                                              scale_arrow=scale_arrow,

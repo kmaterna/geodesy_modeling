@@ -13,7 +13,7 @@ import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
-import argparse, json, subprocess
+import argparse, json, subprocess, os
 from Geodesy_Modeling.src.Inversion.GF_element import GF_element
 
 def configure():
@@ -24,7 +24,7 @@ def configure():
     exp_dict["obs_disp_points"] = "Input_Data/ssgf_vectors_manual_m.txt";
     exp_dict["fault_file"] = "../../../_Data/Lohman_Fault_Geom/forK.mat";
     exp_dict["smoothing_length"] = 2;  # smooth adjacent patches with some wiggle room (2 for salton sea)
-    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
+    os.makedirs(exp_dict['outdir'], exist_ok=True);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
     return exp_dict;

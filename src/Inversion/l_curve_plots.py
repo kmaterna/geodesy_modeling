@@ -1,6 +1,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
+import os
 
 
 def write_1d_curve(param_values, misfits, filename):
@@ -137,12 +138,12 @@ def plot_l_curve_coordinator(params, misfits, outdir):
     all_alphas = [x[0] for x in params];
     all_penalties = [x[1] for x in params];
     if len(set(all_alphas)) == 1:
-        plot_1d_curve(all_penalties, misfits, 'Smoothing Penalty', outdir + "/l_curve_smoothing.png");
+        plot_1d_curve(all_penalties, misfits, 'Smoothing Penalty', os.path.join(outdir, "l_curve_smoothing.png"));
         write_1d_curve(all_penalties, misfits, outdir + "l_curve_points.txt");
     elif len(set(all_penalties)) == 1:
-        plot_1d_curve(all_alphas, misfits, 'Slip Penalty, alpha', outdir + "/l_curve_slip.png");
+        plot_1d_curve(all_alphas, misfits, 'Slip Penalty, alpha', os.path.join(outdir, "l_curve_slip.png"));
         write_1d_curve(all_alphas, misfits, outdir + "l_curve_points.txt");
     else:
         plot_2d_curve(all_alphas, all_penalties, misfits, '1/alpha (slip)', '1/smoothing (smoothing)',
-                      outdir + "/l_curve_2d.png");
+                      os.path.join(outdir, "l_curve_2d.png"));
     return;

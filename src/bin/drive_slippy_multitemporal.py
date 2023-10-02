@@ -5,7 +5,7 @@ Generic Driver for multiple projects
 Run Slippy with multiple time intervals in the input (a really big G matrix)
 """
 
-import sys, json, subprocess
+import sys, json, os, shutil
 from Geodesy_Modeling.src import MultiTemporalInversion
 
 
@@ -18,10 +18,10 @@ def welcome_and_parse(argv):
         config = argv[1];
     config_file = open(config, 'r');
     config1 = json.load(config_file);
-    subprocess.call(['mkdir', '-p', config1["output_dir"]], shell=False);
+    os.makedirs(config1['output_dir'], exist_ok=True);
     for i, key in enumerate(config1["faults"].keys()):
         fault_name = config1["faults"][key]["filename"]
-        subprocess.call(['cp', fault_name, config1['output_dir']]);  # save fault files, record-keeping
+        shutil.copy2(fault_name, os.path.join(config1['output_dir'], fault_name));  # save fault files, record-keeping
     if 'G' not in config1.keys():
         config1['G'] = 30e9;  # default shear modulus is 30 GPa
     return config1;

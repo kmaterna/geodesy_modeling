@@ -8,7 +8,7 @@ Depends on Humboldt Bay project code for some functions. It will not work on a d
 
 import numpy as np
 import scipy.optimize
-import subprocess, json, sys, argparse, os
+import json, sys, argparse, os
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
@@ -71,7 +71,7 @@ def configure():
         exp_dict["faults"]["LSFRev"]["slip_min"] = float(exp_dict["lsfrev_min"]);
     if exp_dict["ghost_transient_mult"] is not None:  # ghost transient multiplier into the command line
         exp_dict["corrections"][3]["scale"] = float(exp_dict["ghost_transient_mult"])
-    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
+    os.makedirs(exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
     print("Success resolving imports");

@@ -10,14 +10,13 @@ import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
 import Geodesy_Modeling.src.InSAR_1D_Object as InSAR_1D
 import Geodesy_Modeling.src.Inversion.GF_element.GF_element as GF_element
-import Geodesy_Modeling.src.Inversion.GF_element.readers_writers as GF_element_rw
 import src.Inversion.GF_element.rw_insar_gfs
 from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
-import argparse, json, subprocess
+import argparse, json, subprocess, os
 
 
 def configure():
@@ -29,7 +28,7 @@ def configure():
     exp_dict["obs_asc"] = "../../../InSAR_Exps/sample_InSAR_on_roads/output/avg_asc.txt";
     exp_dict["fault_file"] = "../../../../_Data/Lohman_Fault_Geom/forK.mat";
     exp_dict["smoothing_length"] = 2;  # smooth adjacent patches with some wiggle room (2 for salton sea)
-    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
+    os.makedirs(exp_dict['outdir'], exist_ok=True);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
     return exp_dict;
@@ -51,7 +50,7 @@ def compute_insar_gf_elements_kalin(fault_file: str, insar_object: InSAR_1D_Obje
             x = model_disp_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i], insar_object.lkv_U[i]);
             los_defo.append(x);
 
-        model_disp_pts = dpo.utilities.set_east(model_disp_pts, los_defo);
+        model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo);
         model_disp_pts = dpo.utilities.mult_disp_points_by(model_disp_pts, -1);  # sign convention
         GF_elements.append(
             GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
@@ -64,7 +63,8 @@ def read_gf_elements_kalin(fault_file: str, gf_file: str):
     """Read a list of fault triangle elements and their associated GF's for use in inversion. """
     print("Reading pre-computed InSAR Green's functions.");
     fault_tris = fst.file_io.io_other.read_brawley_lohman_2005(fault_file);
-    GF_elements = src.Inversion.GF_element.rw_insar_gfs.read_insar_greens_functions(gf_file, fault_tris, param_name='kalin', lower_bound=-1,
+    GF_elements = src.Inversion.GF_element.rw_insar_gfs.read_insar_greens_functions(gf_file, fault_tris,
+                                                                                    param_name='kalin', lower_bound=-1,
                                                                                     upper_bound=0);
     return GF_elements;
 

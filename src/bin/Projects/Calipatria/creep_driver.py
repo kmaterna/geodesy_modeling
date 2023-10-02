@@ -15,7 +15,7 @@ from Geodesy_Modeling.src.Inversion.GF_element import GF_element
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
-import argparse, json, subprocess
+import argparse, json, subprocess, os
 
 def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
@@ -25,7 +25,7 @@ def configure():
     exp_dict["obs_desc"] = "../_4_Downsample_unw/igram_sum/pixels_filtered_m.txt";
     exp_dict["fault_file"] = "../Get_Fault_Model/model_fault_patches.txt";
     exp_dict["smoothing_length"] = 6;  # smooth adjacent patches with some wiggle room
-    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
+    os.makedirs(exp_dict['outdir'], exist_ok=True);  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
     return exp_dict;

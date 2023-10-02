@@ -3,7 +3,7 @@ Several functions (research code) for io of leveling data, including CEC Salton 
 Some input functions also exist in specific project directories instead of being consolidated here
 """
 
-import pandas
+import pandas, os
 import datetime as dt
 import numpy as np
 from .LevStation import LevStation
@@ -46,7 +46,7 @@ def inputs_brawley_leveling(data_filename, errors_filename):
 
 def read_cec_leveling_errors(error_filename, data_filename):
     """Read file that documents typos and errors"""
-    data_filename = data_filename.split('/')[-1];
+    data_filename = os.path.split(data_filename)[1];
     print("Reading documented errors in %s " % error_filename)
     corrtype, sheetnum, rownum, colnum, old_values, new_values = [], [], [], [], [], [];
     ifile = open(error_filename, 'r');

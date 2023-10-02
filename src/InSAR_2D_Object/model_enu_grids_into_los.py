@@ -4,6 +4,7 @@ Simple calculation - single incidence angle for now.
 """
 
 import Geodesy_Modeling.src.InSAR_2D_Object as InSAR_2D_Object
+import os
 
 
 def parse_config(params_provided):
@@ -50,9 +51,11 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
     """
     if params['plot_unwrapped']:
         myobj_ref = insarobj.subtract_reference(insarobj, params['refidx']);  # Subtract reference pix
-        InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, params['outdir'] + "/"+params['label']+"unw_phase.grd");
-        InSAR_2D_Object.outputs.map_wrapped_insar(params['outdir']+"/"+params['label']+"unw_phase.grd",
-                                                  params['outdir']+"/"+params['label']+params['unwrapped_plot_name'],
+        InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, os.path.join(params['outdir'],
+                                                                      params['label']+"unw_phase.grd"))
+        InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"unw_phase.grd"),
+                                                  os.path.join(params['outdir'],
+                                                               params['label']+params['unwrapped_plot_name']),
                                                   text_annot=params['plot_unwrapped_annot'],
                                                   flight_heading=params['flight_direction'],
                                                   disp_points=disp_points, region=params['plot_range'],
@@ -60,9 +63,11 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
 
     if params['plot_wrapped']:
         myobj_wrapped = insarobj.rewrap_InSAR(params['wavelength_mm']);
-        InSAR_2D_Object.outputs.write_InSAR2D(myobj_wrapped, params['outdir']+"/"+params['label']+"phase.grd");
-        InSAR_2D_Object.outputs.map_wrapped_insar(params['outdir']+"/"+params['label']+"phase.grd",
-                                                  params['outdir']+"/"+params['label']+params["wrapped_plot_name"],
+        InSAR_2D_Object.outputs.write_InSAR2D(myobj_wrapped, os.path.join(params['outdir'],
+                                                                          params['label']+"phase.grd"));
+        InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"phase.grd"),
+                                                  os.path.join(params['outdir'],
+                                                               params['label']+params["wrapped_plot_name"]),
                                                   text_annot=params['plot_wrapped_annot'],
                                                   flight_heading=params['flight_direction'],
                                                   disp_points=disp_points, region=params['plot_range'], wrapped=True);

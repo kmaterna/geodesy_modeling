@@ -6,14 +6,14 @@ import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
-import json, argparse, subprocess
+import json, argparse, os
 import scipy.optimize
 import numpy as np
 import matplotlib.pyplot as plt
 
 filedict = {
-    "gf_file": "../../../../GEOPHYS_DATA/Meshes/CSZ_Bartlow/2014_inversion_het.mat",
-    "data_file": "../../stack/calculated_displacements.txt",
+    "gf_file": "../../../../../GEOPHYS_DATA/Meshes/CSZ_Bartlow/2014_inversion_het.mat",
+    "data_file": "../../02_stack/Out_disps/mtj_1221_0228/calculated_displacements_1221_0228.txt",
     "sample_gf_file": "../../Visualize_GFs/gf_pred_file.txt"
 };
 """
@@ -29,7 +29,7 @@ def configure():
     p.add_argument('--tikhonov0', type=float, help='''strength of minimum-norm penalty''', default=30)
     exp_dict = vars(p.parse_args())
     exp_dict["smoothing_length"] = 10;  # smooth adjacent patches with some wiggle room
-    subprocess.call(['mkdir', '-p', exp_dict["outdir"]]);  # """Set up an experiment directory."""
+    os.makedirs(exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
     with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
         json.dump(exp_dict, fp, indent=4);
     return exp_dict;

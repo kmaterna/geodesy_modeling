@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import json
+import json, os
 import slippy.xyz2geo as plotting_library
 import slippy.basis
 import slippy.patch
@@ -170,7 +170,7 @@ def graph_big_G(config, G):
     plt.figure(figsize=(12, 8), dpi=300);
     plt.imshow(G, vmin=-0.2, vmax=0.2, aspect=1/5);
     plt.colorbar();
-    plt.savefig(config['output_dir']+"/image_of_G.png");
+    plt.savefig(os.path.join(config['output_dir'], "image_of_G.png"));
     return;
 
 
@@ -213,7 +213,7 @@ def parse_disp_outputs(pred_disp_f, num_obs):
 
 def beginning_calc(config):
 
-    with open(config['output_dir']+'/config.json', 'w') as fp:
+    with open(os.path.join(config['output_dir'], 'config.json'), 'w') as fp:
         json.dump(config, fp, indent="  ");   # save copy of config file in outdir, for record-keeping
 
     fault_list = input_faults(config);

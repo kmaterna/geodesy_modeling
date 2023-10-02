@@ -5,6 +5,7 @@ import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
 from .GF_element.GF_element import GF_element
+import os
 
 
 def pair_obs_model(obs_disp_pts, model_disp_pts, tol=0.001):
@@ -400,20 +401,20 @@ def view_full_results(exp_dict, paired_obs, modeled_disp_points, residual_pts, r
     # Plot the data, model, and residual in separate plots
     # Not plotting the fault patches because it takes a long time.
     scale_arrow = (1.0, 0.010, "1 cm/yr");
-    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"] + "/data_only.png",
+    library.plot_fault_slip.map_source_slip_distribution([], os.path.join(exp_dict["outdir"], "data_only.png"),
                                                          disp_points=paired_obs, region=region,
                                                          scale_arrow=scale_arrow, v_labeling_interval=0.001)
-    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/residuals.png",
+    library.plot_fault_slip.map_source_slip_distribution([], os.path.join(exp_dict["outdir"], "residuals.png"),
                                                          disp_points=residual_pts, region=region,
                                                          scale_arrow=scale_arrow, v_labeling_interval=0.001,
                                                          title=title);
-    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/model_pred.png",
+    library.plot_fault_slip.map_source_slip_distribution([], os.path.join(exp_dict["outdir"], "model_pred.png"),
                                                          disp_points=modeled_disp_points, region=region,
                                                          scale_arrow=scale_arrow, v_labeling_interval=0.001)
-    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/rotation_pred.png",
+    library.plot_fault_slip.map_source_slip_distribution([], os.path.join(exp_dict["outdir"], "rotation_pred.png"),
                                                          disp_points=rotation_pts, region=region,
                                                          scale_arrow=scale_arrow, v_labeling_interval=0.001)
-    library.plot_fault_slip.map_source_slip_distribution([], exp_dict["outdir"]+"/faults_only_pred.png",
+    library.plot_fault_slip.map_source_slip_distribution([], os.path.join(exp_dict["outdir"], "faults_only_pred.png"),
                                                          disp_points=norot_pts, region=region,
                                                          scale_arrow=scale_arrow, v_labeling_interval=0.001)
     return;
