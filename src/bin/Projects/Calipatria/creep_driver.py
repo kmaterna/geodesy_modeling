@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-A cute little script starting off the process of inverting InSAR for slip
+A cute little script starting off the process of inverting InSAR for slip on the Superstition Hills fault
 """
 
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
@@ -107,8 +107,8 @@ if __name__ == "__main__":
         modeled_faults.append(new_fault);
     total_moment = fso.fault_slip_object.get_total_moment(modeled_faults)
 
-    fso.fault_slip_object.write_gmt_vertical_fault_file(modeled_faults, outdir+"/vertical-outfile.txt",
-                                                        color_mappable=lambda x: x.get_rtlat_slip());
+    fso.file_io.outputs.write_gmt_vertical_fault_file(modeled_faults, outdir+"/vertical-outfile.txt",
+                                                      color_mappable=lambda x: x.get_rtlat_slip());
     fso.file_io.io_slippy.write_slippy_distribution(modeled_faults, outdir+'/model_fault_patches.txt');
     for x in model_disp_pts:
         x.set_vert_value(x.dE_obs); x.set_east_value(0); x.set_north_value(0);

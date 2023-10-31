@@ -84,7 +84,7 @@ def run_main():
         modeled_faults.append(new_fault);
     total_moment = fst.fault_slip_triangle.get_total_moment(modeled_faults)
 
-    fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
+    fst.file_io.tri_outputs.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
                                                        color_mappable=lambda x: x.get_rtlat_slip());
     scale_arrow = (1.0, 0.001, "1 mm");
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,

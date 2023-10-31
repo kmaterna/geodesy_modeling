@@ -94,12 +94,12 @@ if __name__ == "__main__":
         modeled_faults.append(new_fault);
     total_moment = fst.fault_slip_triangle.get_total_moment(modeled_faults)
 
-    fst.fault_slip_triangle.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
+    fst.file_io.tri_outputs.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
                                                        color_mappable=lambda x: x.get_rtlat_slip());
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,
                                                      fault_traces_from_file=outdir+"/temp-outfile.txt");
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/obs_disps.png', disp_points=obs_disp_pts);
-    fst.fault_slip_triangle.write_gmt_vertical_fault_file(modeled_faults, outdir+'/vertical_fault.txt',
+    fst.file_io.tri_outputs.write_gmt_vertical_fault_file(modeled_faults, outdir+'/vertical_fault.txt',
                                                           color_mappable=lambda x: x.get_rtlat_slip(), strike=225);
 
     write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts);

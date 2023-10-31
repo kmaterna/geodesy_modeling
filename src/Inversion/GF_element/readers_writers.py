@@ -13,8 +13,8 @@ def write_csz_dist_fault_patches(gf_elements, model_results_vector, outfile_gmt,
             new_patch = fault_dict_lists[i][0].change_fault_slip(model_results_vector[i]*10);  # mm/yr
             modeled_slip_patches.append(new_patch);
     if len(modeled_slip_patches) > 0:
-        fso.fault_slip_object.write_gmt_fault_file(modeled_slip_patches, outfile_gmt,
-                                                   color_mappable=lambda x: x.get_total_slip());
+        fso.file_io.outputs.write_gmt_fault_file(modeled_slip_patches, outfile_gmt,
+                                                 color_mappable=lambda x: x.get_total_slip());
 
     fso.file_io.io_slippy.write_slippy_distribution(modeled_slip_patches, outfile_txt, slip_units='mm/yr');
     return;
