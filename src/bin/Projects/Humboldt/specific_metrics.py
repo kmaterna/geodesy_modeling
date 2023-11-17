@@ -1,7 +1,7 @@
 # Metrics and print statements specific to the Humboldt modeling project
 
 
-import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as moment_calcs
+import Tectonic_Utils.seismo.moment_calculations as moment_calcs
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
 
 

@@ -1,6 +1,6 @@
 from Elastic_stresses_py.PyCoulomb import disp_points_object as dpo
 from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
-from Tectonic_Utilities.Tectonic_Utils.geodesy import euler_pole
+from Tectonic_Utils.geodesy import euler_pole
 
 
 class GF_element:

@@ -44,7 +44,7 @@ def run_main():
     GF_elements = [x for x in GF_elements if x.fault_dict_list[0].depth > -50];
     for item in GF_elements:
         item.set_lower_bound(0); item.set_upper_bound(1);
-        item.set_slip_penalty(exp_dict['tikhonov0'] - 0.1*item.fault_dict_list[0].depth);  # - item.fault_dict_list[0].depth a tunable parameter
+        item.set_slip_penalty(exp_dict['tikhonov0'] - 0.1*item.fault_dict_list[0].depth);
     obs_data_points = dpo.io_gmt.read_disp_points_gmt(filedict['data_file']);
     obs_data_points = dpo.utilities.filter_to_remove_nans(obs_data_points);
     obs_data_points = dpo.utilities.filter_by_bounding_box(obs_data_points, (-126, -122, 39.65, 41.5));
@@ -84,7 +84,7 @@ def run_main():
         modeled_faults.append(new_fault);
     total_moment = fst.fault_slip_triangle.get_total_moment(modeled_faults)
 
-    fst.file_io.tri_outputs.write_gmt_plots_geographic(modeled_faults, outdir+"/temp-outfile.txt",
+    fst.file_io.tri_outputs.write_gmt_plots_geographic(modeled_faults, outdir+"/slip_dist_outfile.txt",
                                                        color_mappable=lambda x: x.get_rtlat_slip());
     scale_arrow = (1.0, 0.001, "1 mm");
     fso.plot_fault_slip.map_source_slip_distribution([], outdir+'/model_disps.png', disp_points=model_disp_pts,

@@ -7,6 +7,7 @@ A cute little script starting off the process of inverting InSAR for slip on the
 import Elastic_stresses_py.PyCoulomb as PyCoulomb
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
+import Elastic_stresses_py.PyCoulomb.inputs_object as inputs_object
 import Geodesy_Modeling.src.InSAR_1D_Object as InSAR_1D
 from Geodesy_Modeling.src.InSAR_1D_Object.class_model import InSAR_1D_Object
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
@@ -39,9 +40,9 @@ def compute_insar_gf_elements(fault_file: str, insar_object: InSAR_1D_Object):
     for patch in fault_patches:
         changed_slip_fault = patch.change_fault_slip(new_slip=1, new_rake=180);
         pycoulomb_fault = changed_slip_fault.fault_object_to_coulomb_fault(zerolon_system=-115.8, zerolat_system=33.1);
-        inputs = PyCoulomb.configure_calc.configure_default_displacement_input(source_object=[pycoulomb_fault],
-                                                                               zerolon=-115.8, zerolat=33.1, bbox=());
-        params = PyCoulomb.configure_calc.configure_default_displacement_params(mu=30e9, lame1=30e9);
+        inputs = inputs_object.input_obj.configure_default_displacement_input(source_object=[pycoulomb_fault],
+                                                                              zerolon=-115.8, zerolat=33.1, bbox=());
+        params = PyCoulomb.configure_calc.Params(mu=30e9, lame1=30e9);
         model_disp_pts = PyCoulomb.run_dc3d.compute_ll_def(inputs, params, all_disp_points);
 
         # PROJECT 3D DISPLACEMENTS INTO LOS. LIST OF FLOATS.

@@ -3,7 +3,7 @@ import numpy as np
 from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
-import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
+import Tectonic_Utils.seismo.moment_calculations as mo
 from .GF_element.GF_element import GF_element
 import os
 

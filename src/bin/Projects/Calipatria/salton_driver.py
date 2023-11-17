@@ -9,7 +9,7 @@ import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import Geodesy_Modeling.src.Inversion.inversion_tools as inv_tools
-import Tectonic_Utilities.Tectonic_Utils.seismo.moment_calculations as mo
+import Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
