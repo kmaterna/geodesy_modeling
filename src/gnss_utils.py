@@ -4,7 +4,7 @@ Note that one is meant for velocities and one is meant for displacements
 Be smart when you're using both.
 """
 
-from GNSS_TimeSeries_Viewers.gps_tools import vel_functions
+from gnss_timeseries_viewers.gps_tools import vel_functions
 from Elastic_stresses_py.PyCoulomb import coulomb_collections
 
 def disp_points_to_Station_Vels(list_of_disp_points):

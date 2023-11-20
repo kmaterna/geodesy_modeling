@@ -13,7 +13,7 @@ import numpy as np
 import sys, json, subprocess
 import datetime as dt
 from . import file_io_brawley_gnss as io_brawley
-from GNSS_TimeSeries_Viewers import gps_tools as gt
+from gnss_timeseries_viewers.gps_tools import gps_ts_functions, downsample
 from Geodesy_Modeling.src import Downsample, InSAR_1D_Object, Leveling_Object
 from S1_batches.read_write_insar_utilities import isce_read_write
 
@@ -49,7 +49,7 @@ def get_starttime_endtime(epochs_dict, select_interval_dict):
 def loop_removing_constant(ts_obj_list, enu_offset):
     new_gps_ts_list = [];
     for one_object in ts_obj_list:
-        newobj = gt.gps_ts_functions.remove_constant(one_object, -enu_offset[0], -enu_offset[1], -enu_offset[2]);
+        newobj = gps_ts_functions.remove_constant(one_object, -enu_offset[0], -enu_offset[1], -enu_offset[2]);
         new_gps_ts_list.append(newobj);
     return new_gps_ts_list;
 
@@ -76,11 +76,11 @@ def write_gps_displacements(config):
                                                    remove_coseismic=new_interval_dict["remove_coseismic"],
                                                    network=network);
         for full_station in stations:
-            ds_obj = gt.downsample.subsample_ts_at_points(full_station, [starttime, endtime], window_days=30,
-                                                          Se_default=gps_sigma, Sn_default=gps_sigma,
-                                                          Su_default=3 * gps_sigma);
+            ds_obj = downsample.subsample_ts_at_points(full_station, [starttime, endtime], window_days=30,
+                                                       Se_default=gps_sigma, Sn_default=gps_sigma,
+                                                       Su_default=3 * gps_sigma);
             displacements_objects.append(ds_obj);
-            gt.downsample.plot_subsampled_ts(full_station, ds_obj, prep_dir+full_station.name+"_ts.png", buffer=1035);
+            downsample.plot_subsampled_ts(full_station, ds_obj, prep_dir+full_station.name+"_ts.png", buffer=1035);
         if "gps_add_offset_mm" in new_interval_dict.keys():  # an option to add a constant (in enu) to the GNSS offsets
             displacement_objects = loop_removing_constant(displacement_objects, new_interval_dict["gps_add_offset_mm"]);
         io_brawley.write_interval_gps_invertible(displacement_objects, config["prep_inputs_dir"]

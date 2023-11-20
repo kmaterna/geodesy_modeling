@@ -5,7 +5,7 @@ Reference: Timeseries = ['name', 'coords', 'dtarray', 'dN', 'dE', 'dU', 'Sn', 'S
 
 import datetime as dt
 import numpy as np
-from GNSS_TimeSeries_Viewers import gps_tools as gpstools
+from gnss_timeseries_viewers import gps_tools as gpstools
 
 
 def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='pbo', blacklist=()):
