@@ -29,7 +29,7 @@ def parse_config(params_provided):
     # Combine dictionary with priority order using ** operator
     prio_dict = {1: params_provided, 2: defaults}
     params = {**prio_dict[2], **prio_dict[1]}
-    return params;
+    return params
 
 
 def read_grd_inputs(params):
@@ -38,8 +38,8 @@ def read_grd_inputs(params):
     """
     myobj = InSAR_2D_Object.inputs.inputs_from_synthetic_enu_grids(params['east_grdfile'], params['north_grdfile'],
                                                                    params['up_grdfile'], params['flight_direction'],
-                                                                   params['incidence_angle']);
-    return myobj;
+                                                                   params['incidence_angle'])
+    return myobj
 
 
 def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_color=None):
@@ -50,7 +50,7 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
     :param disp_points_color: a 1d array of floats to be plotted as colors in the disp_points fill
     """
     if params['plot_unwrapped']:
-        myobj_ref = insarobj.subtract_reference(insarobj, params['refidx']);  # Subtract reference pix
+        myobj_ref = insarobj.subtract_reference(insarobj, params['refidx'])  # Subtract reference pix
         InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, os.path.join(params['outdir'],
                                                                       params['label']+"unw_phase.grd"))
         InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"unw_phase.grd"),
@@ -59,29 +59,29 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
                                                   text_annot=params['plot_unwrapped_annot'],
                                                   flight_heading=params['flight_direction'],
                                                   disp_points=disp_points, region=params['plot_range'],
-                                                  refloc=params['refidx'], disp_points_color=disp_points_color);
+                                                  refloc=params['refidx'], disp_points_color=disp_points_color)
 
     if params['plot_wrapped']:
-        myobj_wrapped = insarobj.rewrap_InSAR(params['wavelength_mm']);
+        myobj_wrapped = insarobj.rewrap_InSAR(params['wavelength_mm'])
         InSAR_2D_Object.outputs.write_InSAR2D(myobj_wrapped, os.path.join(params['outdir'],
-                                                                          params['label']+"phase.grd"));
+                                                                          params['label']+"phase.grd"))
         InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"phase.grd"),
                                                   os.path.join(params['outdir'],
                                                                params['label']+params["wrapped_plot_name"]),
                                                   text_annot=params['plot_wrapped_annot'],
                                                   flight_heading=params['flight_direction'],
-                                                  disp_points=disp_points, region=params['plot_range'], wrapped=True);
-    return;
+                                                  disp_points=disp_points, region=params['plot_range'], wrapped=True)
+    return
 
 
 def do_synthetic_grid_LOS(params_provided, disp_points=None, disp_points_color=None):
     # SAMPLE DRIVER: CONFIG, INPUT, OUTPUT
-    params = parse_config(params_provided);
-    insarobj = read_grd_inputs(params);
-    plot_synthetic_grid_los(params, insarobj, disp_points, disp_points_color);
-    return;
+    params = parse_config(params_provided)
+    insarobj = read_grd_inputs(params)
+    plot_synthetic_grid_los(params, insarobj, disp_points, disp_points_color)
+    return
 
 
 if __name__ == "__main__":
-    params_provided = parse_config({});  # could consider making this a command line application
-    do_synthetic_grid_LOS(params_provided);
+    params_provided = parse_config({})  # could consider making this a command line application
+    do_synthetic_grid_LOS(params_provided)
