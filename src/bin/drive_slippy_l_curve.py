@@ -22,7 +22,8 @@ def welcome_and_parse(argv):
     os.makedirs(config1['output_dir_lcurve'], exist_ok=True)
     for i, key in enumerate(config1["faults"].keys()):
         fault_file_name = config1["faults"][key]["filename"]
-        shutil.copy2(fault_file_name, os.path.join(config1['output_dir_lcurve'], fault_file_name))  # save fault files
+        fault_name = os.path.split(fault_file_name)[1]
+        shutil.copy2(fault_file_name, os.path.join(config1['output_dir_lcurve'], fault_name))  # save fault files
     if 'G' not in config1.keys():
         config1['G'] = 30e9  # default shear modulus is 30 GPa
     if 'resolution_test' not in config1.keys():
