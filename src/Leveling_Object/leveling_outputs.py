@@ -32,7 +32,7 @@ def plot_leveling_displacements(LevList, outfile, vmin=-0.25, vmax=0.15, scale=F
         plt.scatter(lon, lat, c=disp, s=60, cmap='rainbow')
     plt.plot(LevList[0].reflon, LevList[0].reflat, marker='*', markersize=20, color='black')
     custom_cmap.set_array(np.arange(vmin, vmax))
-    cb = fig.colorbar(custom_cmap, ax=plt.gca())
+    cb = fig.colorbar(mappable=custom_cmap, ax=plt.gca())
     cb.set_label("Leveling displacements (m)")
     if title:
         plt.title(title, fontsize=20)
@@ -133,10 +133,10 @@ def plot_leveling_slopes(LevList, slopes, description, plotname):
     lon = [item.lon for item in LevList]
     lat = [item.lat for item in LevList]
     fig = plt.figure()
-    plt.scatter(lon, lat, c=slopes, s=40, vmin=-0.020, vmax=0.020, cmap='RdBu')
+    sc = plt.scatter(lon, lat, c=slopes, s=40, vmin=-0.020, vmax=0.020, cmap='RdBu')
     plt.plot(LevList[0].reflon, LevList[0].reflat, marker='*')
     plt.title(description, fontsize=20)
-    _cb = fig.colorbar(label='Displacement Rate (m/yr)', ax=plt.gca())
+    _cb = fig.colorbar(mappable=sc, label='Displacement Rate (m/yr)', ax=plt.gca())
     plt.savefig(plotname)
     return
 
