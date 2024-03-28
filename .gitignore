@@ -3,3 +3,4 @@
 *.pyc
 .idea/*
 isce.log
+*.DS_Store

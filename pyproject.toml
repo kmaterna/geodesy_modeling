@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "geodesy_modeling"
+version = "0.1.0"
+description = "Tools for modeling geodetic data for tectonic fault slip, from InSAR, GNSS, and leveling"
+authors = ["Kathryn Materna <kmaterna@berkeley.edu>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/kmaterna/Geodesy_Modeling"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+numpy = "^1.20"
+scipy = ">=1.10"
+matplotlib = ">=3.4"
+pygmt = ">0.8"
+pandas = "*"
+Tectonic-Utils = "^0.1.0"
+earthscope-cli = "*"
+
+
+[build-system]
+requires = ["poetry-core", "setuptools", "wheel"]
+build-backend = "poetry.core.masonry.api"
