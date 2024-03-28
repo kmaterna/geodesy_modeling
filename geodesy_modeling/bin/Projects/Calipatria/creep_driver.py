@@ -27,7 +27,7 @@ def configure():
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''')
     p.add_argument('--outdir', type=str, help='''Output directory''')
     exp_dict = vars(p.parse_args())
-    exp_dict["obs_desc"] = "../_4_Downsample_unw/igram_sum/pixels_filtered_m.txt"
+    exp_dict["obs_desc"] = "../../_4_Downsample_unw/igram_sum/pixels_filtered_m.txt"
     exp_dict["fault_file"] = "../Get_Fault_Model/model_fault_patches.txt"
     exp_dict["smoothing_length"] = 6  # smooth adjacent patches with some wiggle room
     os.makedirs(exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
@@ -52,7 +52,7 @@ def compute_insar_gf_elements(fault_file: str, insar_object: InSAR_1D_Object):
 
         # PROJECT 3D DISPLACEMENTS INTO LOS. LIST OF FLOATS.
         los_defo = [model_disp_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i],
-                                                       insar_object.lkv_U[i]) for i in range(len(all_disp_points))]
+                                                       insar_object.lkv_U[i]) for _i in range(len(all_disp_points))]
 
         model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo)
         model_disp_pts = dpo.utilities.mult_disp_points_by(model_disp_pts, -1)  # sign convention
@@ -67,7 +67,7 @@ def read_gf_elements(fault_file: str, gf_file: str):
     print("Reading pre-computed InSAR Green's functions.")
     fault_patches = fso.file_io.io_slippy.read_slippy_distribution(fault_file)
     GF_elements = rw_gf.read_insar_greens_functions(gf_file, fault_patches, param_name='shf', lower_bound=0,
-                                                    upper_bound=0.3)
+                                                    upper_bound=0.05)
     return GF_elements
 
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         [new_fault] = GF_elements[i].fault_dict_list
         new_fault = new_fault.change_fault_slip(new_slip=M_opt[i])
         modeled_faults.append(new_fault)
-    total_moment = fso.fault_slip_object.get_total_moment(modeled_faults)
+    total_moment = fso.fault_slip_object.get_total_moment(modeled_faults, mu=4e9)  # 4 GPa from Shaw (2015)
 
     fso.file_io.outputs.write_gmt_vertical_fault_file(modeled_faults, outdir+"/vertical-outfile.txt",
                                                       color_mappable=lambda x: x.get_rtlat_slip())
@@ -134,3 +134,4 @@ if __name__ == "__main__":
                                                      region=(-115.90, -115.6, 32.79, 33.11), map_scale=15)
     inv_tools.write_standard_misfit_report(exp_dict['outdir'], obs_disp_pts, model_disp_pts, total_moment)
     subprocess.call(['./gmt_plot.sh', outdir])   # plotting the results in pretty GMT plots
+    subprocess.call(['./combined_gmt_plot.sh', outdir])  # plotting the results in pretty GMT plots
