@@ -7,7 +7,7 @@ The format will be the internal format used in PyCoulomb, a class with geometry 
 import numpy as np
 import matplotlib.pyplot as plt
 from Tectonic_Utils.geodesy import haversine, fault_vector_functions
-from Elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as fso
+from elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as fso
 
 
 def read_surface_fault_trace(infile):

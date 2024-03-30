@@ -1,7 +1,7 @@
 import numpy as np
-from Elastic_stresses_py.PyCoulomb import disp_points_object as dpo
-from Elastic_stresses_py.PyCoulomb.fault_slip_triangle import fault_slip_triangle
-from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
+from elastic_stresses_py.PyCoulomb import disp_points_object as dpo
+from elastic_stresses_py.PyCoulomb.fault_slip_triangle import fault_slip_triangle
+from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 from .GF_element import GF_element
 
 

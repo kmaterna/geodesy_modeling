@@ -5,7 +5,7 @@ Be smart when you're using both.
 """
 
 from gnss_timeseries_viewers.gps_tools import vel_functions
-from Elastic_stresses_py.PyCoulomb import coulomb_collections
+from elastic_stresses_py.PyCoulomb import coulomb_collections
 
 
 def disp_points_to_Station_Vels(list_of_disp_points):

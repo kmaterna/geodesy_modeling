@@ -1,4 +1,4 @@
-from Elastic_stresses_py.PyCoulomb import fault_slip_object as library
+from elastic_stresses_py.PyCoulomb import fault_slip_object as library
 import os
 
 

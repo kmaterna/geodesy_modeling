@@ -5,7 +5,7 @@ description = "Tools for modeling geodetic data for tectonic fault slip, from In
 authors = ["Kathryn Materna <kmaterna@berkeley.edu>"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/kmaterna/Geodesy_Modeling"
+repository = "https://github.com/kmaterna/geodesy_modeling"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

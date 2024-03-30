@@ -12,12 +12,12 @@ import json
 import sys
 import argparse
 import os
-import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
-import Elastic_stresses_py.PyCoulomb as PyCoulomb
+import elastic_stresses_py.PyCoulomb.fault_slip_object as library
+import elastic_stresses_py.PyCoulomb as PyCoulomb
 import geodesy_modeling.Inversion.inversion_tools as inv_tools
 import geodesy_modeling.Inversion.metrics as metrics
-import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
-import Elastic_stresses_py.PyCoulomb.disp_points_object.io_gmt as dpo_out
+import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
+import elastic_stresses_py.PyCoulomb.disp_points_object.io_gmt as dpo_out
 import geodesy_modeling.Inversion.GF_element.GF_element as GF_element
 import geodesy_modeling.Inversion.GF_element.outputs as outputs
 import geodesy_modeling.Inversion.GF_element.readers_writers as GF_element_rw

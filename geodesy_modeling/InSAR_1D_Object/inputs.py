@@ -11,7 +11,7 @@ from S1_batches.read_write_insar_utilities import isce_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from ..general_utils import convert_rates_to_disps
 from .class_model import InSAR_1D_Object
-from Elastic_stresses_py.PyCoulomb.fault_slip_triangle.file_io import io_other
+from elastic_stresses_py.PyCoulomb.fault_slip_triangle.file_io import io_other
 
 
 def inputs_txt(insar_textfile, starttime=dt.datetime.strptime("19900101", "%Y%m%d"),

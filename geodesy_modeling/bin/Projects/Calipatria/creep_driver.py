@@ -4,10 +4,10 @@
 A cute little script starting off the process of inverting InSAR for slip on the Superstition Hills fault
 """
 
-import Elastic_stresses_py.PyCoulomb as PyCoulomb
-import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
-import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
-import Elastic_stresses_py.PyCoulomb.inputs_object as inputs_object
+import elastic_stresses_py.PyCoulomb as PyCoulomb
+import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
+import elastic_stresses_py.PyCoulomb.fault_slip_object as fso
+import elastic_stresses_py.PyCoulomb.inputs_object as inputs_object
 import geodesy_modeling.InSAR_1D_Object as InSAR_1D
 from geodesy_modeling.InSAR_1D_Object.class_model import InSAR_1D_Object
 import geodesy_modeling.Inversion.inversion_tools as inv_tools

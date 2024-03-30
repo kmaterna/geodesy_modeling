@@ -4,10 +4,10 @@
 A cute little script starting off the process of inverting gnss data in the Salton Sea for slip on the Kalin Fault
 """
 
-import Elastic_stresses_py.PyCoulomb as PyCoulomb
-import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
-import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
-import Elastic_stresses_py.PyCoulomb.fault_slip_object as fso
+import elastic_stresses_py.PyCoulomb as PyCoulomb
+import elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
+import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
+import elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import geodesy_modeling.Inversion.inversion_tools as inv_tools
 import Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np

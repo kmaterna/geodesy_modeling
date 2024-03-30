@@ -1,6 +1,6 @@
 import numpy as np
 from Tectonic_Utils.geodesy import insar_vector_functions as ivs
-from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
+from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 
 
 class InSAR_1D_Object:

@@ -2,7 +2,7 @@
 
 
 import Tectonic_Utils.seismo.moment_calculations as moment_calcs
-import Elastic_stresses_py.PyCoulomb.fault_slip_object as library
+import elastic_stresses_py.PyCoulomb.fault_slip_object as library
 
 
 def write_custom_humboldt_metrics(outfile, values, GF_elements):

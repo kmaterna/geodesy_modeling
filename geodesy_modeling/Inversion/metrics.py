@@ -1,5 +1,5 @@
 import numpy as np
-from Elastic_stresses_py.PyCoulomb.disp_points_object import utilities, compute_rms
+from elastic_stresses_py.PyCoulomb.disp_points_object import utilities, compute_rms
 
 # The usual metrics for the whole project are done with operations on displacement point objects
 

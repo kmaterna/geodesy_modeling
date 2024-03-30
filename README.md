@@ -1,4 +1,5 @@
-# Geodesy_modeling
+# geodesy_modeling
 
-This code toolbox will prepare various geodetic data formats for modeling and perform inversions. It will produce comparison metrics and outputs to the inversions. 
+This toolbox will prepare various geodetic data formats for modeling and perform inversions. It will produce comparison metrics and outputs to the inversions.
+Not currently prepared for general sharing and usage. 
 

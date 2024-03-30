@@ -1,6 +1,6 @@
-from Elastic_stresses_py.PyCoulomb import fault_slip_object as fso
-from Elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
-import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
+from elastic_stresses_py.PyCoulomb import fault_slip_object as fso
+from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
+import elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 from .GF_element import GF_element
 import scipy.io
 

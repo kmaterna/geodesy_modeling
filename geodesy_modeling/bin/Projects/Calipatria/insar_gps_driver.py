@@ -4,9 +4,9 @@
 Inverting gnss and InSAR data in the Salton Sea for slip on the Kalin Fault.
 """
 
-import Elastic_stresses_py.PyCoulomb as PyCoulomb
-import Elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
-import Elastic_stresses_py.PyCoulomb.disp_points_object as dpo
+import elastic_stresses_py.PyCoulomb as PyCoulomb
+import elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
+import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import geodesy_modeling.Inversion.inversion_tools as inv_tools
 import geodesy_modeling.InSAR_1D_Object as InSAR_1D
 import geodesy_modeling.Inversion.GF_element.GF_element as GF_element
