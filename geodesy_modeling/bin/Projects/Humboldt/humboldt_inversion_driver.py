@@ -18,13 +18,11 @@ import geodesy_modeling.Inversion.inversion_tools as inv_tools
 import geodesy_modeling.Inversion.metrics as metrics
 import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import elastic_stresses_py.PyCoulomb.disp_points_object.io_gmt as dpo_out
-import geodesy_modeling.Inversion.GF_element.GF_element as GF_element
-import geodesy_modeling.Inversion.GF_element.outputs as outputs
-import geodesy_modeling.Inversion.GF_element.readers_writers as GF_element_rw
+import geodesy_modeling.Inversion.GfElement.GfElement as GF_element
+import geodesy_modeling.Inversion.GfElement.outputs as outputs
+import geodesy_modeling.Inversion.GfElement.readers_writers as gf_element_rw
 from specific_metrics import write_custom_humboldt_metrics, write_custom_misfit_metrics
-
-sys.path.append("../../../_Project_Code")  # add local code
-import humboldt_readers as hr  # Also had to add into pycharm project settings.
+import humboldt_readers as hr  # local import
 
 reader_dictionary = {
     "csz": hr.read_addcp_correction_table,
@@ -108,7 +106,7 @@ def read_hb_fault_gf_elements(exp_dict):
     for i in range(len(exp_dict["exp_faults"])):  # for each fault
         fault_name = exp_dict["exp_faults"][i]
         if fault_name == "CSZ_dist":  # Reading for distributed CSZ patches as unit slip.
-            csz_GF_elements, maxslip = GF_element_rw.read_distributed_GF_static1d(exp_dict["inverse_dir"] +
+            csz_GF_elements, maxslip = gf_element_rw.read_distributed_GF_static1d(exp_dict["inverse_dir"] +
                                                                                   exp_dict["faults"]["CSZ"]["GF"],
                                                                                   exp_dict["inverse_dir"] +
                                                                                   exp_dict["faults"]["CSZ"]["geometry"],
@@ -146,11 +144,11 @@ def read_hb_fault_gf_elements(exp_dict):
                                                                                      exp_dict["lonlatfile"])
                     mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo1)
                     mod_disp_points = dpo.utilities.add_disp_points(mod_disp_points, mod_dpo2)
-            one_gf_element = GF_element.GF_element(disp_points=mod_disp_points, param_name=fault_name,
-                                                   fault_dict_list=temp,
-                                                   lower_bound=exp_dict["faults"][fault_name]["slip_min"],
-                                                   upper_bound=exp_dict["faults"][fault_name]["slip_max"],
-                                                   slip_penalty=0, units='cm/yr', points=fault_points)
+            one_gf_element = GF_element.GfElement(disp_points=mod_disp_points, param_name=fault_name,
+                                                  fault_dict_list=temp,
+                                                  lower_bound=exp_dict["faults"][fault_name]["slip_min"],
+                                                  upper_bound=exp_dict["faults"][fault_name]["slip_max"],
+                                                  slip_penalty=0, units='cm/yr', points=fault_points)
             gf_elements.append(one_gf_element)
     return gf_elements
 
@@ -267,7 +265,7 @@ def run_humboldt_inversion():
     write_custom_misfit_metrics(outdir + '/model_results_human.txt', rms_obj)
     write_custom_humboldt_metrics(outdir + '/model_results_human.txt', M_opt, paired_gf_elements)
     inv_tools.write_fault_traces(np.multiply(M_opt, 10), paired_gf_elements, outdir + '/fault_output.txt')  # mm/yr
-    GF_element_rw.write_csz_dist_fault_patches(paired_gf_elements, M_opt, outdir + '/csz_model.gmt',
+    gf_element_rw.write_csz_dist_fault_patches(paired_gf_elements, M_opt, outdir + '/csz_model.gmt',
                                                outdir + '/csz_slip_distribution.txt')
     inv_tools.view_full_results(exp_dict, paired_obs, model_disp_pts, residual_pts, rot_modeled_pts,
                                 norot_modeled_pts, rms_title, region=[-127, -119.7, 37.7, 43.5])

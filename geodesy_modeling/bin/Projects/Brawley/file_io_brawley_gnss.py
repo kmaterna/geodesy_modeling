@@ -41,10 +41,10 @@ def read_station_ts_NBGF(gps_bbox, gps_reference, remove_coseismic=0, network='p
         newobj = offsets.remove_offsets(one_object, offsetobj_list[i])  # remove antenna offsets
 
         if newobj.name == 'BRAW':
-            newobj = gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=0, seasonals_type="lssq",
+            newobj = gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=False, seasonals_type="lssq",
                                                              data_config_file=gps_data_config_file, remove_trend=0)
         else:
-            newobj = gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=1, seasonals_type="nldas",
+            newobj = gps_seasonal_removals.make_detrended_ts(newobj, seasonals_remove=True, seasonals_type="nldas",
                                                              data_config_file=gps_data_config_file, remove_trend=0)
 
         if remove_coseismic:

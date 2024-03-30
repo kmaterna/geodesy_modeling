@@ -62,9 +62,9 @@ def uniform_downsampling(InSAR_obj, sampling_interval, averaging_window=0):
     ds_lkv_n = np.reshape(new_n, (len(x_array) * len(y_array),))
     ds_lkv_u = np.reshape(new_u, (len(x_array) * len(y_array),))
 
-    ds_InSAR_obj = class_model.InSAR_1D_Object(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=ds_LOS_unc,
-                                               lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u,
-                                               starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime)
+    ds_InSAR_obj = class_model.Insar1dObject(lon=ds_lon, lat=ds_lat, LOS=ds_LOS, LOS_unc=ds_LOS_unc,
+                                             lkv_E=ds_lkv_e, lkv_N=ds_lkv_n, lkv_U=ds_lkv_u,
+                                             starttime=InSAR_obj.starttime, endtime=InSAR_obj.endtime)
     ds_InSAR_obj = ds_InSAR_obj.remove_nans(verbose=True)
     print("Done with downsampling: Ending with %d points " % (len(ds_InSAR_obj.lon)))
     return ds_InSAR_obj

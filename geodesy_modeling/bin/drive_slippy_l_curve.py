@@ -24,7 +24,7 @@ def welcome_and_parse(argv):
     config1 = json.load(config_file)
     os.makedirs(config1['output_dir_lcurve'], exist_ok=True)
     for i, key in enumerate(config1["faults"].keys()):
-        fault_file_name = config1["faults"][key]["filename"]
+        fault_file_name = str(config1["faults"][key]["filename"])
         fault_name = os.path.split(fault_file_name)[1]
         shutil.copy2(fault_file_name, os.path.join(config1['output_dir_lcurve'], fault_name))  # save fault files
     if 'G' not in config1.keys():
@@ -86,6 +86,6 @@ def make_lcurve_driver(config):
 
 
 if __name__ == "__main__":
-    config = welcome_and_parse(sys.argv)
-    iterate_many_inversions(config)
-    make_lcurve_driver(config)
+    my_config = welcome_and_parse(sys.argv)
+    iterate_many_inversions(my_config)
+    make_lcurve_driver(my_config)

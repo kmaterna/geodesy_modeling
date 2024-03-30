@@ -1,7 +1,7 @@
 from elastic_stresses_py.PyCoulomb import fault_slip_object as fso
 from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 import elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
-from .GF_element import GF_element
+from .GfElement import GfElement
 import scipy.io
 
 
@@ -23,11 +23,11 @@ def write_csz_dist_fault_patches(gf_elements, model_results_vector, outfile_gmt,
 
 def read_distributed_GF_static1d(gf_file, geom_file, latlonfile, latlonbox=(-127, -120, 38, 52), unit_slip=False):
     """
-    Read results of Fred's Static1D file (e.g., stat2C.outCascadia), getting into a minimal GF_element object.
+    Read results of Fred's Static1D file (e.g., stat2C.outCascadia), getting into a minimal GfElement object.
     We also restrict the range of fault elements using a bounding box
     If unit_slip, we divide by the imposed slip rate to get a 1 cm/yr Green's Function.
     Returns a list of lists of disp_point objects, and a matching list of fault patches.
-    We get into a minimal GF_element object the rest of the way research-specific code in the Humboldt driver.
+    We get into a minimal GfElement object the rest of the way research-specific code in the Humboldt driver.
     """
     fault_patches = fso.file_io.io_static1d.read_stat2C_geometry(geom_file)
     gps_disp_locs = fso.file_io.io_static1d.read_disp_points_from_static1d(latlonfile)
@@ -70,7 +70,7 @@ def read_distributed_GF_static1d(gf_file, geom_file, latlonfile, latlonbox=(-127
                 break
         fault_slip_patch = fault_patches[i].change_fault_slip(fault_patches[i].slip * norm_factor)
 
-        new_gf = GF_element(fault_dict_list=[fault_slip_patch], disp_points=disp_points_one_patch)
+        new_gf = GfElement(fault_dict_list=[fault_slip_patch], disp_points=disp_points_one_patch)
         GF_elements.append(new_gf)
         given_slip.append(fault_patches[i].slip)  # in mm
 
@@ -99,7 +99,7 @@ def read_GFs_matlab_CSZ(gf_file):
             model_disp_points.append(new_item)  # Read model disp_points associated with one fault patch.
         fault_patches[patch_number] = fault_patches[patch_number].change_fault_slip(1.0, 0, 0)
 
-        one_GF = GF_element(disp_points=model_disp_points, param_name=str(patch_number), units='meters',
-                            fault_dict_list=[fault_patches[patch_number]])
+        one_GF = GfElement(disp_points=model_disp_points, param_name=str(patch_number), units='meters',
+                           fault_dict_list=[fault_patches[patch_number]])
         gf_elements.append(one_GF)
     return gf_elements

@@ -8,7 +8,7 @@ def visualize_GF_elements(GF_elements_list, outdir, exclude_list=()):
 
     :param GF_elements_list: list of GF_elements objects
     :param outdir: string for outdir
-    :param exclude_list: optional list of GF_element.param_name to exclude from visualizing
+    :param exclude_list: optional list of GfElement.param_name to exclude from visualizing
     """
     if exclude_list == 'all':
         return

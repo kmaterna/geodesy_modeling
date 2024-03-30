@@ -17,41 +17,40 @@ import argparse
 import json
 import subprocess
 import os
-from geodesy_modeling.Inversion.GF_element import GF_element
+from geodesy_modeling.Inversion.GfElement.GfElement import GfElement
 
 
 def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''')
     p.add_argument('--outdir', type=str, help='''Output directory''')
-    exp_dict = vars(p.parse_args())
-    exp_dict["obs_disp_points"] = "Input_Data/ssgf_vectors_manual_m.txt"
-    exp_dict["fault_file"] = "../../../_Data/Lohman_Fault_Geom/forK.mat"
-    exp_dict["smoothing_length"] = 2  # smooth adjacent patches with some wiggle room (2 for salton sea)
-    os.makedirs(exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
-    with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
-        json.dump(exp_dict, fp, indent=4)
-    return exp_dict
+    one_exp_dict = vars(p.parse_args())
+    one_exp_dict["obs_disp_points"] = "Input_Data/ssgf_vectors_manual_m.txt"
+    one_exp_dict["fault_file"] = "../../../_Data/Lohman_Fault_Geom/forK.mat"
+    one_exp_dict["smoothing_length"] = 2  # smooth adjacent patches with some wiggle room (2 for salton sea)
+    os.makedirs(one_exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
+    with open(one_exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
+        json.dump(one_exp_dict, fp, indent=4)
+    return one_exp_dict
 
 
-def read_gf_elements_kalin(exp_dict, obs_disp_pts):
+def read_gf_elements_kalin(fault_filename, obs_pts):
     """Create a list of fault triangle elements and their associated GF's for use in inversion. """
-    GF_elements = []
-    fault_tris = fst.file_io.io_other.read_brawley_lohman_2005(exp_dict['fault_file'])
+    kalin_GF_elements = []
+    fault_tris = fst.file_io.io_other.read_brawley_lohman_2005(fault_filename)
     for tri in fault_tris:
         changed_slip = tri.change_fault_slip(rtlat=1, dipslip=0, tensile=0)
         changed_slip = changed_slip.change_reference_loc()
-        model_disp_pts = fst.triangle_okada.compute_disp_points_from_triangles([changed_slip], obs_disp_pts,
-                                                                               poisson_ratio=0.25)
-        GF_elements.append(
-            GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                  param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0))
-    return GF_elements
+        model_pts = fst.triangle_okada.compute_disp_points_from_triangles([changed_slip], obs_pts,
+                                                                          poisson_ratio=0.25)
+        kalin_GF_elements.append(GfElement(disp_points=model_pts, fault_dict_list=[changed_slip], units='m',
+                                           param_name='kalin', lower_bound=-1, upper_bound=0, slip_penalty=0))
+    return kalin_GF_elements
 
 
-def write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts):
-    [_all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_disp_pts, model_disp_pts)
-    with open(exp_dict["outdir"]+'/metrics.txt', 'w') as ofile:
+def write_misfit_report(outfile, obs_pts, model_pts):
+    [_all_L2_norm, avg_misfit_norm, _, _] = dpo.compute_rms.obs_vs_model_L2_misfit(obs_pts, model_pts)
+    with open(outfile, 'w') as ofile:
         print('Avg misfit (mm):', avg_misfit_norm)
         print("total moment (N-m): ", total_moment)
         print("Equivalent to:", mo.mw_from_moment(total_moment))
@@ -65,7 +64,7 @@ if __name__ == "__main__":
     exp_dict = configure()
     outdir = exp_dict['outdir']
     obs_disp_pts = PyCoulomb.io_additionals.read_disp_points(exp_dict["obs_disp_points"])
-    GF_elements = read_gf_elements_kalin(exp_dict, obs_disp_pts)
+    GF_elements = read_gf_elements_kalin(exp_dict["fault_file"], obs_disp_pts)
 
     # COMPUTE STAGE: INVERSE.
     list_of_gf_columns = []
@@ -107,7 +106,7 @@ if __name__ == "__main__":
     fst.file_io.tri_outputs.write_gmt_vertical_fault_file(modeled_faults, outdir+'/vertical_fault.txt',
                                                           color_mappable=lambda x: x.get_rtlat_slip(), strike=225)
 
-    write_misfit_report(exp_dict, obs_disp_pts, model_disp_pts)
+    write_misfit_report(exp_dict["outdir"]+'/metrics.txt', obs_disp_pts, model_disp_pts)
     subprocess.call(['./gmt_plot.sh', outdir])   # plotting the results in pretty GMT plots
 
     # Do a special experiment: while the fault elements are in computer memory, let's forward predict their

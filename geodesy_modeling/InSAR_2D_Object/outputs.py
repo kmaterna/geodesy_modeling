@@ -38,8 +38,8 @@ def plot_incidence_angle(InSAR_2D_obj, plotname):
     print("Plotting %s " % plotname)
     inc = InSAR_2D_obj.get_incidence_grid()
     fig = plt.figure()
-    plt.imshow(inc, extent=[InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
-                            InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()])
+    plt.imshow(inc, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
+                            InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
     plt.xlabel('Longitude (degrees)', fontsize=14)
     plt.ylabel('Latitude (degrees)', fontsize=14)
     _cb = fig.colorbar(label="Incidence (degrees)", ax=plt.gca())

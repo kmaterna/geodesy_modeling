@@ -2,7 +2,7 @@ import numpy as np
 from elastic_stresses_py.PyCoulomb import disp_points_object as dpo
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle import fault_slip_triangle
 from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
-from .GF_element import GF_element
+from .GfElement import GfElement
 
 
 def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bound=0, upper_bound=0):
@@ -30,8 +30,8 @@ def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bou
             index = i+2  # moving to the correct column in the GF file, skipping lon and lat.
             los_defo = gf_data_array[:, index]
             model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo)
-            GF_elements.append(GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                          param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound))
+            GF_elements.append(GfElement(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
+                                         param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound))
 
     else:
         for i, patch in enumerate(fault_patches):  # Rectangular version
@@ -39,8 +39,8 @@ def read_insar_greens_functions(gf_file, fault_patches, param_name='', lower_bou
             index = i+2  # moving to the correct column in the GF file, skipping lon and lat.
             los_defo = gf_data_array[:, index]
             model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo)
-            GF_elements.append(GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
-                                          param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound))
+            GF_elements.append(GfElement(disp_points=model_disp_pts, fault_dict_list=[changed_slip], units='m',
+                                         param_name=param_name, lower_bound=lower_bound, upper_bound=upper_bound))
     return GF_elements
 
 

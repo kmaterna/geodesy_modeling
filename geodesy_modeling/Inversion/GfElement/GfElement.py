@@ -3,21 +3,21 @@ from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import 
 from Tectonic_Utils.geodesy import euler_pole
 
 
-class GF_element:
+class GfElement:
     """
-    GF_element is everything you would need to make a column of the Green's matrix and
+    GfElement is everything you would need to make a column of the Green's matrix and
     plot the impulse response function.
     'points' is coordinates of surface trace of the fault, if applicable.
 
-    :param disp_points: modeled displacement_points due to unit activation of this GF_element
+    :param disp_points: modeled displacement_points due to unit activation of this GfElement
     :type disp_points: list of Displacement_points objects
     :param param_name: param_name
     :type param_name: string
     :param fault_dict_list: list of fault_slip_objects
     :type fault_dict_list: list
-    :param upper_bound: highest allowed value of this GF_element
+    :param upper_bound: highest allowed value of this GfElement
     :type upper_bound: float
-    :param lower_bound: lowest allowed value of this GF_element
+    :param lower_bound: lowest allowed value of this GfElement
     :type lower_bound: float
     :param slip_penalty: a number that will be attached to minimum-norm smoothing in the G matrix
     :type slip_penalty: float
@@ -56,13 +56,13 @@ class GF_element:
 
 def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 90), rot_name=''):
     """
-    Build one GF_element for a horizontal rotation of GNSS velocities about some axis
+    Build one GfElement for a horizontal rotation of GNSS velocities about some axis
 
     :param obs_disp_points: list of disp_points
     :param ep: [lon, lat, rate] of euler pole for desired rotation
     :param target_region: list of lon/lon/lat/lat for bounding box
     :param rot_name: string, optional metadata for naming the rotation (ex: ocb_)
-    :returns: one GF_element with rotation displacements in x, y, and z directions
+    :returns: one GfElement with rotation displacements in x, y, and z directions
     """
     rot_disp_p = []
     for obs_item in obs_disp_points:
@@ -77,8 +77,8 @@ def get_GF_rotation_element(obs_disp_points, ep, target_region=(-180, 180, -90, 
                                        Sn_obs=0, Su_obs=0, meas_type=obs_item.meas_type, refframe=obs_item.refframe,
                                        name=obs_item.name)
         rot_disp_p.append(response)
-    rotation_gf = GF_element(disp_points=rot_disp_p, param_name=rot_name, upper_bound=1, lower_bound=-1,
-                             slip_penalty=0, units='deg/Ma')
+    rotation_gf = GfElement(disp_points=rot_disp_p, param_name=rot_name, upper_bound=1, lower_bound=-1,
+                            slip_penalty=0, units='deg/Ma')
     return rotation_gf
 
 
@@ -105,10 +105,10 @@ def get_GF_rotation_elements(obs_disp_points, target_region=(-180, 180, -90, 90)
 
 def get_GF_leveling_offset_element(obs_disp_points):
     """
-    Build one GF_element for a reference frame leveling offset column of the GF matrix
+    Build one GfElement for a reference frame leveling offset column of the GF matrix
 
     :param obs_disp_points: list of disp_point_objects
-    :returns: a list of 1 GF_element, or an empty list if there is no leveling in this dataset
+    :returns: a list of 1 GfElement, or an empty list if there is no leveling in this dataset
     """
     total_response_pts = []
     lev_count = 0
@@ -121,8 +121,8 @@ def get_GF_leveling_offset_element(obs_disp_points):
             response = Displacement_points(lon=item.lon, lat=item.lat, dE_obs=0, dN_obs=0, dU_obs=0,
                                            Se_obs=0, Sn_obs=0, Su_obs=0, meas_type=item.meas_type)
         total_response_pts.append(response)
-    lev_offset_gf = GF_element(disp_points=total_response_pts, param_name='lev_offset',
-                               upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr')
+    lev_offset_gf = GfElement(disp_points=total_response_pts, param_name='lev_offset',
+                              upper_bound=1, lower_bound=-1, slip_penalty=0, units='m/yr')
     if lev_count == 0:
         return []
     else:

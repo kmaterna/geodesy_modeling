@@ -3,7 +3,7 @@ from Tectonic_Utils.geodesy import insar_vector_functions
 from .. import general_utils
 
 
-class InSAR_2D_Object:
+class Insar2dObject:
     """
     A generalized 2D Grid InSAR format where all data fields are 2D grids.
     Displacements in mm (if LOS is a displacement measurement instead of phase or other)
@@ -24,9 +24,9 @@ class InSAR_2D_Object:
         return self
 
     def flip_los_sign(self):
-        new_InSAR_obj = InSAR_2D_Object(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1),
-                                        LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                        lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1),
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
     def subtract_reference(self, refidx, tolerance=0.005):
@@ -46,9 +46,9 @@ class InSAR_2D_Object:
         return new_InSAR_obj
 
     def subtract_value(self, value):
-        new_InSAR_obj = InSAR_2D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
-                                        LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                        lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
     def rewrap_InSAR(self, wavelength):
@@ -58,9 +58,9 @@ class InSAR_2D_Object:
         :param wavelength: float, mm
         """
         rewrapped = general_utils.wrap_float(self.LOS, wavelength)
-        new_InSAR_obj = InSAR_2D_Object(lon=self.lon, lat=self.lat, LOS=rewrapped,
-                                        LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                        lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=rewrapped,
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
     def get_look_vector_at_point(self, target_lon, target_lat):

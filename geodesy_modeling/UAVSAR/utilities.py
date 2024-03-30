@@ -16,11 +16,11 @@ def get_onetime_displacements(myGridTS, start_idx, end_idx):
     los_vector = np.reshape(los_raster, (np.size(los_raster),))
     lon_vector = np.reshape(myGridTS.lon, (np.size(los_raster),))
     lat_vector = np.reshape(myGridTS.lat, (np.size(los_raster),))
-    InSAR_obj = class_model.InSAR_1D_Object(lon=lon_vector, lat=lat_vector, LOS=los_vector,
-                                            LOS_unc=np.nan*np.zeros(np.shape(los_vector)),
-                                            lkv_E=np.nan*np.zeros(np.shape(los_vector)),
-                                            lkv_N=np.nan*np.zeros(np.shape(los_vector)),
-                                            lkv_U=np.nan*np.zeros(np.shape(los_vector)),
-                                            starttime=myGridTS.dtarray[start_idx],
-                                            endtime=myGridTS.dtarray[end_idx])
+    InSAR_obj = class_model.Insar1dObject(lon=lon_vector, lat=lat_vector, LOS=los_vector,
+                                          LOS_unc=np.nan*np.zeros(np.shape(los_vector)),
+                                          lkv_E=np.nan*np.zeros(np.shape(los_vector)),
+                                          lkv_N=np.nan*np.zeros(np.shape(los_vector)),
+                                          lkv_U=np.nan*np.zeros(np.shape(los_vector)),
+                                          starttime=myGridTS.dtarray[start_idx],
+                                          endtime=myGridTS.dtarray[end_idx])
     return InSAR_obj

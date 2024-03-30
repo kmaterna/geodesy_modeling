@@ -3,7 +3,7 @@ from Tectonic_Utils.geodesy import insar_vector_functions as ivs
 from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 
 
-class InSAR_1D_Object:
+class Insar1dObject:
     """
     A generalized 1D InSAR format where all data fields are 1D-vectors.
     The vector entries represent one pixel each.
@@ -32,8 +32,8 @@ class InSAR_1D_Object:
                 unit_E.append(self.lkv_E[i])
                 unit_N.append(self.lkv_N[i])
                 unit_U.append(self.lkv_U[i])
-        newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
-                                       lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime)
+        newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
+                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime)
         return newInSAR_obj
 
     def remove_nans(self, verbose=False):
@@ -50,17 +50,17 @@ class InSAR_1D_Object:
                 unit_E.append(self.lkv_E[i])
                 unit_N.append(self.lkv_N[i])
                 unit_U.append(self.lkv_U[i])
-        newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
-                                       lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime)
+        newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
+                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime)
         if verbose:
             print("Removing nans from 1D InSAR obj. Starting with %d, ending with %d pixels" % (len(self.lon),
                                                                                                 len(newInSAR_obj.lon)))
         return newInSAR_obj
 
     def flip_los_sign(self):
-        new_InSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1), LOS_unc=self.LOS_unc,
-                                        lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U, starttime=self.starttime,
-                                        endtime=self.endtime)
+        new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1), LOS_unc=self.LOS_unc,
+                                      lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U, starttime=self.starttime,
+                                      endtime=self.endtime)
         return new_InSAR_obj
 
     def get_average_los_within_box(self, target_lon, target_lat, averaging_window):
@@ -77,10 +77,10 @@ class InSAR_1D_Object:
                     new_lkvE.append(self.lkv_E[i])
                     new_lkvN.append(self.lkv_N[i])
                     new_lkvU.append(self.lkv_U[i])
-        new_InSAR_obj = InSAR_1D_Object(lon=target_lon, lat=target_lat, LOS=np.nanmean(new_los),
-                                        LOS_unc=np.nanmean(new_unc), lkv_E=np.nanmean(new_lkvE),
-                                        lkv_N=np.nanmean(new_lkvN), lkv_U=np.nanmean(new_lkvU),
-                                        starttime=self.starttime, endtime=self.endtime)
+        new_InSAR_obj = Insar1dObject(lon=target_lon, lat=target_lat, LOS=np.nanmean(new_los),
+                                      LOS_unc=np.nanmean(new_unc), lkv_E=np.nanmean(new_lkvE),
+                                      lkv_N=np.nanmean(new_lkvN), lkv_U=np.nanmean(new_lkvU),
+                                      starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
     def proj_los_into_vertical_no_horiz(self, const_lkv=()):
@@ -98,10 +98,10 @@ class InSAR_1D_Object:
             else:
                 specific_lkv = [self.lkv_E[i], self.lkv_N[i], self.lkv_U[i]]
                 new_los.append(ivs.proj_los_into_vertical_no_horiz(self.LOS[i], specific_lkv))
-        newInSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=new_los, LOS_unc=self.LOS_unc,
-                                       lkv_E=np.zeros(np.shape(self.lon)), lkv_N=np.zeros(np.shape(self.lon)),
-                                       lkv_U=np.ones(np.shape(self.lon)), starttime=self.starttime,
-                                       endtime=self.endtime)
+        newInSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=new_los, LOS_unc=self.LOS_unc,
+                                     lkv_E=np.zeros(np.shape(self.lon)), lkv_N=np.zeros(np.shape(self.lon)),
+                                     lkv_U=np.ones(np.shape(self.lon)), starttime=self.starttime,
+                                     endtime=self.endtime)
         return newInSAR_obj
 
     def get_coordinate_tuples(self):
@@ -130,9 +130,9 @@ class InSAR_1D_Object:
 
         :param value: float, in the same units as LOS data.
         """
-        new_InSAR_obj = InSAR_1D_Object(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
-                                        LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
-                                        starttime=self.starttime, endtime=self.endtime)
+        new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
+                                      starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
     def check_internal_sanity(self):

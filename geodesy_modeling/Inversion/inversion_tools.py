@@ -4,7 +4,7 @@ from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import 
 import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import elastic_stresses_py.PyCoulomb.fault_slip_object as library
 import Tectonic_Utils.seismo.moment_calculations as mo
-from .GF_element.GF_element import GF_element
+from .GfElement.GfElement import GfElement
 import os
 
 
@@ -37,16 +37,16 @@ def pair_gf_elements_with_obs(obs_disp_points, gf_elements, tol=0.001):
     :param tol: tolerance for pairing station with station, in degrees
     :returns: paired_obs (list of disp_points), paired_gf_elements (list of gf_elements)
     """
-    paired_gf_elements = []  # a list of GF_element objects
+    paired_gf_elements = []  # a list of GfElement objects
     paired_obs, _ = pair_obs_model(obs_disp_points, gf_elements[0].disp_points, tol=tol)  # get paired obs disp_points
     target_len = len(paired_obs)
     for gf_model in gf_elements:
         _, paired_gf = pair_obs_model(obs_disp_points, gf_model.disp_points, tol=tol)  # one fault or CSZ patch
-        paired_gf_elements.append(GF_element(disp_points=paired_gf, param_name=gf_model.param_name,
-                                             fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
-                                             upper_bound=gf_model.upper_bound,
-                                             slip_penalty=gf_model.slip_penalty, units=gf_model.units,
-                                             points=gf_model.points))
+        paired_gf_elements.append(GfElement(disp_points=paired_gf, param_name=gf_model.param_name,
+                                            fault_dict_list=gf_model.fault_dict_list, lower_bound=gf_model.lower_bound,
+                                            upper_bound=gf_model.upper_bound,
+                                            slip_penalty=gf_model.slip_penalty, units=gf_model.units,
+                                            points=gf_model.points))
         if len(paired_gf) != target_len:
             raise ValueError("ERROR! Not all points have green's functions.")
     return paired_obs, paired_gf_elements
@@ -301,8 +301,8 @@ def filter_out_smoothing_lines(pred_vector, obs_vector, sigma_vector, tol=1e-9):
 
 
 def write_fault_traces(M_vector, paired_gf_elements, outfile, ignore_faults=()):
-    """Write a gmt multi-segment file with fault traces (GF_element.points) and colors from values.
-    Will only write when the GF_element has the field "points".
+    """Write a gmt multi-segment file with fault traces (GfElement.points) and colors from values.
+    Will only write when the GfElement has the field "points".
 
     :param M_vector: vector containing value of model parameters, floats (e.g., in mm/yr)
     :param paired_gf_elements: matching list of GF_elements
@@ -329,7 +329,7 @@ def write_raw_model_params(outfile, v, rms_residual=0, GF_elements=None):
     :param outfile: string, filename
     :param v: vector of model parameters, floats
     :param rms_residual: optional, float, mm/yr
-    :param GF_elements: optional, list of paired GF_element objects to write the parameter names
+    :param GF_elements: optional, list of paired GfElement objects to write the parameter names
     """
     print("Writing raw model outputs in %s" % outfile)
     ofile = open(outfile, 'w')
@@ -350,7 +350,7 @@ def write_summary_params(v, outfile, GF_elements, ignore_faults=(), message=''):
 
     :param v: vector of model parameters, floats
     :param outfile: string
-    :param GF_elements: list of GF_element objects
+    :param GF_elements: list of GfElement objects
     :param ignore_faults: list of strings
     :param message: optional message from inverse routine about solution quality
     """

@@ -37,5 +37,5 @@ def get_file_dictionary(config_filename):
 
 
 if __name__ == "__main__":
-    config_file, gps_filename, outdir = sys.argv[1], sys.argv[2], sys.argv[3]
-    visualize_timedep_timeseries(config_file, gps_filename, outdir)
+    config_file, my_gps_filename, my_outdir = sys.argv[1], sys.argv[2], sys.argv[3]
+    visualize_timedep_timeseries(config_file, my_gps_filename, my_outdir)

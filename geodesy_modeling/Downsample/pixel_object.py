@@ -1,6 +1,6 @@
 # the downsampled pixel object
 
-class Downsampled_pixel:
+class DownsampledPixel:
     """
     An object containing a quadtree-downsampled pixel, including
     downsampled pixel footprint, downsampled pixel look vector, and downsampled deformation values.

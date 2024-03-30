@@ -9,10 +9,10 @@ import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import elastic_stresses_py.PyCoulomb.inputs_object as inputs_object
 import geodesy_modeling.InSAR_1D_Object as InSAR_1D
-from geodesy_modeling.InSAR_1D_Object.class_model import InSAR_1D_Object
+from geodesy_modeling.InSAR_1D_Object.class_model import Insar1dObject
 import geodesy_modeling.Inversion.inversion_tools as inv_tools
-import geodesy_modeling.Inversion.GF_element.rw_insar_gfs as rw_gf
-from geodesy_modeling.Inversion.GF_element import GF_element
+import geodesy_modeling.Inversion.GfElement.rw_insar_gfs as rw_gf
+from geodesy_modeling.Inversion.GfElement.GfElement import GfElement
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt
@@ -26,19 +26,19 @@ def configure():
     p = argparse.ArgumentParser(description='''Inversion of geodetic data''')
     p.add_argument('--smoothing', type=float, help='''strength of Laplacian smoothing constraint''')
     p.add_argument('--outdir', type=str, help='''Output directory''')
-    exp_dict = vars(p.parse_args())
-    exp_dict["obs_desc"] = "../../_4_Downsample_unw/igram_sum/pixels_filtered_m.txt"
-    exp_dict["fault_file"] = "../Get_Fault_Model/model_fault_patches.txt"
-    exp_dict["smoothing_length"] = 6  # smooth adjacent patches with some wiggle room
-    os.makedirs(exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
-    with open(exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
-        json.dump(exp_dict, fp, indent=4)
-    return exp_dict
+    my_exp_dict = vars(p.parse_args())
+    my_exp_dict["obs_desc"] = "../../_4_Downsample_unw/igram_sum/pixels_filtered_m.txt"
+    my_exp_dict["fault_file"] = "../Get_Fault_Model/model_fault_patches.txt"
+    my_exp_dict["smoothing_length"] = 6  # smooth adjacent patches with some wiggle room
+    os.makedirs(my_exp_dict['outdir'], exist_ok=True)  # """Set up an experiment directory."""
+    with open(my_exp_dict["outdir"] + "/configs_used.txt", 'w') as fp:
+        json.dump(my_exp_dict, fp, indent=4)
+    return my_exp_dict
 
 
-def compute_insar_gf_elements(fault_file: str, insar_object: InSAR_1D_Object):
+def compute_insar_gf_elements(fault_file: str, insar_object: Insar1dObject):
     """Create a list of fault elements and their associated InSAR GF's for use in inversion. This is cool! """
-    GF_elements = []
+    insar_GF_elements = []
     fault_patches = fso.file_io.io_slippy.read_slippy_distribution(fault_file)
     all_disp_points = insar_object.get_disp_points()   # get the locations of InSAR points
 
@@ -48,27 +48,27 @@ def compute_insar_gf_elements(fault_file: str, insar_object: InSAR_1D_Object):
         inputs = inputs_object.input_obj.configure_default_displacement_input(source_object=[pycoulomb_fault],
                                                                               zerolon=-115.8, zerolat=33.1, bbox=())
         params = PyCoulomb.configure_calc.Params(mu=30e9, lame1=30e9)
-        model_disp_pts = PyCoulomb.run_dc3d.compute_ll_def(inputs, params, all_disp_points)
+        model_pts = PyCoulomb.run_dc3d.compute_ll_def(inputs, params, all_disp_points)
 
         # PROJECT 3D DISPLACEMENTS INTO LOS. LIST OF FLOATS.
-        los_defo = [model_disp_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i],
-                                                       insar_object.lkv_U[i]) for _i in range(len(all_disp_points))]
+        los_defo = [model_pts[i].project_into_los(insar_object.lkv_E[i], insar_object.lkv_N[i],
+                                                  insar_object.lkv_U[i]) for _i in range(len(all_disp_points))]
 
-        model_disp_pts = dpo.utilities.with_easts_as(model_disp_pts, los_defo)
-        model_disp_pts = dpo.utilities.mult_disp_points_by(model_disp_pts, -1)  # sign convention
-        GF_elements.append(GF_element.GF_element(disp_points=model_disp_pts, fault_dict_list=[changed_slip_fault],
-                                                 units='m', param_name='shf'))
-    print("Computed Green's functions for %d patches" % len(GF_elements))
-    return GF_elements
+        model_pts = dpo.utilities.with_easts_as(model_pts, los_defo)
+        model_pts = dpo.utilities.mult_disp_points_by(model_pts, -1)  # sign convention
+        insar_GF_elements.append(GfElement(disp_points=model_pts, fault_dict_list=[changed_slip_fault],
+                                           units='m', param_name='shf'))
+    print("Computed Green's functions for %d patches" % len(insar_GF_elements))
+    return insar_GF_elements
 
 
 def read_gf_elements(fault_file: str, gf_file: str):
     """Read a list of fault triangle elements and their associated GF's for use in inversion. """
     print("Reading pre-computed InSAR Green's functions.")
     fault_patches = fso.file_io.io_slippy.read_slippy_distribution(fault_file)
-    GF_elements = rw_gf.read_insar_greens_functions(gf_file, fault_patches, param_name='shf', lower_bound=0,
-                                                    upper_bound=0.05)
-    return GF_elements
+    insar_GF_elements = rw_gf.read_insar_greens_functions(gf_file, fault_patches, param_name='shf', lower_bound=0,
+                                                          upper_bound=0.05)
+    return insar_GF_elements
 
 
 if __name__ == "__main__":

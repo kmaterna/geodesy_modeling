@@ -83,5 +83,5 @@ def do_synthetic_grid_LOS(params_provided, disp_points=None, disp_points_color=N
 
 
 if __name__ == "__main__":
-    params_provided = parse_config({})  # could consider making this a command line application
-    do_synthetic_grid_LOS(params_provided)
+    my_params = parse_config({})  # could consider making this a command line application
+    do_synthetic_grid_LOS(my_params)

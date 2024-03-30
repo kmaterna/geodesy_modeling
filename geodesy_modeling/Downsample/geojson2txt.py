@@ -7,7 +7,7 @@ This script contains utility functions to convert between two different InSAR da
 
 import numpy as np
 import json
-from .pixel_object import Downsampled_pixel
+from .pixel_object import DownsampledPixel
 
 
 def read_geojson(infile):
@@ -38,8 +38,8 @@ def read_geojson(infile):
         unitE = feature["properties"]["unitE"]
         unitN = feature["properties"]["unitN"]
         unitU = feature["properties"]["unitU"]
-        onePixel = Downsampled_pixel(mean=mean, median=median, std=std, BL_corner=bl, TR_corner=tr,
-                                     unitE=unitE, unitN=unitN, unitU=unitU)
+        onePixel = DownsampledPixel(mean=mean, median=median, std=std, BL_corner=bl, TR_corner=tr,
+                                    unitE=unitE, unitN=unitN, unitU=unitU)
         pixel_list.append(onePixel)
     return pixel_list
 

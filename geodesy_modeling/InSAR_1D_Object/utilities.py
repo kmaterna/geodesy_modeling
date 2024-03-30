@@ -4,11 +4,11 @@ LOS is in mm
 """
 
 import numpy as np
-from .class_model import InSAR_1D_Object
+from .class_model import Insar1dObject
 from Tectonic_Utils.geodesy import insar_vector_functions as ivs
 
 
-def combine_objects(Obj1: InSAR_1D_Object, Obj2: InSAR_1D_Object):
+def combine_objects(Obj1: Insar1dObject, Obj2: Insar1dObject):
     """
     Simply stack two objects, combining their pixels in the simplest way possible
     """
@@ -27,8 +27,8 @@ def combine_objects(Obj1: InSAR_1D_Object, Obj2: InSAR_1D_Object):
     lkv_U = np.hstack((Obj1.lkv_U, Obj2.lkv_U))
     if lkv_U.all() is None:
         lkv_U = None
-    newInSAR_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
-                                   starttime=Obj1.starttime, endtime=Obj1.endtime)
+    newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
+                                 starttime=Obj1.starttime, endtime=Obj1.endtime)
     return newInSAR_obj
 
 
@@ -40,7 +40,7 @@ def similar_pixel_tuples(tup1, tup2):
     return retval
 
 
-def collect_common_pixels(Obj1: InSAR_1D_Object, Obj2: InSAR_1D_Object):
+def collect_common_pixels(Obj1: Insar1dObject, Obj2: Insar1dObject):
     """
     Take two InSAR objects (like Asc and Desc) and filter to return two objects where the pixels are identical.
     Ignores pixels that have NaN in one dataset or the other
@@ -69,14 +69,14 @@ def collect_common_pixels(Obj1: InSAR_1D_Object, Obj2: InSAR_1D_Object):
             lkv_n2.append(Obj2.lkv_N[idx])
             lkv_u2.append(Obj2.lkv_U[idx])
 
-    common_Obj1 = InSAR_1D_Object(lon=common_lon, lat=common_lat, LOS=los1, LOS_unc=los_unc1, lkv_E=lkv_e1,
-                                  lkv_N=lkv_n1, lkv_U=lkv_u1, starttime=Obj1.starttime, endtime=Obj1.endtime)
-    common_Obj2 = InSAR_1D_Object(lon=common_lon, lat=common_lat, LOS=los2, LOS_unc=los_unc2, lkv_E=lkv_e2,
-                                  lkv_N=lkv_n2, lkv_U=lkv_u2, starttime=Obj1.starttime, endtime=Obj1.endtime)
+    common_Obj1 = Insar1dObject(lon=common_lon, lat=common_lat, LOS=los1, LOS_unc=los_unc1, lkv_E=lkv_e1,
+                                lkv_N=lkv_n1, lkv_U=lkv_u1, starttime=Obj1.starttime, endtime=Obj1.endtime)
+    common_Obj2 = Insar1dObject(lon=common_lon, lat=common_lat, LOS=los2, LOS_unc=los_unc2, lkv_E=lkv_e2,
+                                lkv_N=lkv_n2, lkv_U=lkv_u2, starttime=Obj1.starttime, endtime=Obj1.endtime)
     return common_Obj1, common_Obj2
 
 
-def decompose_asc_desc_vert_horizontal(asc_obj: InSAR_1D_Object, desc_obj: InSAR_1D_Object):
+def decompose_asc_desc_vert_horizontal(asc_obj: Insar1dObject, desc_obj: Insar1dObject):
     """
     Turn an ascending and descending object on the same pixels into vertical and horizontal.
     Appendix 1, Samieie-Esfahany et al., 2010
@@ -101,14 +101,14 @@ def decompose_asc_desc_vert_horizontal(asc_obj: InSAR_1D_Object, desc_obj: InSAR
         vert.append(retvec[0])
         horz.append(retvec[1])
 
-    Vert_obj = InSAR_1D_Object(lon=asc_obj.lon, lat=asc_obj.lat, LOS=vert, LOS_unc=np.zeros(np.shape(vert)),
-                               lkv_E=np.zeros(np.shape(vert)),
-                               lkv_N=np.zeros(np.shape(vert)),
-                               lkv_U=np.ones(np.shape(vert)), starttime=asc_obj.starttime, endtime=asc_obj.endtime)
-    Horz_obj = InSAR_1D_Object(lon=asc_obj.lon, lat=asc_obj.lat, LOS=horz, LOS_unc=np.zeros(np.shape(vert)),
-                               lkv_E=np.zeros(np.shape(vert)),
-                               lkv_N=np.zeros(np.shape(vert)),
-                               lkv_U=np.zeros(np.shape(vert)), starttime=asc_obj.starttime, endtime=asc_obj.endtime)
+    Vert_obj = Insar1dObject(lon=asc_obj.lon, lat=asc_obj.lat, LOS=vert, LOS_unc=np.zeros(np.shape(vert)),
+                             lkv_E=np.zeros(np.shape(vert)),
+                             lkv_N=np.zeros(np.shape(vert)),
+                             lkv_U=np.ones(np.shape(vert)), starttime=asc_obj.starttime, endtime=asc_obj.endtime)
+    Horz_obj = Insar1dObject(lon=asc_obj.lon, lat=asc_obj.lat, LOS=horz, LOS_unc=np.zeros(np.shape(vert)),
+                             lkv_E=np.zeros(np.shape(vert)),
+                             lkv_N=np.zeros(np.shape(vert)),
+                             lkv_U=np.zeros(np.shape(vert)), starttime=asc_obj.starttime, endtime=asc_obj.endtime)
     return Vert_obj, Horz_obj
 
 
@@ -122,6 +122,6 @@ def average_list_of_objects(list_of_InSAR_objs):
     mean_los = []
     for i in range(len(ob0.LOS)):
         mean_los.append(np.mean([x.LOS[i] for x in list_of_InSAR_objs]))
-    newInSAR_obj = InSAR_1D_Object(lon=ob0.lon, lat=ob0.lat, LOS=mean_los, LOS_unc=ob0.LOS_unc, lkv_E=ob0.lkv_E,
-                                   lkv_N=ob0.lkv_N, lkv_U=ob0.lkv_U, starttime=ob0.starttime, endtime=ob0.endtime)
+    newInSAR_obj = Insar1dObject(lon=ob0.lon, lat=ob0.lat, LOS=mean_los, LOS_unc=ob0.LOS_unc, lkv_E=ob0.lkv_E,
+                                 lkv_N=ob0.lkv_N, lkv_U=ob0.lkv_U, starttime=ob0.starttime, endtime=ob0.endtime)
     return newInSAR_obj

@@ -261,9 +261,9 @@ def write_s1_displacements(config):
 
 
 if __name__ == "__main__":
-    config = welcome_and_parse(sys.argv)
-    write_uavsar_displacements(config)
-    write_leveling_displacements(config)
-    write_gps_displacements(config)
-    write_tsx_tre_displacements(config)
-    write_s1_displacements(config)
+    my_config = welcome_and_parse(sys.argv)
+    write_uavsar_displacements(my_config)
+    write_leveling_displacements(my_config)
+    write_gps_displacements(my_config)
+    write_tsx_tre_displacements(my_config)
+    write_s1_displacements(my_config)

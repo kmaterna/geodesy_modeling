@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
 from .. import general_utils
-from .class_model import InSAR_1D_Object
+from .class_model import Insar1dObject
 from .inputs import inputs_txt
 from .outputs import write_insar_invertible_format
 
@@ -35,7 +35,7 @@ def remove_constant_filewise(insar_textfile, constant_removed_file, ref_coord=No
     return
 
 
-def remove_constant_insarformat(InSAR_Obj: InSAR_1D_Object, ref_coord=None):
+def remove_constant_insarformat(InSAR_Obj: Insar1dObject, ref_coord=None):
     """
     Remove a constant from the InSAR_Obj.
     If ref_coord, then remove ref_coord.
@@ -55,7 +55,7 @@ def remove_constant_insarformat(InSAR_Obj: InSAR_1D_Object, ref_coord=None):
     return new_InSAR_Obj
 
 
-def remove_ramp(InSAR_Obj: InSAR_1D_Object, ref_coord=None):
+def remove_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
     """"
     Plane equation: ax + by + c = z
     Solving Ax = B
@@ -85,9 +85,9 @@ def remove_ramp(InSAR_Obj: InSAR_1D_Object, ref_coord=None):
         ref_plane = model[0] * ref_coord[0] + model[1] * ref_coord[1] + model[2]
         new_disp = [x - ref_plane for x in new_disp]
 
-    new_InSAR_Obj = InSAR_1D_Object(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
-                                    lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,
-                                    starttime=InSAR_Obj.starttime, endtime=InSAR_Obj.endtime)
+    new_InSAR_Obj = Insar1dObject(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
+                                  lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,
+                                  starttime=InSAR_Obj.starttime, endtime=InSAR_Obj.endtime)
     return new_InSAR_Obj
 
 

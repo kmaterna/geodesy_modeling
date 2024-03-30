@@ -26,7 +26,7 @@ def analyze_model_resolution_matrix(G, num_obs, outdir):
     plt.savefig(os.path.join(outdir, "G_resolution.png"))
 
     # Model Resolution Matrix
-    Ggi = scipy.linalg.pinv(G)  # Replace all smoothing with zeros for second half of this expression
+    Ggi = np.array(scipy.linalg.pinv(G))  # Replace all smoothing with zeros for second half of this expression
     G_nosmoothing = G.copy()
     G_nosmoothing[num_obs:, :] = 0
     Rmatrix = np.dot(Ggi, G_nosmoothing)  # R matrix
@@ -123,7 +123,7 @@ def bootstrapped_model_resolution(_G_total, _G_nosmooth, _d, _sig, _weights):
     return
 
 
-def checkerboard_vector(patches_f, Ds, num_extra_params, num_width, fault_num_array, checker_width=3, fault_num=0):
+def get_checkerboard_vector(patches_f, Ds, num_extra_params, num_width, fault_num_array, checker_width=3, fault_num=0):
     """
     Basic checkerboard utility to build checkers on a single fault. Making a checkerboard input pattern.
 

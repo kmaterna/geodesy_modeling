@@ -23,7 +23,7 @@ def welcome_and_parse(argv):
     config1 = json.load(config_file)
     os.makedirs(config1['output_dir'], exist_ok=True)
     for i, key in enumerate(config1["faults"].keys()):
-        fault_file_name = config1["faults"][key]["filename"]
+        fault_file_name = str(config1["faults"][key]["filename"])
         fault_name = os.path.split(fault_file_name)[1]
         shutil.copy2(fault_file_name, os.path.join(config1['output_dir'], fault_name))  # save faults, record-keeping
     if 'G' not in config1.keys():
@@ -32,6 +32,6 @@ def welcome_and_parse(argv):
 
 
 if __name__ == "__main__":
-    config = welcome_and_parse(sys.argv)
-    MultiTemporalInversion.buildG.beginning_calc(config)
-    MultiTemporalInversion.metrics.main_function(config)
+    my_config = welcome_and_parse(sys.argv)
+    MultiTemporalInversion.buildG.beginning_calc(my_config)
+    MultiTemporalInversion.metrics.main_function(my_config)

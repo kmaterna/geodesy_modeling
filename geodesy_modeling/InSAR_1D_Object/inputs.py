@@ -10,7 +10,7 @@ import h5py
 from s1_batches.read_write_insar_utilities import isce_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from ..general_utils import convert_rates_to_disps
-from .class_model import InSAR_1D_Object
+from .class_model import Insar1dObject
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle.file_io import io_other
 
 
@@ -26,8 +26,8 @@ def inputs_txt(insar_textfile, starttime=dt.datetime.strptime("19900101", "%Y%m%
     """
     print("Reading file %s " % insar_textfile)
     [lon_meas, lat_meas, disp, sig, unit_e, unit_n, unit_u] = np.loadtxt(insar_textfile, unpack=True, skiprows=1)
-    InSAR_Obj = InSAR_1D_Object(lon=lon_meas, lat=lat_meas, LOS=disp*1000, LOS_unc=sig*1000, lkv_E=unit_e, lkv_N=unit_n,
-                                lkv_U=unit_u, starttime=starttime, endtime=endtime)
+    InSAR_Obj = Insar1dObject(lon=lon_meas, lat=lat_meas, LOS=disp * 1000, LOS_unc=sig * 1000, lkv_E=unit_e,
+                              lkv_N=unit_n, lkv_U=unit_u, starttime=starttime, endtime=endtime)
     return InSAR_Obj
 
 
@@ -37,12 +37,12 @@ def inputs_simplest_txt(insar_textfile, starttime=dt.datetime.strptime("19900101
     Read text files with lon, lat, LOS (mm), with one header row.
     """
     [lon_meas, lat_meas, disp] = np.loadtxt(insar_textfile, unpack=True, skiprows=1)
-    InSAR_Obj = InSAR_1D_Object(lon=lon_meas, lat=lat_meas, LOS=disp,
-                                LOS_unc=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
-                                lkv_E=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
-                                lkv_N=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
-                                lkv_U=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
-                                starttime=starttime, endtime=endtime)
+    InSAR_Obj = Insar1dObject(lon=lon_meas, lat=lat_meas, LOS=disp,
+                              LOS_unc=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
+                              lkv_E=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
+                              lkv_N=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
+                              lkv_U=np.multiply(np.nan, np.zeros(np.shape(lon_meas))),
+                              starttime=starttime, endtime=endtime)
     return InSAR_Obj
 
 
@@ -89,10 +89,10 @@ def inputs_TRE_vert_east(filename):
     East_LOS = convert_rates_to_disps(evel, starttime, endtime)
     zeros = np.zeros(np.shape(zvel))
     ones = np.ones(np.shape(zvel))
-    Vert_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=Vert_LOS, LOS_unc=zvel_std,
-                               lkv_E=zeros, lkv_N=zeros, lkv_U=ones, starttime=starttime, endtime=endtime)
-    East_obj = InSAR_1D_Object(lon=lon, lat=lat, LOS=East_LOS, LOS_unc=evel_std,
-                               lkv_E=ones, lkv_N=zeros, lkv_U=zeros, starttime=starttime, endtime=endtime)
+    Vert_obj = Insar1dObject(lon=lon, lat=lat, LOS=Vert_LOS, LOS_unc=zvel_std,
+                             lkv_E=zeros, lkv_N=zeros, lkv_U=ones, starttime=starttime, endtime=endtime)
+    East_obj = Insar1dObject(lon=lon, lat=lat, LOS=East_LOS, LOS_unc=evel_std,
+                             lkv_E=ones, lkv_N=zeros, lkv_U=zeros, starttime=starttime, endtime=endtime)
     return Vert_obj, East_obj
 
 
@@ -129,8 +129,8 @@ def inputs_cornell_ou_velocities_hdf5(filename, lkv_filename, slicenum=0):
     disps, dates = quick_convert_one_timeslice_to_disp(rate[:, :, slicenum], dates[slicenum])
 
     # Returning standard InSAR format of displacements in mm, etc.
-    InSAR_data = InSAR_1D_Object(lon=lon, lat=lat, LOS=disps, LOS_unc=unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
-                                 starttime=dates[0], endtime=dates[1])
+    InSAR_data = Insar1dObject(lon=lon, lat=lat, LOS=disps, LOS_unc=unc, lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U,
+                               starttime=dates[0], endtime=dates[1])
     return InSAR_data
 
 
@@ -152,8 +152,8 @@ def inputs_isce_unw_geo_losrdr(isce_unw_filename, los_filename, starttime=dt.dat
     lkv_e = np.reshape(lkv_e, (num_data,))
     lkv_n = np.reshape(lkv_n, (num_data,))
     lkv_u = np.reshape(lkv_u, (num_data,))
-    InSAR_data = InSAR_1D_Object(lon=lon, lat=lat, LOS=data, LOS_unc=np.zeros(np.shape(data)), lkv_E=lkv_e,
-                                 lkv_N=lkv_n, lkv_U=lkv_u, starttime=starttime, endtime=endtime)
+    InSAR_data = Insar1dObject(lon=lon, lat=lat, LOS=data, LOS_unc=np.zeros(np.shape(data)), lkv_E=lkv_e,
+                               lkv_N=lkv_n, lkv_U=lkv_u, starttime=starttime, endtime=endtime)
     return InSAR_data
 
 
@@ -185,7 +185,7 @@ def inputs_lohman_mcguire_2007(filename):
         lon.append(latlontuple[1])
         data.append(10 * los)  # convert cm to mm.
     placeholder = np.zeros(np.shape(data))
-    InSAR_data = InSAR_1D_Object(lon=lon, lat=lat, LOS=data, LOS_unc=placeholder, lkv_E=placeholder, lkv_N=placeholder,
-                                 lkv_U=placeholder, starttime=dt.datetime.strptime('21-08-2005', '%d-%m-%Y'),
-                                 endtime=dt.datetime.strptime('25-09-2005', '%d-%m-%Y'))
+    InSAR_data = Insar1dObject(lon=lon, lat=lat, LOS=data, LOS_unc=placeholder, lkv_E=placeholder, lkv_N=placeholder,
+                               lkv_U=placeholder, starttime=dt.datetime.strptime('21-08-2005', '%d-%m-%Y'),
+                               endtime=dt.datetime.strptime('25-09-2005', '%d-%m-%Y'))
     return InSAR_data

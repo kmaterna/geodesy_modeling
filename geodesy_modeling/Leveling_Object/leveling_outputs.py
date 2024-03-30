@@ -100,7 +100,7 @@ def plot_simple_leveling(txtfile, plotname):
     [lon, lat, disp] = np.loadtxt(txtfile, unpack=True, skiprows=1, usecols=(0, 1, 2))
     fig = plt.figure(dpi=300)
     plt.scatter(lon, lat, c=disp, s=40, cmap='rainbow')
-    _cb = fig.colorbar(ax=plt.gca())
+    _cb = fig.colorbar(ax=plt.gca())   # This is the old matplotlib colorbar... syntax needs to be replaced
     plt.savefig(plotname)
     return
 

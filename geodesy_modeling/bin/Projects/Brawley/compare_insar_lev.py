@@ -134,7 +134,7 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
     axarr[0][1].tick_params(axis='both', which='major', labelsize=16)
     axarr[0][1].set_xlim([-graph_scale, graph_scale])
     axarr[0][1].set_ylim([-graph_scale, graph_scale])
-    axarr[0][1].set_title("Avg misfit = %.2f mm, Rsq = %.2f" % (misfit_metric, r2), fontsize=15)
+    axarr[0][1].set_title("Avg misfit = %.2f mm, Rsq = %.2f" % (misfit_metric, float(r2)), fontsize=15)
     axarr[0][1].grid(True)
 
     # Plotting the InSAR data in the bottom panel, as used in other panels
@@ -177,14 +177,14 @@ def read_leveling_data(data_file, error_file):
     return myLev
 
 
-def drive_ou_cornell_compare(file_dict, s1_slice, lev_slice, track, outfile):
+def drive_ou_cornell_compare(exp_file_dict, s1_slice, lev_slice, track, outfile):
     if track == 'ascending' or track == 'asc':
-        data_file, los_file = file_dict["s1_ou_ascending"], file_dict["s1_ou_ascending_los"]
-        lkv = np.array([float(x) for x in file_dict["s1_ascending_lkv"].split('/')])
+        data_file, los_file = exp_file_dict["s1_ou_ascending"], exp_file_dict["s1_ou_ascending_los"]
+        lkv = np.array([float(x) for x in exp_file_dict["s1_ascending_lkv"].split('/')])
     else:
-        data_file, los_file = file_dict["s1_ou_descending"], file_dict["s1_ou_descending_los"]
-        lkv = np.array([float(x) for x in file_dict["s1_descending_lkv"].split('/')])
-    myLev = read_leveling_data(file_dict["leveling"], file_dict["lev_error"])
+        data_file, los_file = exp_file_dict["s1_ou_descending"], exp_file_dict["s1_ou_descending_los"]
+        lkv = np.array([float(x) for x in exp_file_dict["s1_descending_lkv"].split('/')])
+    myLev = read_leveling_data(exp_file_dict["leveling"], exp_file_dict["lev_error"])
     InSAR_Data = InSAR_1D_Object.inputs.inputs_cornell_ou_velocities_hdf5(data_file, los_file, s1_slice)
     InSAR_Data = InSAR_Data.remove_nans()
     myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1])  # one slice
@@ -192,12 +192,12 @@ def drive_ou_cornell_compare(file_dict, s1_slice, lev_slice, track, outfile):
     return
 
 
-def drive_single_uavsar_intf_compare(file_dict, bounds, uavsar_filename, los_filename, lev_slice, outfile):
+def drive_single_uavsar_intf_compare(exp_file_dict, time_bounds, uavsar_filename, los_filename, lev_slice, outfile):
     """Read the UAVSAR Data"""
-    myLev = read_leveling_data(file_dict["leveling"], file_dict["lev_error"])
-    lkv = np.array([float(x) for x in file_dict["uavsar_08508_lkv"].split('/')])
-    InSAR_Data = InSAR_1D_Object.inputs.inputs_isce_unw_geo_losrdr(uavsar_filename, los_filename, starttime=bounds[0],
-                                                                   endtime=bounds[1])
+    myLev = read_leveling_data(exp_file_dict["leveling"], exp_file_dict["lev_error"])
+    lkv = np.array([float(x) for x in exp_file_dict["uavsar_08508_lkv"].split('/')])
+    InSAR_Data = InSAR_1D_Object.inputs.inputs_isce_unw_geo_losrdr(uavsar_filename, los_filename,
+                                                                   starttime=time_bounds[0], endtime=time_bounds[1])
     InSAR_Data = InSAR_Data.remove_nans()
     InSAR_Data = InSAR_Data.flip_los_sign()
     InSAR_Data = InSAR_1D_Object.remove_ramp.remove_ramp(InSAR_Data)  # experimental step
@@ -206,27 +206,27 @@ def drive_single_uavsar_intf_compare(file_dict, bounds, uavsar_filename, los_fil
     return
 
 
-def drive_tre_compare(file_dict, insar_key, lev_slice, outdir, outfile):
+def drive_tre_compare(exp_file_dict, insar_key, lev_slice, exp_outdir, outfile):
     """Read TRE data and compare with leveling. Don't need to project into vertical."""
-    insar_datafile = file_dict[insar_key]
-    myLev = read_leveling_data(file_dict["leveling"], file_dict["lev_error"])
+    insar_datafile = exp_file_dict[insar_key]
+    myLev = read_leveling_data(exp_file_dict["leveling"], exp_file_dict["lev_error"])
     VertTSXData, EastTSXData = InSAR_1D_Object.inputs.inputs_TRE_vert_east(insar_datafile)
     myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1])  # one slice
-    one_to_one_comparison(myLev, VertTSXData, insar_key, outdir + outfile, label="Vertical", graph_scale=50)
-    fields = general_io.read_gmt_multisegment_latlon(file_dict["field_file"], split_delimiter=',')
-    InSAR_1D_Object.outputs.plot_insar(VertTSXData, outdir+"InSAR_velo.png", lons_annot=fields[0][0],
+    one_to_one_comparison(myLev, VertTSXData, insar_key, exp_outdir + outfile, label="Vertical", graph_scale=50)
+    fields = general_io.read_gmt_multisegment_latlon(exp_file_dict["field_file"], split_delimiter=',')
+    InSAR_1D_Object.outputs.plot_insar(VertTSXData, exp_outdir+"InSAR_velo.png", lons_annot=fields[0][0],
                                        lats_annot=fields[1][0])
     return
 
 
-def drive_uavsar_ts_compare(file_dict, lev_slice, uav_slice, outfile):
+def drive_uavsar_ts_compare(exp_file_dict, lev_slice, uav_slice, outfile):
     """A different type of UAVSAR format, the SBAS time series analysis"""
-    losfile, lonfile, latfile = file_dict["uavsar_file"], file_dict["uavsar_lon"], file_dict["uavsar_lat"]
+    losfile, lonfile, latfile = exp_file_dict["uavsar_file"], exp_file_dict["uavsar_lon"], exp_file_dict["uavsar_lat"]
     myUAVSAR_TS = UAVSAR.uavsar_readwrite.inputs_TS_grd(losfile, lonfile, latfile)
-    myLev = read_leveling_data(file_dict["leveling"], file_dict["lev_error"])
-    lkv = np.array([float(x) for x in file_dict["uavsar_26509_lkv"].split('/')])
-    gps_lon, gps_lat, gps_names = np.loadtxt(file_dict["gnss_file"], dtype={'names': ('lon', 'lat', 'name'),
-                                                                            'formats': (float, float, 'U4')},
+    myLev = read_leveling_data(exp_file_dict["leveling"], exp_file_dict["lev_error"])
+    lkv = np.array([float(x) for x in exp_file_dict["uavsar_26509_lkv"].split('/')])
+    gps_lon, gps_lat, gps_names = np.loadtxt(exp_file_dict["gnss_file"], dtype={'names': ('lon', 'lat', 'name'),
+                                                                                'formats': (float, float, 'U4')},
                                              skiprows=1, unpack=True)
     myLev = Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1])  # one slice
     myUAVSAR_insarobj = UAVSAR.utilities.get_onetime_displacements(myUAVSAR_TS, uav_slice[0], uav_slice[1])
@@ -242,11 +242,11 @@ if __name__ == "__main__":
     file_dict = get_file_dictionary(config_filename)
 
     # # TSX experiment: 2012-2013, leveling slice 3-4
-    drive_tre_compare(file_dict, 'tsx', lev_slice=[3, 4], outdir="TSX/", outfile="one_to_one_34.png")
+    drive_tre_compare(file_dict, 'tsx', lev_slice=[3, 4], exp_outdir="TSX/", outfile="one_to_one_34.png")
     # # S1 experiment: 2014-2018, leveling slice 5-8
-    # drive_tre_compare(file_dict, "snt1", lev_slice=[5, 8], outdir="SNT1/", outfile="vert_58.png")
+    # drive_tre_compare(file_dict, "snt1", lev_slice=[5, 8], exp_outdir="SNT1/", outfile="vert_58.png")
     # # S1 experiment: 2018-2019, leveling slice 8-9
-    # drive_tre_compare(file_dict, "snt2", lev_slice=[8, 9], outdir="SNT2/", outfile="vert_89.png")
+    # drive_tre_compare(file_dict, "snt2", lev_slice=[8, 9], exp_outdir="SNT2/", outfile="vert_89.png")
 
     # # # S1_Cornell experiment (2015 data), leveling slice 5-6
     drive_ou_cornell_compare(file_dict, s1_slice=0, lev_slice=[5, 6], track='asc', outfile='S1_OU/T4D/asc_56.png')

@@ -6,7 +6,7 @@ import numpy as np
 from Tectonic_Utils.read_write import netcdf_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from s1_batches.read_write_insar_utilities import isce_read_write
-from .class_model import InSAR_2D_Object
+from .class_model import Insar2dObject
 
 
 def inputs_grd(los_grdfile, _rdrlosfile=None):
@@ -20,9 +20,9 @@ def inputs_grd(los_grdfile, _rdrlosfile=None):
     [lon, lat, LOS] = netcdf_read_write.read_any_grd(los_grdfile)
 
     # Here, will write an input function for when there's a corresponding look vector file in GMTSAR format.
-    InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                                lkv_E=None, lkv_N=None, lkv_U=None,
-                                starttime=None, endtime=None)
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
+                              lkv_E=None, lkv_N=None, lkv_U=None,
+                              starttime=None, endtime=None)
     return InSAR_Obj
 
 
@@ -37,8 +37,8 @@ def inputs_phase_isce(iscefile, los_rdr_file=None):
         incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
         azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
     lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
-    InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                                lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
     InSAR_Obj.defensive_checks()
     return InSAR_Obj
 
@@ -54,8 +54,8 @@ def inputs_scalar_isce(iscefile, los_rdr_file=None):
         incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
         azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
     lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
-    InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                                lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
     InSAR_Obj.defensive_checks()
     return InSAR_Obj
 
@@ -85,7 +85,7 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     los = insar_vector_functions.def3D_into_LOS(e, n, u, flight_angle, constant_incidence_angle)
     if convert_m_to_mm:
         los = np.multiply(los, 1000)  # convert from m to mm
-    InSAR_Obj = InSAR_2D_Object(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
-                                lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None)
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
+                              lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None)
     InSAR_Obj.defensive_checks()
     return InSAR_Obj

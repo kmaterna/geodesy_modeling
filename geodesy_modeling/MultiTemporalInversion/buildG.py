@@ -484,11 +484,11 @@ def beginning_calc(config):
             print("Writing file %s " % output_file_list[filenum])
 
     # Running a resolution test if desired. Only works for a single time interval.
-    def res_output_phase(cardinal_res, res_output_file):
+    def res_output_phase(cardinal_res, resolution_output_file):
         # Function to write resolution test outputs on faults
         slippy.io.write_slip_data(patches_pos_geo, patches_strike, patches_dip, patches_length, patches_width,
-                                  cardinal_res, fault_names_array, res_output_file)
-        print("Writing file %s " % res_output_file)
+                                  cardinal_res, fault_names_array, resolution_output_file)
+        print("Writing file %s " % resolution_output_file)
         return
 
     if "R" in config["resolution_test"].split(',') and n_epochs == 1:
@@ -508,9 +508,9 @@ def beginning_calc(config):
         use_slip_penalty = 1   # do we impose a zeroth-order minimum-norm penalty?
         res_output_file = config["output_dir"] + 'checkerboard_resolution.txt'
         res_input_file = config["output_dir"] + 'checkerboard_input.txt'
-        checkerboard_model = resolution_tests.checkerboard_vector(patches_f, Ds, num_leveling_params,
-                                                                  fault_list[0]["Nwidth"], fault_names_array,
-                                                                  checker_width=4, fault_num=0)
+        checkerboard_model = resolution_tests.get_checkerboard_vector(patches_f, Ds, num_leveling_params,
+                                                                      fault_list[0]["Nwidth"], fault_names_array,
+                                                                      checker_width=4, fault_num=0)
         inp_cardinal_res = resolution_tests.parse_checkerboard_res_outputs(checkerboard_model, Ns_total, Ds,
                                                                            total_fault_slip_basis, num_leveling_params)
         res_output_phase(inp_cardinal_res, res_input_file)

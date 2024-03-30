@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # For Shelly et al., SciAdv, 2024
 
-from geodesy_modeling.Inversion.GF_element import readers_writers as gf_rw
+from geodesy_modeling.Inversion.GfElement import readers_writers as gf_rw
 from elastic_stresses_py.PyCoulomb import disp_points_object as dpo
 import elastic_stresses_py.PyCoulomb as PyCoulomb
 import elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
