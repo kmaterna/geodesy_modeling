@@ -5,7 +5,7 @@ Input functions for 2D InSAR-format data
 import numpy as np
 from Tectonic_Utils.read_write import netcdf_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
-from S1_batches.read_write_insar_utilities import isce_read_write
+from s1_batches.read_write_insar_utilities import isce_read_write
 from .class_model import InSAR_2D_Object
 
 

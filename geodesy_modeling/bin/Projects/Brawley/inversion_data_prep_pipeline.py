@@ -17,7 +17,7 @@ import datetime as dt
 from . import file_io_brawley_gnss as io_brawley
 from gnss_timeseries_viewers.gps_tools import gps_ts_functions, downsample
 from geodesy_modeling import Downsample, InSAR_1D_Object, Leveling_Object
-from S1_batches.read_write_insar_utilities import isce_read_write
+from s1_batches.read_write_insar_utilities import isce_read_write
 
 
 def welcome_and_parse(argv):
