@@ -93,9 +93,9 @@ def add_flight_vector(fig, flight_heading, look_dir, region):
     fig.text(x=region[0], y=region[2], text='LOS', offset=str(0.6 + 0.4 * x_los) + "i/0.45i",
              fill='white', font="10p,Helvetica,black")  # LOS text annotation
     fig.plot(x=[region[0]], y=[region[2]], style='v0.2c+e+gblack+h0+p1p,black+z' + str(1.0),
-             direction=[[x_flight], [y_flight]], pen="thin,black", offset="0.6i/0.45i")  # flight vector
+             direction=[[2*x_flight], [2*y_flight]], pen="thin,black", offset="0.6i/0.45i")  # flight vector
     fig.plot(x=[region[0]], y=[region[2]], style='v0.2c+e+gblack+h0+p1p,black+z' + str(1.0),
-             direction=[[x_los / 2], [y_los / 2]], pen="thin,black", offset="0.6i/0.45i")  # los vector
+             direction=[[x_los], [y_los]], pen="thin,black", offset="0.6i/0.45i")  # los vector
     return fig
 
 
@@ -128,9 +128,9 @@ def map_wrapped_insar(grd_filename, plotname, text_annot=None, flight_heading=No
         label_inc = 1.57  # for wrapped phase
         label = "Phase"
     else:  # currently hard-coded for different applications
-        pygmt.makecpt(cmap="polar", series="-30/30/0.01", background="o", output="mycpt.cpt")
+        pygmt.makecpt(cmap="polar", series="-10/10/0.01", background="o", output="mycpt.cpt")
         title = "Unwrapped LOS Displacement"
-        label_inc = 5  # For unwrapped displacement.  Currently hard-coded
+        label_inc = 2  # For unwrapped displacement.  Currently hard-coded
         label = "LOS Deformation (mm)"
 
     # Build a PyGMT plot

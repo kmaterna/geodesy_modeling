@@ -50,7 +50,7 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
     :param disp_points_color: a 1d array of floats to be plotted as colors in the disp_points fill
     """
     if params['plot_unwrapped']:
-        myobj_ref = insarobj.subtract_reference(insarobj, params['refidx'])  # Subtract reference pix
+        myobj_ref = insarobj.subtract_reference(params['refidx'])  # Subtract reference pix
         InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, os.path.join(params['outdir'],
                                                                       params['label']+"unw_phase.grd"))
         InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"unw_phase.grd"),
