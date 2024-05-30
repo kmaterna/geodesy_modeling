@@ -65,14 +65,14 @@ def plot_disp_point_annotations(fig, disp_points, disp_points_color=None, cmap=N
     if disp_points_color:  # plot vectors and color-fill
         [scale_arrow, vectext] = overall_utils.define_vector_scale_size(model_dE, model_dN)
         scale = 1.5 / scale_arrow  # empirical scaling, convenient display
-        fig.plot(x=model_lon, y=model_lat, style='t0.10i', color=disp_points_color, pen="thin,black", cmap=cmap)
+        fig.plot(x=model_lon, y=model_lat, style='t0.10i', fill=disp_points_color, pen="thin,black", cmap=cmap)
         fig.plot(x=model_lon, y=model_lat, style='v0.2c+e+gblack+h0+p1p,black+z'+str(scale),
                  direction=[model_dE, model_dN], pen="thin,black")
         fig.plot(x=[region[0]+0.05], y=[region[2]+0.55],  style='v0.2c+e+gblack+h0+p1p,black+z'+str(scale),
                  direction=[[scale_arrow], [0]],  pen="thin,black")  # scale vector
         fig.text(x=[region[0]+0.20], y=[region[2]+0.65], text=vectext+" obs")  # scale label
     else:  # just plot triangles for location
-        fig.plot(x=model_lon, y=model_lat, style='t0.07i', color='black', pen="thin,black")
+        fig.plot(x=model_lon, y=model_lat, style='t0.07i', fill='black', pen="thin,black")
     return fig
 
 
