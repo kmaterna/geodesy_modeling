@@ -4,7 +4,7 @@ Input functions for 2D InSAR-format data
 
 import numpy as np
 from Tectonic_Utils.read_write import netcdf_read_write
-from Tectonic_Utils.geodesy import insar_vector_functions
+from Tectonic_Utils.geodesy import insar_vector_functions as insar_vect
 from s1_batches.read_write_insar_utilities import isce_read_write
 from .class_model import Insar2dObject
 
@@ -36,7 +36,7 @@ def inputs_phase_isce(iscefile, los_rdr_file=None):
     if los_rdr_file:
         incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
         azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
-    lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
+    lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                               lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
     InSAR_Obj.defensive_checks()
@@ -53,7 +53,7 @@ def inputs_scalar_isce(iscefile, los_rdr_file=None):
     if los_rdr_file:
         incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
         azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
-    lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
+    lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                               lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
     InSAR_Obj.defensive_checks()
@@ -61,7 +61,7 @@ def inputs_scalar_isce(iscefile, los_rdr_file=None):
 
 
 def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angle, constant_incidence_angle=None,
-                                    convert_m_to_mm=True):
+                                    convert_m_to_mm=True, look_direction='right'):
     """
     Read synthetic models with three deformation components.
     If constant_incidence_angle is provided, it uses one simple incidence angle and flight angle for the field.
@@ -73,16 +73,22 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     :param flight_angle: float, flight angle, degrees cw from n
     :param constant_incidence_angle: float, incidence angle, degrees from vertical
     :param convert_m_to_mm: default True. Multiplies by 1000
+    :param look_direction: default 'right'. Can take 'left'.
     """
     [lon, lat, e] = netcdf_read_write.read_any_grd(e_grdfile)
     [_, _, n] = netcdf_read_write.read_any_grd(n_grdfile)
     [_, _, u] = netcdf_read_write.read_any_grd(u_grdfile)
-    look_vector = insar_vector_functions.flight_incidence_angles2look_vector(flight_angle, constant_incidence_angle)
+    if look_direction == 'left':
+        look_vector = insar_vect.flight_incidence_angles2look_vector_leftlook(flight_angle, constant_incidence_angle)
+    else:
+        look_vector = insar_vect.flight_incidence_angles2look_vector(flight_angle, constant_incidence_angle)
 
     lkv_E = np.multiply(np.ones(np.shape(e)), look_vector[0])  # constant incidence angle for now, into 2D array
     lkv_N = np.multiply(np.ones(np.shape(e)), look_vector[1])  # constant incidence angle for now, into 2D array
     lkv_U = np.multiply(np.ones(np.shape(e)), look_vector[2])  # constant incidence angle for now, into 2D array
-    los = insar_vector_functions.def3D_into_LOS(e, n, u, flight_angle, constant_incidence_angle)
+
+    los = insar_vect.def3D_into_LOS(e, n, u, flight_angle, constant_incidence_angle, look_direction)
+
     if convert_m_to_mm:
         los = np.multiply(los, 1000)  # convert from m to mm
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
