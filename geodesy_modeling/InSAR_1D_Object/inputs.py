@@ -7,7 +7,7 @@ import datetime as dt
 import sys
 import pandas
 import h5py
-from s1_batches.read_write_insar_utilities import isce_read_write
+from cubbie.read_write_insar_utilities import isce_read_write
 from Tectonic_Utils.geodesy import insar_vector_functions
 from ..general_utils import convert_rates_to_disps
 from .class_model import Insar1dObject

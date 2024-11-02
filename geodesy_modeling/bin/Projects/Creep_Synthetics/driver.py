@@ -2,10 +2,11 @@
 
 import os
 import sys
-from elastic_stresses_py.PyCoulomb import configure_calc, input_values, run_dc3d, output_manager
+from elastic_stresses_py.PyCoulomb import configure_calc, input_values, run_dc3d, output_manager, io_additionals
 from geodesy_modeling.InSAR_2D_Object import model_enu_grids_into_los
-from geodesy_modeling.Creepmeter import slip_1d_profiles, creepmeter_geometry
-
+from geodesy_modeling.Creepmeter import slip_1d_profiles, creepmeter_obj
+import Tectonic_Utils.geodesy.haversine as haversine
+import Tectonic_Utils.geodesy.fault_vector_functions as fault_vector_functions
 
 # 29 May 2024
 # Steps:
@@ -27,7 +28,7 @@ def configure_experiment(txt_filename):
 
 
 def build_okada_files(txt_filename, expname):
-    lon0, lat0, width_deg = -121.3, 36.7, 0.16
+    lon0, lat0, width_deg = -121.28, 36.7, 0.16
     strike, rake, dip, length_km = 321, 180, 89.9, 8
     tops, bottoms, slips = slip_1d_profiles.read_1d_profile(txt_filename)
     minlon, maxlon, minlat, maxlat = lon0-width_deg, lon0+width_deg, lat0-width_deg, lat0+width_deg
@@ -44,31 +45,30 @@ def build_okada_files(txt_filename, expname):
             ofile.write(str(width_km)+' '+str(lon0)+' '+str(lat0)+' '+str(x1)+' '+str(slip/1000)+' 0\n')
 
     # Make the synthetic creepmeter locations
-    pt1, pt2 = creepmeter_geometry.get_synthetic_creepmeter_points(lon0, lat0, strike, length_km, creepmeter_length=10)
-    creepmeter_geometry.write_cm_points(pt1, pt2, filename=os.path.join('espy_files', 'target_pts.txt'))
-    return
+    strike_vector = fault_vector_functions.get_strike_vector(strike)
+    center_lon, center_lat = haversine.add_vector_to_coords(lon0, lat0, (length_km/2) * strike_vector[0],
+                                                            (length_km/2) * strike_vector[1])
+    synth_cm = creepmeter_obj.get_synthetic_creepmeter(center_lon, center_lat, strike, creepmeter_length=10)
+    io_additionals.write_disp_points_locations([synth_cm.west_point, synth_cm.east_point],
+                                               os.path.join('espy_files', 'target_pts.txt'), precision=9)
+    return synth_cm
 
 
-def get_synthetic_creepmeter_magnitude(disp_points):
-    # Returns synthetic creepmeter displacements in mm
-    mag_v1 = disp_points[0].get_magnitude()
-    mag_v2 = disp_points[1].get_magnitude()
-    return 1000 * (mag_v1 + mag_v2)
-
-
-def run_okada_calc(exp_name, outdir):
+def run_okada_calc(exp_name, outdir, synth_cm):
     espy_filename = os.path.join('espy_files', exp_name + '.intxt')
     params = configure_calc.Params(input_file=espy_filename,
-                                   disp_points_file=os.path.join("espy_files", "target_pts.txt"),
+                                   disp_points_file=os.path.join("espy_files", "gnss_points.txt"),
                                    plot_stress=0, outdir=outdir)
     [inputs, obs_disp_points, obs_strain_points] = input_values.read_inputs(params)
+    cm_points = io_additionals.read_disp_points(os.path.join("espy_files", "target_pts.txt"))
+    obs_disp_points = cm_points + obs_disp_points  # concatenate creepmeter + GPS target points
     out_object = run_dc3d.do_stress_computation(params, inputs, obs_disp_points, obs_strain_points)
     output_manager.produce_outputs(params, inputs, obs_disp_points, obs_strain_points, out_object)
-    synthetic_disp = get_synthetic_creepmeter_magnitude(out_object.model_disp_points)
-    print("SYNTHETIC DISP = ", synthetic_disp, " mm")
-    with open(os.path.join(outdir, 'synthetic_creepmeter.txt'), 'w') as ofile:
-        ofile.write("SYNTHETIC DISP = " + str(synthetic_disp) + " mm\n")
-    return out_object.model_disp_points
+    out_creep = creepmeter_obj.Synthetic_creepmeter(center=synth_cm.center, west_point=out_object.model_disp_points[0],
+                                                    east_point=out_object.model_disp_points[1])
+    print("SYNTHETIC DISP = ", out_creep.displacement, " mm")
+    creepmeter_obj.write_creepmeter_results([out_creep], os.path.join(outdir, 'synthetic_creepmeter.txt'))
+    return out_object
 
 
 def project_to_los(outdir, disp_points=()):
@@ -110,9 +110,8 @@ def project_to_los(outdir, disp_points=()):
 
 if __name__ == "__main__":
     given_filename = sys.argv[1]   # the path to a 1d slip-distribution file
-
     exper_name, out_dir = configure_experiment(given_filename)
     slip_1d_profiles.plot_1d_profile(given_filename, os.path.join(out_dir, 'slip_dist_' + exper_name + '.png'))
-    build_okada_files(given_filename, exper_name)
-    model_disp_points = run_okada_calc(exper_name, out_dir)
-    project_to_los(out_dir, model_disp_points)
+    synthetic_cm = build_okada_files(given_filename, exper_name)
+    outobject = run_okada_calc(exper_name, out_dir, synthetic_cm)
+    project_to_los(out_dir, outobject.model_disp_points)

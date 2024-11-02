@@ -19,6 +19,7 @@ def read_1d_profile(filename):
 
 
 def plot_1d_profile(txt_filename, plot_filename):
+    print("Plotting slip profile in %s " % plot_filename)
     tops, bottoms, slips = read_1d_profile(txt_filename)
     plt.figure(figsize=(4, 5), dpi=300)
     x_vals, y_vals = [], []
