@@ -6,7 +6,7 @@ import numpy as np
 import scipy.signal
 import matplotlib.pyplot as plt
 from Tectonic_Utils.geodesy import haversine
-from .. import general_utils
+from geodesy_modeling import general_utils
 
 
 class GMTProfile:

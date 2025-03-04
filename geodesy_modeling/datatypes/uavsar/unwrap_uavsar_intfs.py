@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 July 2020
-Manipulate a UAVSAR file from the jpl website into a properly unwrapped and geocoded data file.
+Manipulate a uavsar file from the jpl website into a properly unwrapped and geocoded data file.
 It takes .ann, .int.grd, and .cor.grd files.
 This is a complicated multi-step process that needs both ISCE and GMTSAR functions.
 It writes the filtered, unwrapped, masked, geocoded interferograms in isce format,

@@ -1,6 +1,6 @@
 
 import numpy as np
-from .. import general_utils
+from geodesy_modeling import general_utils
 from . import class_model
 
 

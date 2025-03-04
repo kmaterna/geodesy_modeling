@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
-from .. import general_utils
+from geodesy_modeling import general_utils
 from .class_model import Insar1dObject
 from .inputs import inputs_txt
 from .outputs import write_insar_invertible_format

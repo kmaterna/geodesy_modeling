@@ -1,6 +1,6 @@
 import numpy as np
 from Tectonic_Utils.geodesy import insar_vector_functions
-from .. import general_utils
+from geodesy_modeling import general_utils
 
 
 class Insar2dObject:

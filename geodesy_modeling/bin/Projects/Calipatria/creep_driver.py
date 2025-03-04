@@ -8,8 +8,7 @@ import elastic_stresses_py.PyCoulomb as PyCoulomb
 import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import elastic_stresses_py.PyCoulomb.fault_slip_object as fso
 import elastic_stresses_py.PyCoulomb.inputs_object as inputs_object
-import geodesy_modeling.InSAR_1D_Object as InSAR_1D
-from geodesy_modeling.InSAR_1D_Object.class_model import Insar1dObject
+from geodesy_modeling.datatypes.InSAR_1D_Object import Insar1dObject
 import geodesy_modeling.Inversion.inversion_tools as inv_tools
 import geodesy_modeling.Inversion.GfElement.rw_insar_gfs as rw_gf
 from geodesy_modeling.Inversion.GfElement.GfElement import GfElement
@@ -74,7 +73,7 @@ def read_gf_elements(fault_file: str, gf_file: str):
 if __name__ == "__main__":
     exp_dict = configure()
     outdir = exp_dict['outdir']
-    desc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_desc'])  # get list of insar data
+    desc_insar = geodesy_modeling.datatypes.InSAR_1D_Object.inputs.inputs_txt(exp_dict['obs_desc'])  # get list of insar data
     obs_disp_pts = desc_insar.get_disp_points()  # get locations and data of InSAR points
 
     # ONE TIME: Compute the Green's Functions

@@ -3,7 +3,6 @@ Project 3 grd files of modeled east/north/up deformation into the LOS of an assu
 Simple calculation - single incidence angle for now.
 """
 
-import geodesy_modeling.InSAR_2D_Object as InSAR_2D_Object
 import os
 
 
@@ -37,10 +36,10 @@ def read_grd_inputs(params):
     """
     Reading an InSAR_2D_Object
     """
-    myobj = InSAR_2D_Object.inputs.inputs_from_synthetic_enu_grids(params['east_grdfile'], params['north_grdfile'],
-                                                                   params['up_grdfile'], params['flight_direction'],
-                                                                   params['incidence_angle'],
-                                                                   look_direction=params['look_direction'])
+    myobj = geodesy_modeling.datatypes.InSAR_2D_Object.inputs.inputs_from_synthetic_enu_grids(params['east_grdfile'], params['north_grdfile'],
+                                                                                              params['up_grdfile'], params['flight_direction'],
+                                                                                              params['incidence_angle'],
+                                                                                              look_direction=params['look_direction'])
     return myobj
 
 
@@ -53,28 +52,28 @@ def plot_synthetic_grid_los(params, insarobj, disp_points=None, disp_points_colo
     """
     if params['plot_unwrapped']:  # the outputs are in los deformation (mm)
         myobj_ref = insarobj.subtract_reference(params['refidx'])  # Subtract reference pix
-        InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, os.path.join(params['outdir'],
-                                                                      params['label']+"unw_los.grd"))
-        InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"unw_los.grd"),
-                                                  os.path.join(params['outdir'],
+        geodesy_modeling.datatypes.InSAR_2D_Object.outputs.write_InSAR2D(myobj_ref, os.path.join(params['outdir'],
+                                                                                                 params['label'] +"unw_los.grd"))
+        geodesy_modeling.datatypes.InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label'] + "unw_los.grd"),
+                                                                             os.path.join(params['outdir'],
                                                                params['label']+params['unwrapped_plot_name']),
-                                                  text_annot=params['plot_unwrapped_annot'],
-                                                  flight_heading=params['flight_direction'],
-                                                  look_dir=params['look_direction'],
-                                                  disp_points=disp_points, region=params['plot_range'],
-                                                  refloc=params['refidx'], disp_points_color=disp_points_color)
+                                                                             text_annot=params['plot_unwrapped_annot'],
+                                                                             flight_heading=params['flight_direction'],
+                                                                             look_dir=params['look_direction'],
+                                                                             disp_points=disp_points, region=params['plot_range'],
+                                                                             refloc=params['refidx'], disp_points_color=disp_points_color)
 
     if params['plot_wrapped']:  # the outputs are in phase (radians)
         myobj_wrapped = insarobj.rewrap_InSAR(params['wavelength_mm'])
-        InSAR_2D_Object.outputs.write_InSAR2D(myobj_wrapped, os.path.join(params['outdir'],
-                                                                          params['label']+"phase.grd"))
-        InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label']+"phase.grd"),
-                                                  os.path.join(params['outdir'],
+        geodesy_modeling.datatypes.InSAR_2D_Object.outputs.write_InSAR2D(myobj_wrapped, os.path.join(params['outdir'],
+                                                                                                     params['label'] +"phase.grd"))
+        geodesy_modeling.datatypes.InSAR_2D_Object.outputs.map_wrapped_insar(os.path.join(params['outdir'], params['label'] + "phase.grd"),
+                                                                             os.path.join(params['outdir'],
                                                                params['label']+params["wrapped_plot_name"]),
-                                                  text_annot=params['plot_wrapped_annot'],
-                                                  look_dir=params['look_direction'],
-                                                  flight_heading=params['flight_direction'],
-                                                  disp_points=disp_points, region=params['plot_range'], wrapped=True)
+                                                                             text_annot=params['plot_wrapped_annot'],
+                                                                             look_dir=params['look_direction'],
+                                                                             flight_heading=params['flight_direction'],
+                                                                             disp_points=disp_points, region=params['plot_range'], wrapped=True)
     return
 
 

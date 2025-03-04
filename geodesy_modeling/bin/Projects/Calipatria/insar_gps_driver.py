@@ -8,10 +8,9 @@ import elastic_stresses_py.PyCoulomb as PyCoulomb
 import elastic_stresses_py.PyCoulomb.fault_slip_triangle as fst
 import elastic_stresses_py.PyCoulomb.disp_points_object as dpo
 import geodesy_modeling.Inversion.inversion_tools as inv_tools
-import geodesy_modeling.InSAR_1D_Object as InSAR_1D
 import geodesy_modeling.Inversion.GfElement.GfElement as GF_element
 import geodesy_modeling.Inversion.GfElement.rw_insar_gfs as rw_insar_gfs
-from geodesy_modeling.InSAR_1D_Object.class_model import Insar1dObject
+from geodesy_modeling.datatypes.InSAR_1D_Object import Insar1dObject
 import Tectonic_Utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
@@ -107,8 +106,8 @@ if __name__ == "__main__":
     outdir = exp_dict['outdir']
 
     # INPUT STAGE:
-    desc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_desc'])  # get list of insar data
-    asc_insar = InSAR_1D.inputs.inputs_txt(exp_dict['obs_asc'])
+    desc_insar = geodesy_modeling.datatypes.InSAR_1D_Object.inputs.inputs_txt(exp_dict['obs_desc'])  # get list of insar data
+    asc_insar = geodesy_modeling.datatypes.InSAR_1D_Object.inputs.inputs_txt(exp_dict['obs_asc'])
     obs_disp_pts_desc = desc_insar.get_disp_points()  # get locations and data of InSAR points
     obs_disp_pts_asc = asc_insar.get_disp_points()
     GF_elements_desc = read_gf_elements_kalin(exp_dict['fault_file'], "desc_insar_gfs.txt")  # get GFs

@@ -1,6 +1,6 @@
 
 import numpy as np
-from ..InSAR_1D_Object import class_model
+from geodesy_modeling.datatypes.InSAR_1D_Object import class_model
 
 
 def avg_uavsar_disp(TS, slicenum, row, col):

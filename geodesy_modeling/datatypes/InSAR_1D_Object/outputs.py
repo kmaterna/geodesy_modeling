@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import datetime as dt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from Tectonic_Utils.geodesy import insar_vector_functions
-from .. import general_utils
+from geodesy_modeling import general_utils
 
 
 def write_insar_invertible_format(InSAR_obj, filename, unc_min=0):

@@ -1,7 +1,7 @@
 import datetime as dt
 import matplotlib
 import numpy as np
-from .. import general_utils
+from geodesy_modeling import general_utils
 from Tectonic_Utils.read_write import netcdf_read_write
 from matplotlib import pyplot as plt, cm as cm
 
@@ -22,7 +22,7 @@ def inputs_TS_grd(filename, lonfile, latfile, day0=dt.datetime.strptime("2009-04
     The files generally are not orthorectified grids
     GRDnetcdf has tdata (days since day0), x, y, and zdata (3D cube)
     lon and lat files are 2D arrays with corresponding lon and lat for each point
-    day0 is the day of the first acquisition in the time series (hard coded for a UAVSAR track default)
+    day0 is the day of the first acquisition in the time series (hard coded for a uavsar track default)
     """
     print("Reading TS Grid file  %s" % filename)
     [tdata, _, _, zdata] = netcdf_read_write.read_3D_netcdf(filename)
