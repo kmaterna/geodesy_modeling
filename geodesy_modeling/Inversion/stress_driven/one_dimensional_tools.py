@@ -13,6 +13,7 @@ import Tectonic_Utils.geodesy.fault_vector_functions as fvf
 from elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as fso
 import matplotlib.pyplot as plt
 from elastic_stresses_py import PyCoulomb
+from elastic_stresses_py.PyCoulomb.inputs_object import io_intxt
 
 
 class DislocArray_1D:
@@ -31,17 +32,16 @@ class DislocArray_1D:
     def get_slip_array(self):
         return [x.get_fault_slip() for x in self.fault_list]
 
-    def plot_slip_with_depth(self, outfile_name, pred_slip=None):
+    def plot_slip_with_depth(self, outfile_name):
         """Extract the slip vs. depth profile for this list of fault objects. Plot it. """
         depth_values, slip_values = self.get_depth_array(), self.get_slip_array()
-        plot_slip_with_depth(depth_values, slip_values, outfile_name, pred_slip)
+        plot_slip_with_depth(depth_values, slip_values, outfile_name)
         return
 
-    def plot_stress_with_depth(self, outfile_name, pred_stress=None):
+    def plot_stress_with_depth(self, outfile_name):
         """Extract the slip vs. depth profile for this list of fault objects. Plot it. """
-        stress_values = self.shear_stress_drop
         depth_values = [x.top for x in self.fault_list]
-        plot_stress_with_depth(depth_values, stress_values, outfile_name, pred_stress)
+        plot_stress_with_depth(depth_values, self.shear_stress_drop, outfile_name)
         return
 
     def forward_model_stress_drop(self):
@@ -66,7 +66,7 @@ class DislocArray_1D:
 
         for receiver in self.fault_list:
             # Source for Green's functions.
-            rtlat, reverse = fvf.get_rtlat_dip_slip(0.01, rake=receiver.rake)
+            rtlat, reverse = fvf.get_rtlat_dip_slip(1, rake=receiver.rake)  # unit slip = 1 m
             source_object = [receiver.modify_fault_object(rtlat=rtlat, reverse=reverse)]  # modify slip on patch to 1 cm
             inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=source_object,
                                                                                             zerolon=-115.0,
@@ -78,6 +78,34 @@ class DislocArray_1D:
             G[i, :] = G_column
             i = i + 1
         return G
+
+    def forward_model_surface_disps(self):
+        default_params = PyCoulomb.configure_calc.configure_stress_calculation("my_config.txt")  # FIX THIS
+        # Create points along a line
+        lats = np.multiply(33.25, np.ones((1, 100)))
+        lons = np.linspace(-115.5, -114.5, 100)
+        save_data = np.vstack((lons, lats)).T
+        np.savetxt("profile_coords.txt", save_data, "%f %f", header="Lon Lat")
+
+        # Re-package the slip into the fault patches that they came from
+        slipping_faults = []
+        for fault in self.fault_list:
+            rtlat, reverse = fvf.get_rtlat_dip_slip(fault.get_fault_slip(), rake=fault.rake)
+            source_fault = fault.modify_fault_object(rtlat=rtlat, reverse=reverse)  # modify slip inverted value (m)
+            slipping_faults.append(source_fault)
+        inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=slipping_faults,
+                                                                                        zerolon=-115.0,
+                                                                                        zerolat=33,
+                                                                                        bbox=[-116, -114, 32, 34])
+        io_intxt.write_intxt(inputs, "resulting_patches.txt")
+
+        # Do a displacement calculation
+        default_params = default_params.modify_params_object(disp_points_file='profile_coords.txt', plot_grd_disp=True,
+                                                             input_file='resulting_patches.txt')
+        [inputs, obs_disp_points, _] = PyCoulomb.input_values.read_inputs(default_params)
+        out_object = PyCoulomb.run_dc3d.do_stress_computation(default_params, inputs, disp_points=obs_disp_points)
+        PyCoulomb.output_manager.produce_outputs(default_params, inputs, (), (), out_object)
+        return
 
 
 def build_depths_array(bottom_depth, top_depth, number_segments):
@@ -95,19 +123,6 @@ def build_depths_array(bottom_depth, top_depth, number_segments):
     return depths, depth_interval
 
 
-def build_configs(config_params):
-    """
-    :param config_params: dictionary that contains "bottom_depth", "top_depth", and "number_segments", "dip"
-    :return: list of depths, depth_interval
-    """
-    depths, depth_interval = build_depths_array(config_params["bottom_depth"], config_params["top_depth"],
-                                                config_params["number_segments"])
-    width = fvf.get_downdip_width(config_params["top_depth"], config_params["bottom_depth"], config_params["dip"])
-    config_params["width"] = width
-    config_params["depth_interval"] = depth_interval
-    return config_params, depths
-
-
 def construct_receiver_objects(configs):
     """
     Construct a list of one-dimensional fault patches by subdividing the fault into number_segments along dip.
@@ -115,19 +130,40 @@ def construct_receiver_objects(configs):
     :param configs: a dictionary of config params with certain fields
     :return: list of pyCoulomb fault objects
     """
+    depths, depth_interval = build_depths_array(configs["bottom_depth"], configs["top_depth"],
+                                                configs["number_segments"])
+    width = fvf.get_downdip_width(configs["top_depth"], configs["bottom_depth"], configs["dip"])
+    configs["width"] = width
+    configs["depth_interval"] = depth_interval
     one_fault = fso.FaultSlipObject(strike=0, dip=configs["dip"], length=100, width=configs["width"],
                                     lon=-115.0, lat=32.8, depth=configs["top_depth"], rake=configs["rake"], slip=0)
-    [receiver_object] = fso.fault_object_to_coulomb_fault([one_fault], configs["zerolon"], configs["zerolat"])
+    [receiver_object] = fso.fault_object_to_coulomb_fault([one_fault], zerolon_system=-115.0,
+                                                          zerolat_system=33.0)
     receiver_object_list = receiver_object.split_single_fault(1, dip_num_split=configs["number_segments"])
     return receiver_object_list
 
 
 def construct_receivers_Disloc_Profile(configs):
     """Almost like a driver for the config stage of this experiment. """
-    configs, _ = build_configs(configs)
     receivers = construct_receiver_objects(configs)  # list of pyc Faults, same zerolon/zerolat, no slip
     disloc_profile = DislocArray_1D(receivers)  # create the 1D object that will do the work
     return disloc_profile
+
+
+def construct_source_Disloc_Profile(receiver_profile, slip_array):
+    """
+    Build a Disloc_profile object with given slip
+
+    :param receiver_profile: Disloc_profile object
+    :param slip_array: 1d list of slip, in m
+    :return: Disloc_profile object
+    """
+    slipping_faults = []
+    for fault, slip_amount in zip(receiver_profile.fault_list, slip_array):
+        rtlat, reverse = fvf.get_rtlat_dip_slip(slip_amount, rake=fault.rake)
+        source_fault = fault.modify_fault_object(rtlat=rtlat, reverse=reverse)  # modify slip inverted value (m)
+        slipping_faults.append(source_fault)
+    return DislocArray_1D(slipping_faults)
 
 
 def plot_stress_with_depth(depths, pred_stress, outname, actual_stress=None):
@@ -139,7 +175,7 @@ def plot_stress_with_depth(depths, pred_stress, outname, actual_stress=None):
     """
     # Plot the model predicted stress-drop distribution, and the input stress-drop distribution
     plt.figure(figsize=(6, 9), dpi=300)
-    plt.plot(pred_stress, depths, marker='.', label='Inverted Stress')
+    plt.plot(pred_stress, depths, marker='.', label='Stress')
     if actual_stress is not None:
         plt.plot(actual_stress, depths, label='Applied Stress')
     plt.legend(fontsize=14)
@@ -161,8 +197,8 @@ def plot_slip_with_depth(depths, slip, outname, pred_slip=None):
     """
     # Plot the inverted slip distribution (in cm)
     plt.figure(figsize=(8, 9), dpi=300)
-    plt.plot(slip, depths, marker='.', label='Inverted slip')
-    plt.xlabel("Slip (cm)", fontsize=14)
+    plt.plot(slip, depths, marker='.', label='Slip')
+    plt.xlabel("Slip (m)", fontsize=14)
     plt.ylabel("Depth (km)", fontsize=14)
     plt.gca().invert_yaxis()
     plt.plot([0, 0], [0, 3], '--k')
