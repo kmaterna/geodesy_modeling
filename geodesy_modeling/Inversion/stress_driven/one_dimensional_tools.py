@@ -15,6 +15,10 @@ import matplotlib.pyplot as plt
 from elastic_stresses_py import PyCoulomb
 from elastic_stresses_py.PyCoulomb.inputs_object import io_intxt
 
+paramdict = {"zerolon": -115.0,
+             "zerolat": 33.0,
+             "bbox": [-116, -114, 32, 34]}
+
 
 class DislocArray_1D:
     def __init__(self, fault_list):
@@ -49,9 +53,9 @@ class DislocArray_1D:
         # must configure calculation somehow
         default_params = PyCoulomb.configure_calc.configure_stress_calculation("my_config.txt")  # FIX THIS
         inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=self.fault_list,
-                                                                                        zerolon=-115.0,
-                                                                                        zerolat=33,
-                                                                                        bbox=[-116, -114, 32, 34])
+                                                                                        zerolon=paramdict["zerolon"],
+                                                                                        zerolat=paramdict["zerolat"],
+                                                                                        bbox=paramdict["bbox"])
         inputs = inputs.modify_inputs_object(receiver_object=self.fault_list)
         out_object = PyCoulomb.run_dc3d.do_stress_computation(default_params, inputs)
         return out_object.receiver_shear, out_object.receiver_normal
@@ -66,20 +70,25 @@ class DislocArray_1D:
 
         for receiver in self.fault_list:
             # Source for Green's functions.
-            rtlat, reverse = fvf.get_rtlat_dip_slip(1, rake=receiver.rake)  # unit slip = 1 m
+            rtlat, reverse = fvf.get_rtlat_dip_slip(slip=1, rake=receiver.rake)  # unit slip = 1 m
             source_object = [receiver.modify_fault_object(rtlat=rtlat, reverse=reverse)]  # modify slip on patch to 1 cm
-            inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=source_object,
-                                                                                            zerolon=-115.0,
-                                                                                            zerolat=33,
-                                                                                            bbox=[-116, -114, 32, 34])
-            inputs = inputs.modify_inputs_object(receiver_object=self.fault_list)
-            out_object = PyCoulomb.run_dc3d.do_stress_computation(default_params, inputs)
+            inpts = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=source_object,
+                                                                                           zerolon=paramdict["zerolon"],
+                                                                                           zerolat=paramdict["zerolat"],
+                                                                                           bbox=paramdict["bbox"])
+            inpts = inpts.modify_inputs_object(receiver_object=self.fault_list)
+            out_object = PyCoulomb.run_dc3d.do_stress_computation(default_params, inpts)
             G_column = out_object.receiver_shear  # only shear?  Combination of shear and normal?  Coulomb?
             G[i, :] = G_column
             i = i + 1
         return G
 
     def forward_model_surface_disps(self):
+        """
+        Ideally this would return three arrays [E, N, U] and would not produce any file-IO.
+
+        :return:
+        """
         default_params = PyCoulomb.configure_calc.configure_stress_calculation("my_config.txt")  # FIX THIS
         # Create points along a line
         lats = np.multiply(33.25, np.ones((1, 100)))
@@ -94,9 +103,9 @@ class DislocArray_1D:
             source_fault = fault.modify_fault_object(rtlat=rtlat, reverse=reverse)  # modify slip inverted value (m)
             slipping_faults.append(source_fault)
         inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=slipping_faults,
-                                                                                        zerolon=-115.0,
-                                                                                        zerolat=33,
-                                                                                        bbox=[-116, -114, 32, 34])
+                                                                                        zerolon=paramdict["zerolon"],
+                                                                                        zerolat=paramdict["zerolat"],
+                                                                                        bbox=paramdict["bbox"])
         io_intxt.write_intxt(inputs, "resulting_patches.txt")
 
         # Do a displacement calculation
@@ -136,9 +145,10 @@ def construct_receiver_objects(configs):
     configs["width"] = width
     configs["depth_interval"] = depth_interval
     one_fault = fso.FaultSlipObject(strike=0, dip=configs["dip"], length=100, width=configs["width"],
-                                    lon=-115.0, lat=32.8, depth=configs["top_depth"], rake=configs["rake"], slip=0)
-    [receiver_object] = fso.fault_object_to_coulomb_fault([one_fault], zerolon_system=-115.0,
-                                                          zerolat_system=33.0)
+                                    lon=paramdict["zerolon"], lat=32.8, depth=configs["top_depth"],
+                                    rake=configs["rake"], slip=0)
+    [receiver_object] = fso.fault_object_to_coulomb_fault([one_fault], zerolon_system=paramdict["zerolon"],
+                                                          zerolat_system=paramdict["zerolat"])
     receiver_object_list = receiver_object.split_single_fault(1, dip_num_split=configs["number_segments"])
     return receiver_object_list
 
@@ -208,19 +218,4 @@ def plot_slip_with_depth(depths, slip, outname, pred_slip=None):
     plt.gca().tick_params(axis='both', which='major', labelsize=14)
     print("Saving slip with depth as %s" % outname)
     plt.savefig(outname)
-    return
-
-
-def mock_1d_slip_structure(disloc_array):
-    """
-    Please take a distribution of slip with depth (one dimensional), and create a surface slip profile using
-    elastic dislocation modeling from Okada (1985).
-    The fault can be dipping. The rake does not have to be strike-slip.
-    Inputs: A list of fault objects. We will assume they strike north-south, and the profile runs east-west
-    Outputs: A list of cross-fault positions,
-    Goals: Make this run in code. No file-IO should be used here.
-
-    :return:
-    """
-
     return
