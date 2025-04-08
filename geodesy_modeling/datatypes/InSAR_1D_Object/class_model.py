@@ -19,6 +19,8 @@ class Insar1dObject:
         self.lkv_U = lkv_U  # Ground to Satellite, 1d vector
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
+        if not self.check_internal_sanity():
+            raise(ValueError, "Error! The lengths of the arrays in the object does not match")
 
     def impose_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on InSAR data"""

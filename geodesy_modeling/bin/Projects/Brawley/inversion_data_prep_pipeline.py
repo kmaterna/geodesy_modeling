@@ -117,16 +117,16 @@ def write_leveling_displacements(config):
 
 def write_uavsar_displacements(config):
     """
-    For uavsar, we quadtree downsample, multiply by -1, and chop.
+    For InSAR_Timeseries, we quadtree downsample, multiply by -1, and chop.
     """
     if "uavsar_data" not in config.keys():
-        print("\nNo uavsar in this inversion")
+        print("\nNo InSAR_Timeseries in this inversion")
         return
     for interval_dict_key in config["uavsar_data"]:
-        print("\nStarting to prepare uavsar data for %s" % interval_dict_key)
-        new_interval_dict = config["uavsar_data"][interval_dict_key]  # for each interval in uavsar
+        print("\nStarting to prepare InSAR_Timeseries data for %s" % interval_dict_key)
+        new_interval_dict = config["uavsar_data"][interval_dict_key]  # for each interval in InSAR_Timeseries
 
-        # Get uavsar data
+        # Get InSAR_Timeseries data
         if 'uav_sourcefile_begin' in new_interval_dict.keys():  # Using time series format
             source_xml_name = new_interval_dict["uav_sourcefile_begin"] + ".xml"
             scene0 = isce_read_write.read_scalar_data(new_interval_dict["uav_sourcefile_begin"], band=2)
@@ -138,7 +138,7 @@ def write_uavsar_displacements(config):
 
         if new_interval_dict["flip_uavsar_los"] == 1:
             data = -1 * data  # away from satellite = negative motion
-            print("Multiplying uavsar by -1 for LOS motion sign convention. ")
+            print("Multiplying InSAR_Timeseries by -1 for LOS motion sign convention. ")
 
         # Write the .unw.geo file and metadata
         uavsar_unw_file = config["prep_inputs_dir"] + new_interval_dict["uavsar_unw_file"]  # output file

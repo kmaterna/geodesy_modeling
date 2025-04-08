@@ -1,6 +1,6 @@
 #!/bin/csh
 
-# These functions are actually used in the ISCE/uavsar pipeline
+# These functions are actually used in the ISCE/InSAR_Timeseries pipeline
 # November 2020
 
 

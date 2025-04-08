@@ -7,8 +7,8 @@ TSX from 2012-2013
 S1 from 2014-2018
 S1 from 2018-2019
 S1 from OU/Cornell
-Individual uavsar intfs
-uavsar time series slices
+Individual InSAR_Timeseries intfs
+InSAR_Timeseries time series slices
 Holy Cow I reproduced Mariana's results.
 """
 
@@ -26,7 +26,7 @@ from .brawley_io import get_file_dictionary
 def compute_difference_metrics_on_same_pixels(list1, list2):
     """
     :param list1: a 1d array of LOS data from platform 1 (like Leveling)
-    :param list2: a matching 1d array of LOS data from platform 2 (like uavsar)
+    :param list2: a matching 1d array of LOS data from platform 2 (like InSAR_Timeseries)
     :returns: average misfit value, and r^2 coefficient.
     """
     misfit_metric = np.nanmean(np.abs(np.subtract(list1, list2)))  # average deviation from 1-to-1
@@ -193,7 +193,7 @@ def drive_ou_cornell_compare(exp_file_dict, s1_slice, lev_slice, track, outfile)
 
 
 def drive_single_uavsar_intf_compare(exp_file_dict, time_bounds, uavsar_filename, los_filename, lev_slice, outfile):
-    """Read the uavsar Data"""
+    """Read the InSAR_Timeseries Data"""
     myLev = read_leveling_data(exp_file_dict["leveling"], exp_file_dict["lev_error"])
     lkv = np.array([float(x) for x in exp_file_dict["uavsar_08508_lkv"].split('/')])
     InSAR_Data = geodesy_modeling.datatypes.InSAR_1D_Object.inputs.inputs_isce_unw_geo_losrdr(uavsar_filename, los_filename,
@@ -220,7 +220,7 @@ def drive_tre_compare(exp_file_dict, insar_key, lev_slice, exp_outdir, outfile):
 
 
 def drive_uavsar_ts_compare(exp_file_dict, lev_slice, uav_slice, outfile):
-    """A different type of uavsar format, the SBAS time series analysis"""
+    """A different type of InSAR_Timeseries format, the SBAS time series analysis"""
     losfile, lonfile, latfile = exp_file_dict["uavsar_file"], exp_file_dict["uavsar_lon"], exp_file_dict["uavsar_lat"]
     myUAVSAR_TS = geodesy_modeling.datatypes.UAVSAR.uavsar_readwrite.inputs_TS_grd(losfile, lonfile, latfile)
     myLev = read_leveling_data(exp_file_dict["leveling"], exp_file_dict["lev_error"])
@@ -232,7 +232,7 @@ def drive_uavsar_ts_compare(exp_file_dict, lev_slice, uav_slice, outfile):
     myUAVSAR_insarobj = geodesy_modeling.datatypes.UAVSAR.utilities.get_onetime_displacements(myUAVSAR_TS, uav_slice[0], uav_slice[1])
     myUAVSAR_insarobj = myUAVSAR_insarobj.flip_los_sign()
     myUAVSAR_insarobj = geodesy_modeling.datatypes.InSAR_1D_Object.remove_ramp.remove_ramp(myUAVSAR_insarobj)  # experimental step
-    one_to_one_comparison(myLev, myUAVSAR_insarobj, "uavsar", outfile, gps_lon=gps_lon, gps_lat=gps_lat,
+    one_to_one_comparison(myLev, myUAVSAR_insarobj, "InSAR_Timeseries", outfile, gps_lon=gps_lon, gps_lat=gps_lat,
                           gps_names=gps_names, label="LOS", proj_vertical=1, lkv=lkv)
     return
 
@@ -264,19 +264,19 @@ if __name__ == "__main__":
     drive_ou_cornell_compare(file_dict, s1_slice=3, lev_slice=[8, 9], track='asc', outfile='S1_OU/T5/asc_89.png')
     drive_ou_cornell_compare(file_dict, s1_slice=3, lev_slice=[8, 9], track='desc', outfile='S1_OU/T5/desc_89.png')
 
-    # Individual uavsar experiments, starting with 2011-2012, leveling slice 2-3
+    # Individual InSAR_Timeseries experiments, starting with 2011-2012, leveling slice 2-3
     # Should set vmin/vmax to -150/150 for this one.
     output_dir = "UAVSAR_intfs/"
     bounds = (dt.datetime.strptime("20111110", "%Y%m%d"), dt.datetime.strptime("20120926", "%Y%m%d"))
     drive_single_uavsar_intf_compare(file_dict, bounds, file_dict["uavsar_08508_2011_2012_unw"],
                                      file_dict["uavsar_08508_2011_2012_los"], lev_slice=[2, 3],
                                      outfile=output_dir+"one_to_one_23.png")
-    # Individual uavsar experiments, 2010-2011, leveling slice 1-2
+    # Individual InSAR_Timeseries experiments, 2010-2011, leveling slice 1-2
     bounds = (dt.datetime.strptime("20101215", "%Y%m%d"), dt.datetime.strptime("20111110", "%Y%m%d"))
     drive_single_uavsar_intf_compare(file_dict, bounds, file_dict["uavsar_08508_2010_2011_unw"],
                                      file_dict["uavsar_08508_2010_2011_los"], lev_slice=[1, 2],
                                      outfile=output_dir+"one_to_one_12.png")
-    # Individual uavsar experiments, 2009-2010, leveling slice 0-1
+    # Individual InSAR_Timeseries experiments, 2009-2010, leveling slice 0-1
     bounds = (dt.datetime.strptime("20091015", "%Y%m%d"), dt.datetime.strptime("20101215", "%Y%m%d"))
     drive_single_uavsar_intf_compare(file_dict, bounds, file_dict["uavsar_08508_2009_2010_unw"],
                                      file_dict["uavsar_08508_2009_2010_los"], lev_slice=[0, 1],
