@@ -39,7 +39,6 @@ def inputs_phase_isce(iscefile, los_rdr_file=None):
     lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                               lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
-    InSAR_Obj.defensive_checks()
     return InSAR_Obj
 
 
@@ -56,7 +55,6 @@ def inputs_scalar_isce(iscefile, los_rdr_file=None):
     lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                               lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
-    InSAR_Obj.defensive_checks()
     return InSAR_Obj
 
 
@@ -93,5 +91,4 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
         los = np.multiply(los, 1000)  # convert from m to mm
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=los, LOS_unc=np.zeros(np.shape(los)),
                               lkv_E=lkv_E, lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None)
-    InSAR_Obj.defensive_checks()
     return InSAR_Obj

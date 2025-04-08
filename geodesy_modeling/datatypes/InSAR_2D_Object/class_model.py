@@ -1,6 +1,7 @@
 import numpy as np
-from Tectonic_Utils.geodesy import insar_vector_functions
+from Tectonic_Utils.geodesy import insar_vector_functions as ivf
 from geodesy_modeling import general_utils
+from cubbie.math_tools import grid_tools
 
 
 class Insar2dObject:
@@ -18,13 +19,33 @@ class Insar2dObject:
         self.lkv_U = lkv_U  # Ground to Satellite, 2d grid
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
+        (leny, lenx) = np.shape(self.LOS)
+        if len(self.lon) != lenx:
+            raise ValueError("length of InSAR_Obj lon array doesn't match shape of data.")
+        if len(self.lat) != leny:
+            raise ValueError("length of InSAR_Obj lat array doesn't match shape of data.")
+        if np.shape(self.lkv_E) != np.shape(self.LOS):
+            raise ValueError("Shape of InSAR data doesn't match shape of lkv arrays.")
 
-    def impose_InSAR_bounding_box(self, _bbox=(-180, 180, -90, 90)):
-        """Impose a bounding box on some InSAR data. Not written yet. """
-        return self
+    def impose_InSAR_bounding_box(self, bbox=(-180, 180, -90, 90)):
+        """Impose a bounding box on some InSAR data. """
+        xc, yc, los_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.LOS, bbox)
+        _, _, unc_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.LOS_unc, bbox)
+        _, _, lkve_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.lkv_E, bbox)
+        _, _, lkvn_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.lkv_N, bbox)
+        _, _, lkvu_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.lkv_U, bbox)
+        smaller_object = Insar2dObject(lon=xc, lat=yc, LOS=los_c, LOS_unc=unc_c, lkv_E=lkve_c, lkv_N=lkvn_c,
+                                       lkv_U=lkvu_c, starttime=self.starttime, endtime=self.endtime)
+        return smaller_object
 
     def flip_los_sign(self):
         new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1),
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+        return new_InSAR_obj
+
+    def subtract_value(self, value):
+        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
                                       lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
@@ -45,12 +66,6 @@ class Insar2dObject:
         new_InSAR_obj = self.subtract_value(refvalue)
         return new_InSAR_obj
 
-    def subtract_value(self, value):
-        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
-                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
-        return new_InSAR_obj
-
     def rewrap_InSAR(self, wavelength):
         """
         Take unwrapped LOS measurements (mm) and artificially wrap them around a certain radar wavelength (mm)
@@ -64,47 +79,30 @@ class Insar2dObject:
         return new_InSAR_obj
 
     def get_look_vector_at_point(self, target_lon, target_lat):
-        """"
+        """
         Return 3 component look vector, flight direction, and incidence angle at target location.
         Look vector is from ground to platform.
 
-        :param target_lon: float
-        :param target_lat: float
+        :param target_lon: float, value of longitude
+        :param target_lat: float, value of latitude
         :returns: E, N, U, flight, inc
         """
         # extract the look vector at a given spot:
         colnum = (np.abs(self.lon - target_lon)).argmin()
         rownum = (np.abs(self.lat - target_lat)).argmin()
-        E = self.lkv_E[rownum][colnum]
-        N = self.lkv_N[rownum][colnum]
-        U = self.lkv_U[rownum][colnum]
-        flight, inc = insar_vector_functions.look_vector2flight_incidence_angles(E, N, U)
+        E, N, U = self.lkv_E[rownum][colnum], self.lkv_N[rownum][colnum], self.lkv_U[rownum][colnum]
+        flight, inc = ivf.look_vector2flight_incidence_angles(E, N, U)
         return E, N, U, flight, inc
-
-    def defensive_checks(self):
-        """
-        Check for array-size sanity in a newly created 2D InSAR object
-        """
-        (leny, lenx) = np.shape(self.LOS)
-        if len(self.lon) != lenx:
-            raise ValueError("length of InSAR_Obj lon array doesn't match shape of data.")
-        if len(self.lat) != leny:
-            raise ValueError("length of InSAR_Obj lat array doesn't match shape of data.")
-        if np.shape(self.lkv_E) != np.shape(self.LOS):
-            raise ValueError("Shape of InSAR data doesn't match shape of lkv arrays.")
-        print("All arrays read in with size %s " % str(np.shape(self.LOS)))
-        return
 
     def get_incidence_grid(self):
         """
         Compute incidence angle across the grid, using the 3-component look vector.
-        Currently not numpy-vectorized, so it takes a little while.
+        Currently, not numpy-vectorized, so it takes a little while.
         """
         inc = np.zeros(np.shape(self.lkv_E))
         for y in range(len(self.lat)):
             for x in range(len(self.lon)):
-                heading, inc_i = insar_vector_functions.look_vector2flight_incidence_angles(self.lkv_E[y][x],
-                                                                                            self.lkv_N[y][x],
-                                                                                            self.lkv_U[y][x])
+                heading, inc_i = ivf.look_vector2flight_incidence_angles(self.lkv_E[y][x], self.lkv_N[y][x],
+                                                                         self.lkv_U[y][x])
                 inc[y][x] = inc_i
         return inc
