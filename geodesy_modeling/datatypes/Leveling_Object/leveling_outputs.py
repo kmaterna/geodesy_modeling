@@ -66,7 +66,7 @@ def write_leveling_invertible_format(LevList, idx1, idx2, unc, filename):
         if station.lon == station.reflon and station.lat == station.reflat:
             continue
         data = station.leveling[idx2] - station.leveling[idx1]
-        if ~np.isnan(data):
+        if not np.isnan(data):
             ofile.write("%f %f %f %f 0 0 1\n" % (station.lon, station.lat, data, unc))
     ofile.close()
     return

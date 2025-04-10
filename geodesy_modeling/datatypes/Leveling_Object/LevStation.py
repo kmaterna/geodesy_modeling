@@ -37,7 +37,7 @@ class LevStation:
         """
         dtarray_limited, lev_obs_limited = [], []
         for i in range(len(self.dtarray)):
-            if start_time < self.dtarray[i] < end_time and ~np.isnan(self.leveling[i]):
+            if start_time < self.dtarray[i] < end_time and not np.isnan(self.leveling[i]):
                 dtarray_limited.append(self.dtarray[i])
                 lev_obs_limited.append(self.leveling[i])
         if len(dtarray_limited) > 1:

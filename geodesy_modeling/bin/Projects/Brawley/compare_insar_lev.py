@@ -21,6 +21,7 @@ import sys
 from geodesy_modeling import general_utils
 from Tectonic_Utils.read_write import general_io
 from .brawley_io import get_file_dictionary
+import geodesy_modeling
 
 
 def compute_difference_metrics_on_same_pixels(list1, list2):
@@ -91,7 +92,7 @@ def one_to_one_comparison(myLev, InSAR_Data, sat, filename, vmin=-50, vmax=50, g
         else:
             leveling_disp = 1000 * (myLev[i].leveling[1] - myLev[i].leveling[0])  # negative sign convention
             insar_disp = np.nanmean(np.array(proj_InSAR_Data.LOS)[close_pixels[i]]) - reference_insar_los
-            if ~np.isnan(leveling_disp) and ~np.isnan(insar_disp):
+            if not np.isnan(leveling_disp) and not np.isnan(insar_disp):
                 oto_lev.append(leveling_disp)
                 oto_tsx.append(insar_disp)
                 lon_plotting.append(lon_leveling_list[i])

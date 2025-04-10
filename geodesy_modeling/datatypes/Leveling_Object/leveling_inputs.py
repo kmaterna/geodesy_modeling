@@ -141,7 +141,7 @@ def compute_rel_to_datum_nov_2009(data):
         # Automatically find the first day that matters.  Either after 2008 or has data.
         idx = 0
         for j in range(len(station.dtarray)):
-            if ~np.isnan(station.leveling[j]) and station.dtarray[j] > dt.datetime.strptime("2009-01-01", "%Y-%m-%d"):
+            if not np.isnan(station.leveling[j]) and station.dtarray[j] > dt.datetime.strptime("2009-01-01", "%Y-%m-%d"):
                 idx = j  # this is the first date after 2009 that has data
                 break
 
