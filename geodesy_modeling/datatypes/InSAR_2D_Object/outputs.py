@@ -13,7 +13,7 @@ from elastic_stresses_py.PyCoulomb import utilities as overall_utils
 
 def write_InSAR2D(InSAR_Obj, filename):
     """Write grdfile"""
-    netcdf_read_write.produce_output_netcdf(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.LOS, '', filename)
+    netcdf_read_write.write_netcdf4(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.LOS, filename)
     return
 
 

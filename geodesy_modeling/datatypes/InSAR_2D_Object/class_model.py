@@ -25,7 +25,8 @@ class Insar2dObject:
         if len(self.lat) != leny:
             raise ValueError("length of InSAR_Obj lat array doesn't match shape of data.")
         if np.shape(self.lkv_E) != np.shape(self.LOS):
-            raise ValueError("Shape of InSAR data doesn't match shape of lkv arrays.")
+            raise ValueError("Shape of InSAR data doesn't match shape of lkv arrays:", np.shape(self.LOS),
+                             " versus ", np.shape(self.lkv_E))
 
     def impose_InSAR_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on some InSAR data. """

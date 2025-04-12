@@ -14,15 +14,14 @@ def inputs_grd(los_grdfile, _rdrlosfile=None):
     Read netcdf file.
 
     :param los_grdfile: string, filename
-    :param _rdrlosfile: string, filename
+    :param _rdrlosfile: string, filename, will be used for incidence and azimuth in the future
     :returns InSAR_Obj: InSAR_2D_Object
     """
     [lon, lat, LOS] = netcdf_read_write.read_any_grd(los_grdfile)
+    holder = np.zeros(np.shape(LOS))
 
     # Here, will write an input function for when there's a corresponding look vector file in GMTSAR format.
-    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                              lkv_E=None, lkv_N=None, lkv_U=None,
-                              starttime=None, endtime=None)
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=holder, lkv_E=holder, lkv_N=holder, lkv_U=holder)
     return InSAR_Obj
 
 
