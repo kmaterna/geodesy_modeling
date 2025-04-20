@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 from elastic_stresses_py import PyCoulomb
 from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
 
-# Setting up the fixed 2D parameters that allow the experiment to operate in 1D.
+
+# Setting up the fixed 2D parameters that allow the experiment to operate in 1D.  These never change.
 paramdict = {"zerolon": -115.0,
              "zerolat": 33.0,
              "bbox": [-116, -114, 32, 34],
@@ -27,7 +28,7 @@ class DislocArray_1D:
         """
         An object to facilitate one-dimensional modeling experiments.  Fault patches with slip in a 1D case.
 
-        :param fault_list: list of PyCoulomb faults I guess
+        :param fault_list: list of PyCoulomb faults in the standard way
         :param elastic_params: a PyCoulomb Parameters class that contains mu, lame1, and B, options, and File-IO
         """
         self.fault_list = fault_list
@@ -53,7 +54,7 @@ class DislocArray_1D:
         return
 
     def forward_model_stress_drop(self):
-        """Calculate the stress drop from the slip on each fault."""
+        """Calculate the shear and normal stress profiles from the slip currently prescribed onto each fault."""
         inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=self.fault_list,
                                                                                         zerolon=paramdict["zerolon"],
                                                                                         zerolat=paramdict["zerolat"],
@@ -72,7 +73,7 @@ class DislocArray_1D:
         for receiver in self.fault_list:
             # Source for Green's functions.
             rtlat, reverse = fvf.get_rtlat_dip_slip(slip=1, rake=receiver.rake)  # unit slip = 1 m
-            source_object = [receiver.modify_fault_object(rtlat=rtlat, reverse=reverse)]  # modify slip on patch to 1 cm
+            source_object = [receiver.modify_fault_object(rtlat=rtlat, reverse=reverse)]  # modify slip on patch to 1 m
             inpts = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=source_object,
                                                                                            zerolon=paramdict["zerolon"],
                                                                                            zerolat=paramdict["zerolat"],
@@ -86,12 +87,12 @@ class DislocArray_1D:
 
     def forward_model_surface_disps(self):
         """
-        Ideally this would return three arrays [E, N, U] and would not produce any file-IO.
+        Does not produce any file-IO. Just computes displacements across the 1d profile
 
-        :return:
+        :return: list of displacement_points objects with modeled displacements
         """
-        lats = np.multiply(33.15, np.ones((1, 100)))[0]  # Create points along a line
-        lons = np.linspace(-115.5, -114.5, 100)
+        lats = np.multiply(33.15, np.ones((1, 100)))[0]  # Create points along a line half-way up the fault
+        lons = np.linspace(-115.5, -114.5, 100)  # Create points horizontally across the fault trace
         obs_disp_points = [Displacement_points(lon=x, lat=y) for x, y in zip(lons, lats)]
         inputs = PyCoulomb.inputs_object.input_obj.configure_default_displacement_input(source_object=self.fault_list,
                                                                                         zerolon=paramdict["zerolon"],
@@ -101,8 +102,7 @@ class DislocArray_1D:
                                                                                         num_points_x=60,
                                                                                         num_points_y=60)
         out_object = PyCoulomb.run_dc3d.do_stress_computation(self.elastic_params, inputs, disp_points=obs_disp_points)
-        PyCoulomb.output_manager.produce_outputs(self.elastic_params, inputs, (), (), out_object)
-        return
+        return out_object.model_disp_points
 
 
 def build_depths_array(bottom_depth, top_depth, number_segments):
@@ -160,13 +160,15 @@ def construct_source_Disloc_Profile(receiver_profile, slip_array, elastic_params
     slipping_faults = []
     for fault, slip_amount in zip(receiver_profile.fault_list, slip_array):
         rtlat, reverse = fvf.get_rtlat_dip_slip(slip_amount, rake=fault.rake)
-        source_fault = fault.modify_fault_object(rtlat=rtlat, reverse=reverse)  # modify slip inverted value (m)
+        source_fault = fault.modify_fault_object(rtlat=rtlat, reverse=reverse)  # modify slip to specific value (m)
         slipping_faults.append(source_fault)
     return DislocArray_1D(slipping_faults, elastic_params)
 
 
 def plot_stress_with_depth(depths, pred_stress, outname, actual_stress=None):
     """
+    Simple plot of stress with depths, taking just the one-dimensional arrays of stress and depth.
+
     :param depths: 1-d array
     :param pred_stress: 1-d array in kPa
     :param actual_stress: 1-d array in kPa
@@ -189,6 +191,9 @@ def plot_stress_with_depth(depths, pred_stress, outname, actual_stress=None):
 
 def plot_slip_with_depth(depths, slip, outname, pred_slip=None):
     """
+    Simple plot of slip with depths, taking just the one-dimensional arrays of slip and depth.
+    Are the units reasonable?
+
     :param depths: 1d array
     :param slip: 1d array, in cm
     :param outname: string
