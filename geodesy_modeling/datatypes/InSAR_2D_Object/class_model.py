@@ -95,15 +95,12 @@ class Insar2dObject:
         flight, inc = ivf.look_vector2flight_incidence_angles(E, N, U)
         return E, N, U, flight, inc
 
-    def get_incidence_grid(self):
+    def get_azimuth_incidence_grid(self, lookdir='right'):
         """
         Compute incidence angle across the grid, using the 3-component look vector.
-        Currently, not numpy-vectorized, so it takes a little while.
+        We assume the look direction is 'right', but if it's left, we flip the flight heading.
         """
-        inc = np.zeros(np.shape(self.lkv_E))
-        for y in range(len(self.lat)):
-            for x in range(len(self.lon)):
-                heading, inc_i = ivf.look_vector2flight_incidence_angles(self.lkv_E[y][x], self.lkv_N[y][x],
-                                                                         self.lkv_U[y][x])
-                inc[y][x] = inc_i
-        return inc
+        az, inc = ivf.look_vector2flight_incidence_angles(self.lkv_E, self.lkv_N, self.lkv_U)
+        if lookdir == 'left':
+            az = np.subtract(az, 180)
+        return az, inc

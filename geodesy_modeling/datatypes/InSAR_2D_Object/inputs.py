@@ -57,7 +57,7 @@ def inputs_scalar_isce(iscefile, los_rdr_file=None):
     return InSAR_Obj
 
 
-def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angle, constant_incidence_angle=None,
+def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angle, constant_incidence_angle=35,
                                     convert_m_to_mm=True, look_direction='right'):
     """
     Read synthetic models with three deformation components.
@@ -68,7 +68,7 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     :param n_grdfile: string, filename, with units of meters for default behavior
     :param u_grdfile: string, filename, with units of meters for default behavior
     :param flight_angle: float, flight angle, degrees cw from n
-    :param constant_incidence_angle: float, incidence angle, degrees from vertical
+    :param constant_incidence_angle: float, incidence angle, degrees from vertical, default 35 degrees
     :param convert_m_to_mm: default True. Multiplies by 1000
     :param look_direction: default 'right'. Can take 'left'.
     """

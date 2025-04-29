@@ -27,22 +27,32 @@ def write_insar2D_invertible_format(_InSAR_obj, _unc_min, filename):
     return
 
 
-def plot_incidence_angle(InSAR_2D_obj, plotname):
+def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname, look_direction='right'):
     """
     Plot the incidence angle (degrees from the vertical) from the 2D InSAR object.
     This takes a while because right now it doesn't use vectorized numpy operations.
 
     :param InSAR_2D_obj: an InSAR_2D_object
     :param plotname: string
+    :param look_direction: a string, default 'right'. Must be 'right' or 'left'
     """
     print("Plotting %s " % plotname)
-    inc = InSAR_2D_obj.get_incidence_grid()
-    fig = plt.figure()
-    plt.imshow(inc, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
-                            InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
-    plt.xlabel('Longitude (degrees)', fontsize=14)
-    plt.ylabel('Latitude (degrees)', fontsize=14)
-    _cb = fig.colorbar(label="Incidence (degrees)", ax=plt.gca())
+    az, inc = InSAR_2D_obj.get_azimuth_incidence_grid(look_direction)
+
+    fig, axs = plt.subplots(1, 2, dpi=300, figsize=(8, 5))
+    fig.subplots_adjust(wspace=0.5)  # Increase horizontal space
+    d1 = axs[0].imshow(inc, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
+                                    InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
+    axs[0].set_xlabel('Longitude', fontsize=14)
+    axs[0].set_ylabel('Latitude', fontsize=14)
+    axs[0].set_title('Incidence')
+    _cb = fig.colorbar(d1, label="Incidence (degrees from vertical)", ax=axs[0])
+    d2 = axs[1].imshow(az, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
+                                   InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
+    axs[1].set_xlabel('Longitude', fontsize=14)
+    axs[1].set_title('Azimuth, '+look_direction+'-looking')
+    _cb = fig.colorbar(d2, label="Azimuth (degrees CW from north)", ax=axs[1])
+
     plt.savefig(plotname)
     return
 
