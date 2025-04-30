@@ -79,28 +79,26 @@ class Insar2dObject:
                                       lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
-    def get_look_vector_at_point(self, target_lon, target_lat):
+    def get_look_vector_at_point(self, target_lon, target_lat, lookdir='right'):
         """
         Return 3 component look vector, flight direction, and incidence angle at target location.
         Look vector is from ground to platform.
 
         :param target_lon: float, value of longitude
         :param target_lat: float, value of latitude
+        :param lookdir: string, assumed right
         :returns: E, N, U, flight, inc
         """
         # extract the look vector at a given spot:
         colnum = (np.abs(self.lon - target_lon)).argmin()
         rownum = (np.abs(self.lat - target_lat)).argmin()
         E, N, U = self.lkv_E[rownum][colnum], self.lkv_N[rownum][colnum], self.lkv_U[rownum][colnum]
-        flight, inc = ivf.look_vector2flight_incidence_angles(E, N, U)
+        flight, inc = ivf.look_vector2flight_incidence_angles(E, N, U, look_direction=lookdir)
         return E, N, U, flight, inc
 
     def get_azimuth_incidence_grid(self, lookdir='right'):
         """
-        Compute incidence angle across the grid, using the 3-component look vector.
-        We assume the look direction is 'right', but if it's left, we flip the flight heading.
+        Compute incidence angle across the grid, using the 3-component look vector and the look direction.
         """
-        az, inc = ivf.look_vector2flight_incidence_angles(self.lkv_E, self.lkv_N, self.lkv_U)
-        if lookdir == 'left':
-            az = np.subtract(az, 180)
+        az, inc = ivf.look_vector2flight_incidence_angles(self.lkv_E, self.lkv_N, self.lkv_U, lookdir)
         return az, inc

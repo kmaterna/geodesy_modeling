@@ -75,10 +75,8 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     [lon, lat, e] = netcdf_read_write.read_any_grd(e_grdfile)
     [_, _, n] = netcdf_read_write.read_any_grd(n_grdfile)
     [_, _, u] = netcdf_read_write.read_any_grd(u_grdfile)
-    if look_direction == 'left':
-        look_vector = insar_vect.flight_incidence_angles2look_vector_leftlook(flight_angle, constant_incidence_angle)
-    else:
-        look_vector = insar_vect.flight_incidence_angles2look_vector(flight_angle, constant_incidence_angle)
+
+    look_vector = insar_vect.flight_incidence_angles2look_vector(flight_angle, constant_incidence_angle, look_direction)
 
     lkv_E = np.multiply(np.ones(np.shape(e)), look_vector[0])  # constant incidence angle for now, into 2D array
     lkv_N = np.multiply(np.ones(np.shape(e)), look_vector[1])  # constant incidence angle for now, into 2D array
