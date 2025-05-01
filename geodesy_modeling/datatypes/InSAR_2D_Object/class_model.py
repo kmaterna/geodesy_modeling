@@ -9,7 +9,8 @@ class Insar2dObject:
     A generalized 2D Grid InSAR format where all data fields are 2D grids.
     Displacements in mm (if LOS is a displacement measurement instead of phase or other)
     """
-    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None):
+    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None,
+                 look_direction='right'):
         self.lon = lon  # 1d array
         self.lat = lat  # 1d array
         self.LOS = LOS  # displacements, in mm, 2d Grid
@@ -19,14 +20,17 @@ class Insar2dObject:
         self.lkv_U = lkv_U  # Ground to Satellite, 2d grid
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
+        self.look_direction = look_direction  # metadata, look direction
         (leny, lenx) = np.shape(self.LOS)
         if len(self.lon) != lenx:
-            raise ValueError("length of InSAR_Obj lon array doesn't match shape of data.")
+            raise ValueError("length of InSAR_Obj lon array doesn't match shape of data: ", len(lon), np.shape(LOS))
         if len(self.lat) != leny:
-            raise ValueError("length of InSAR_Obj lat array doesn't match shape of data.")
+            raise ValueError("length of InSAR_Obj lat array doesn't match shape of data: ", len(lat), np.shape(LOS))
         if np.shape(self.lkv_E) != np.shape(self.LOS):
             raise ValueError("Shape of InSAR data doesn't match shape of lkv arrays:", np.shape(self.LOS),
                              " versus ", np.shape(self.lkv_E))
+        if look_direction not in ['right', 'left']:
+            raise ValueError("Look direction %s must be either left or right" % self.look_direction)
 
     def impose_InSAR_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on some InSAR data. """

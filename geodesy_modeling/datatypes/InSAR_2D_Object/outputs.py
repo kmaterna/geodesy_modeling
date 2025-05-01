@@ -27,17 +27,18 @@ def write_insar2D_invertible_format(_InSAR_obj, _unc_min, filename):
     return
 
 
-def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname, look_direction='right'):
+def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname):
     """
-    Plot the incidence angle (degrees from the vertical) from the 2D InSAR object.
-    This takes a while because right now it doesn't use vectorized numpy operations.
+    Plot the incidence angle (degrees from the vertical) and the flight azimuth (CW from north)
+    for the 2D InSAR object.
 
     :param InSAR_2D_obj: an InSAR_2D_object
     :param plotname: string
-    :param look_direction: a string, default 'right'. Must be 'right' or 'left'
     """
     print("Plotting %s " % plotname)
-    az, inc = InSAR_2D_obj.get_azimuth_incidence_grid(look_direction)
+    az, inc = InSAR_2D_obj.get_azimuth_incidence_grid(InSAR_2D_obj.look_direction)
+    inc[inc > 90] = np.nan  # ignore incidence angles greater than 90
+    inc[inc < 0] = np.nan
 
     fig, axs = plt.subplots(1, 2, dpi=300, figsize=(8, 5))
     fig.subplots_adjust(wspace=0.5)  # Increase horizontal space
@@ -50,10 +51,11 @@ def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname, look_direction='right')
     d2 = axs[1].imshow(az, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
                                    InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
     axs[1].set_xlabel('Longitude', fontsize=14)
-    axs[1].set_title('Azimuth, '+look_direction+'-looking')
+    axs[1].set_title('Azimuth, '+InSAR_2D_obj.look_direction+'-looking')
     _cb = fig.colorbar(d2, label="Azimuth (degrees CW from north)", ax=axs[1])
 
     plt.savefig(plotname)
+    plt.close()
     return
 
 
