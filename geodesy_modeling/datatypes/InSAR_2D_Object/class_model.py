@@ -10,7 +10,7 @@ class Insar2dObject:
     Displacements in mm (if LOS is a displacement measurement instead of phase or other)
     """
     def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None,
-                 look_direction='right'):
+                 look_direction='right', coherence=None):
         self.lon = lon  # 1d array
         self.lat = lat  # 1d array
         self.LOS = LOS  # displacements, in mm, 2d Grid
@@ -21,6 +21,9 @@ class Insar2dObject:
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
         self.look_direction = look_direction  # metadata, look direction
+        if coherence is None:
+            coherence = np.ones(np.shape(self.LOS))
+        self.coherence = coherence   # if provided, a 2D array with same dimensions as LOS
         (leny, lenx) = np.shape(self.LOS)
         if len(self.lon) != lenx:
             raise ValueError("length of InSAR_Obj lon array doesn't match shape of data: ", len(lon), np.shape(LOS))
@@ -31,6 +34,9 @@ class Insar2dObject:
                              " versus ", np.shape(self.lkv_E))
         if look_direction not in ['right', 'left']:
             raise ValueError("Look direction %s must be either left or right" % self.look_direction)
+        if np.shape(self.coherence) != np.shape(self.LOS):
+            raise ValueError("Shape of InSAR data doesn't match shape of coherence:", np.shape(self.LOS),
+                             " versus ", np.shape(self.coherence))
 
     def impose_InSAR_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on some InSAR data. """
@@ -39,20 +45,24 @@ class Insar2dObject:
         _, _, lkve_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.lkv_E, bbox)
         _, _, lkvn_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.lkv_N, bbox)
         _, _, lkvu_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.lkv_U, bbox)
+        _, _, coherence_cut = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.coherence, bbox)
         smaller_object = Insar2dObject(lon=xc, lat=yc, LOS=los_c, LOS_unc=unc_c, lkv_E=lkve_c, lkv_N=lkvn_c,
-                                       lkv_U=lkvu_c, starttime=self.starttime, endtime=self.endtime)
+                                       lkv_U=lkvu_c, starttime=self.starttime, endtime=self.endtime,
+                                       look_direction=self.look_direction, coherence=coherence_cut)
         return smaller_object
 
     def flip_los_sign(self):
         new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1),
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime,
+                                      look_direction=self.look_direction, coherence=self.coherence)
         return new_InSAR_obj
 
     def subtract_value(self, value):
         new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime,
+                                      look_direction=self.look_direction, coherence=self.coherence)
         return new_InSAR_obj
 
     def subtract_reference(self, refidx, tolerance=0.005):
@@ -80,7 +90,8 @@ class Insar2dObject:
         rewrapped = general_utils.wrap_float(self.LOS, wavelength)
         new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=rewrapped,
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
-                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime)
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime,
+                                      look_direction=self.look_direction, coherence=self.coherence)
         return new_InSAR_obj
 
     def get_look_vector_at_point(self, target_lon, target_lat, lookdir='right'):

@@ -17,13 +17,26 @@ def write_InSAR2D(InSAR_Obj, filename):
     return
 
 
-def write_insar2D_invertible_format(_InSAR_obj, _unc_min, filename):
+def write_insar2D_invertible_format(InSAR_obj, filename):
     """
     Write InSAR 2D displacements into insar text file that can be inverted.
     Write one header line and multiple data lines, with different look vectors for each pixel.
     InSAR_2D_obj is in mm, and written out is in meters
     """
-    print("Writing InSAR displacements into file %s - function not yet written!" % filename)
+    print("Writing InSAR displacements into file %s" % filename)
+    with open(filename, 'w') as ofile:
+        ofile.write("# Lon, Lat, Disp, LkvE, LkvN, LkvU, Coh\n")
+        ofile.write("# Look direction = %s \n" % InSAR_obj.look_direction)
+        X, Y = np.meshgrid(InSAR_obj.lon, InSAR_obj.lat)
+        X = X.reshape(-1)
+        Y = Y.reshape(-1)
+        LOS = InSAR_obj.LOS.reshape(-1)
+        lkvE = InSAR_obj.lkv_E.reshape(-1)
+        lkvN = InSAR_obj.lkv_N.reshape(-1)
+        lkvU = InSAR_obj.lkv_U.reshape(-1)
+        coherence = InSAR_obj.coherence.reshape(-1)
+        for i in range(len(X)):
+            ofile.write("%f %f %f %f %f %f %f\n" % (X[i], Y[i], LOS[i], lkvE[i], lkvN[i], lkvU[i], coherence[i]))
     return
 
 

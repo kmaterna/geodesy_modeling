@@ -92,18 +92,23 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     return InSAR_Obj
 
 
-def inputs_from_uavsar_igrams(data_file, ann_file):
+def inputs_from_uavsar_igrams(data_file, ann_file, corr_file=None):
     """
     Read an interferogram from UAVSAR from the NASA UAVSAR format, complete with look vector information
 
     :param data_file: string, name of binary data file
     :param ann_file: string, name of text file with metadata/annotation
+    :param corr_file: string, optional, filename of binary coherence file
     :return: InSAR2D object
     """
+    # Read JPL UAVSAR data into 2d insar object
     x, y, phase, _ = jpl_uav_read_write.read_igram_data(data_file, ann_file, igram_type='ground')
     inc, az = jpl_uav_read_write.read_los_rdr_geo_from_ground_ann_file(ann_file, x, y)  # takes 20 seconds
     e, n, u = insar_vect.flight_incidence_angles2look_vector(az, inc, 'left')
-    # Read JPL UAVSAR data into 2d insar object
+    if corr_file:
+        coh = jpl_uav_read_write.read_corr_data(corr_file, ann_file)
+    else:
+        coh = None
     mydata = Insar2dObject(x, y, phase, LOS_unc=np.zeros(np.shape(phase)), lkv_E=e, lkv_N=n, lkv_U=u,
-                           look_direction='left')
+                           look_direction='left', coherence=coh)
     return mydata
