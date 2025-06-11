@@ -28,13 +28,17 @@ def inputs_grd(los_grdfile, _rdrlosfile=None):
 def inputs_phase_isce(iscefile, los_rdr_file=None):
     """
     Create a 2D InSAR object from ISCE phase data.  Returns the scalar field in LOS, such as wrapped phase.
+
+    :param iscefile: string, filename
+    :param los_rdr_file: string, filename, ISCE los.rdr file
+    :returns: InSAR_2D_object
     """
     lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml')
     incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)))
     LOS = isce_read_write.read_phase_data(iscefile)
     if los_rdr_file:
-        incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
-        azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
+        _, _, incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
+        _, _, azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
     lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                               lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
@@ -44,13 +48,17 @@ def inputs_phase_isce(iscefile, los_rdr_file=None):
 def inputs_scalar_isce(iscefile, los_rdr_file=None):
     """
     Create a 2D InSAR object from ISCE data.  Returns the scalar field in LOS, such as unwrapped phase.
+
+    :param iscefile: string, filename
+    :param los_rdr_file: string, filename, ISCE los.rdr file
+    :returns: InSAR_2D_object
     """
     lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml')
     incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)))
     LOS = isce_read_write.read_scalar_data(iscefile)
     if los_rdr_file:
-        incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
-        azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
+        _, _, incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
+        _, _, azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
     lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
                               lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
