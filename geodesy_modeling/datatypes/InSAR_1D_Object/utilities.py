@@ -125,3 +125,23 @@ def average_list_of_objects(list_of_InSAR_objs):
     newInSAR_obj = Insar1dObject(lon=ob0.lon, lat=ob0.lat, LOS=mean_los, LOS_unc=ob0.LOS_unc, lkv_E=ob0.lkv_E,
                                  lkv_N=ob0.lkv_N, lkv_U=ob0.lkv_U, starttime=ob0.starttime, endtime=ob0.endtime)
     return newInSAR_obj
+
+
+def disp_points_to_InSAR1D_obj(disp_points_list, lkv_E=None, lkv_N=None, lkv_U=None):
+    """
+    Convert a list of displacement points holding their LOS information in the east component into
+    InSAR1D data object.
+
+    :param disp_points_list: list of displacement points
+    :param lkv_E: could be list, could be None
+    :param lkv_N: could be list, could be None
+    :param lkv_U: could be list, could be None
+    :return: InSAR_1d_object
+    """
+    lons = [x.lon for x in disp_points_list]
+    lats = [x.lat for x in disp_points_list]
+    los = [x.dE_obs*1000 for x in disp_points_list]
+    los_unc = [x.Se_obs*1000 for x in disp_points_list]
+    newInSAR_obj = Insar1dObject(lon=lons, lat=lats, LOS=los, LOS_unc=los_unc, lkv_E=lkv_E,
+                                 lkv_N=lkv_N, lkv_U=lkv_U, starttime=None, endtime=None)
+    return newInSAR_obj
