@@ -42,9 +42,9 @@ def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_
     print("Plotting insar in file %s " % plotname)
     fig = plt.figure(dpi=300, figsize=(5, 5))
     if vmin is not None:
-        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap, vmin=vmin, vmax=vmax)
+        im = plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap, vmin=vmin, vmax=vmax)
     else:
-        plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap)
+        im = plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap)
     if lons_annot:
         plt.plot(lons_annot, lats_annot, color='darkred')
     if refpix:  # expect a list or tuple, (lon, lat)
@@ -58,7 +58,7 @@ def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_
             starttime = dt.datetime.strftime(InSAR_Obj.starttime, "%Y-%m")
             endtime = dt.datetime.strftime(InSAR_Obj.endtime, "%Y-%m")
         plt.title("InSAR with %d Points from %s to %s" % (len(InSAR_Obj.LOS), starttime, endtime))
-    cb = fig.colorbar(ax=plt.gca())
+    cb = fig.colorbar(im, ax=plt.gca())
     cb.set_label('Displacement (mm)', fontsize=16)
     plt.savefig(plotname)
     return
