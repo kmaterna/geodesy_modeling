@@ -90,5 +90,6 @@ def plot_surface_fault_and_segments(surface_fault, all_fault_segments, outfile="
     plt.plot(surface_fault[0], surface_fault[1], '-k', linewidth=4)
     for segment in all_fault_segments:
         plt.plot([segment[0], segment[4]], [segment[1], segment[5]], linewidth=2, color='red')
+    plt.title("Fault segments: %d " % len(all_fault_segments))
     plt.savefig(outfile)
     return
