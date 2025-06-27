@@ -64,6 +64,32 @@ def split_fault_trace(fault_trace, typical_spacing_km):
     return all_fault_segments
 
 
+def write_split_surface_trace(all_fault_segments, filename):
+    """
+    Writes tabular data of a split-up surface fault trace into a six-column format
+    # Ex: (-115.65719091, 32.89484637, 322.39275539, 0.9330533338, -115.66328980, 32.901493800)
+    """
+    print("Writing file %s" % filename)
+    with open(filename, 'w') as f:
+        f.write("# StartLon, StartLat, EndLon, EndLat, Strike, Length (km)\n")
+        for fault in all_fault_segments:
+            f.write("%f %f %f %f %f %f\n" % (fault[0], fault[1], fault[4], fault[5], fault[2], fault[3]))
+    return
+
+
+def read_split_surface_trace(filename):
+    """
+    :param filename: string, filename
+    :return: list of fault segments, which are tuples of 6 values
+    # Ex: (-115.65719091, 32.89484637, 322.39275539, 0.9330533338, -115.66328980, 32.901493800)
+    """
+    all_fault_segments = []
+    [lon0, lat0, lon1, lat1, strike, length] = np.loadtxt(filename, unpack=True)
+    for i in range(len(lon0)):
+        all_fault_segments.append((lon0[i], lat0[i], strike[i], length[i], lon1[i], lat1[i]))
+    return all_fault_segments
+
+
 def convert_2d_segments_to_fault_dictionary(fault_segments, dip, dip_direction, top_depth, bottom_depth, slip_cm, rake):
     """
     fault_segment includes: (starting lon, starting_lat, strike, length, ending_lon, ending_lat)
