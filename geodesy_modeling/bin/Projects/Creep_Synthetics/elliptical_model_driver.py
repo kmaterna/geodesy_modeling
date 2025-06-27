@@ -17,13 +17,14 @@ import matplotlib.pyplot as plt
 from Tectonic_Utils.geodesy import insar_vector_functions, fault_vector_functions
 from geodesy_modeling.datatypes import InSAR_1D_Object
 from scipy.optimize import least_squares
-import sys
+from scipy.optimize import approx_fprime
 
 
-configs = {"datafile": "../Prepare_Data/downsampled_data.txt",
-           "faultfile": "../../Get_Fault_Model/model_fault_patches_41.txt",
+configs = {"datafile": "../Prepare_Data/InSAR_Data/downsampled_data.txt",
+           "faultfile": "../../Get_Fault_Model/model_fault_patches_39.txt",
+           "fieldfile": "../Prepare_Data/Field_Data/slip_minimums.txt",
            "disloc_depth": 5.0,
-           "num_faults": 41,
+           "num_faults": 39,
            "top_depth": 0,
            "zerolon": -115.0,
            "zerolat": 33,
@@ -84,6 +85,73 @@ def applied_slip(depths, So, a):
     return used_depths, input_slip
 
 
+def get_width_of_depth(starting_width, depth):
+    """ The function that increases size of rectangles going deeper. """
+    width = starting_width + 0.27 * depth
+    return width
+
+
+def get_tuned_depth_array(top_depth, bottom_depth, starting_width, surface_slip, bottom_depth_slip):
+    """
+    Produce an array of depth values that are associated with the
+    """
+    counter = top_depth
+    top_depths, widths = [], []
+    while counter <= bottom_depth:
+        top_depths.append(counter)
+        width = get_width_of_depth(starting_width, counter)
+        widths.append(width)
+        counter += width
+    top_depths, widths = np.array(top_depths), np.array(widths)
+    middle_depths = np.array([x+y/2 for x, y in zip(top_depths, widths)])
+    exp_depths, exp_slip = applied_slip(middle_depths, surface_slip, bottom_depth_slip)  # middle depths
+    exp_widths = widths[0:len(exp_depths)]
+    exp_depths = top_depths[0:len(exp_depths)]
+    return exp_depths, exp_widths, exp_slip
+
+
+def plot_rectangles(ax, top_depths, widths, slips, color):
+    for i in range(len(top_depths)):
+        x = [0, slips[i], slips[i], 0]
+        y = [top_depths[i], top_depths[i], top_depths[i]+widths[i], top_depths[i]+widths[i]]
+        ax.plot(x, y, color=color)
+    return ax
+
+
+def show_sampling():
+    surface_slip = 0.02
+    bottom_depth = 2.3
+    sample_depths = np.arange(configs["top_depth"], configs["disloc_depth"], configs["sampling_interval"])
+
+    # # Create a model of the fault using non-equally-spaced rectangles
+    exp_depths, exp_widths, exp_slip = get_tuned_depth_array(configs['top_depth'], configs['disloc_depth'],
+                                                             configs["sampling_interval"], surface_slip, bottom_depth)
+
+    # Create a model of the fault using equally-spaced rectangles
+    rect_depths, rect_slip = applied_slip(sample_depths, surface_slip, bottom_depth)  # top depths
+    rect_widths = configs["sampling_interval"]*np.ones(np.shape(rect_depths))
+
+    model_depths = np.arange(configs["top_depth"], configs["disloc_depth"], 0.05)
+    model_depths, model_slip = applied_slip(model_depths, surface_slip, bottom_depth)
+    f, axarr = plt.subplots(1, 2, dpi=300, figsize=(12, 8))
+    axarr[0].plot(model_slip, model_depths)
+    plot_rectangles(axarr[0], rect_depths, rect_widths, rect_slip, color='red')
+    axarr[0].invert_yaxis()
+    axarr[0].set_title("N=" + str(len(rect_depths)))
+    axarr[0].set_xlabel("Slip (m)")
+    axarr[0].set_ylabel("Depth (km)")
+
+    axarr[1].plot(model_slip, model_depths)
+    plot_rectangles(axarr[1], exp_depths, exp_widths, exp_slip, color='black')
+    axarr[1].invert_yaxis()
+    axarr[1].set_title("N=" + str(len(exp_depths)))
+    axarr[1].set_xlabel("Slip (m)")
+    axarr[1].set_ylabel("Depth (km)")
+
+    plt.savefig("Modeling_ellipse.png")
+    return
+
+
 def elastic_model(param_vector, cart_disp_points, faults):
     """
     The mesh geometry is known separately.
@@ -93,16 +161,18 @@ def elastic_model(param_vector, cart_disp_points, faults):
     :param faults: used for sources; the fault slip will be re-set to an elliptical slip distribution
     :return: InSAR_1D_object, a matching object to the data structure. The LOS values contain the model predictions.
     """
-    depths = np.arange(configs["top_depth"], configs["fault_width"], configs['sampling_interval'])
+    # depths = np.arange(configs["top_depth"], configs["fault_width"], configs['sampling_interval'])
     fault_list = []
     for j, fault in enumerate(faults):
         # Here we could use one value for the entire fault length, or use a spatial distribution of values.
-        # surface_slip, bottom_depth = param_vector[j], param_vector[j+configs["num_faults"]]  # for real faults
-        surface_slip, bottom_depth = param_vector[0], param_vector[1]  # for 2-param inversion
-        used_depths, modeled_slip = applied_slip(depths, surface_slip, bottom_depth)
-        for mslip, depth in zip(modeled_slip, used_depths):   # create all the source patches
+        surface_slip, bottom_depth = param_vector[j], param_vector[j+configs["num_faults"]]  # for real faults
+        # surface_slip, bottom_depth = param_vector[0], param_vector[1]  # for 2-param inversion
+        used_depths, widths, modeled_slip = get_tuned_depth_array(configs['top_depth'], configs['disloc_depth'],
+                                                                  configs["sampling_interval"], surface_slip,
+                                                                  bottom_depth)
+        for mslip, mwidth, depth in zip(modeled_slip, widths, used_depths):   # create all the source patches
             one_fault = fso.FaultSlipObject(strike=fault.strike, dip=89.99, length=fault.length,
-                                            width=configs["sampling_interval"], lon=fault.lon,
+                                            width=mwidth, lon=fault.lon,
                                             lat=fault.lat, depth=depth, rake=180, slip=mslip)
             # Change the slip to elliptical slip
             fault_list.append(one_fault)
@@ -119,15 +189,21 @@ def elastic_model(param_vector, cart_disp_points, faults):
 
 
 def set_up_initial_params_and_bounds():
+    # Set up constraints: lower bound on slip = from fieldwork and creepmeters
+    _, fieldwork_lower_bounds = np.loadtxt(configs['fieldfile'], unpack=True)
+    fieldwork_lower_bounds = np.multiply(fieldwork_lower_bounds, 0.001)  # convert mm to m
+    lower_bound = np.zeros((configs["num_faults"]*2, ))   # lower bound on slip and depth is zero
+    lower_bound[0:configs["num_faults"]] = fieldwork_lower_bounds
+    upper_bound = np.multiply(5, np.ones((configs["num_faults"]*2, )))  # upper bound on slip is 50 mm, depth is 5 km
+    upper_bound[0:configs["num_faults"]] = 0.050
+
     # Set up the original parameter vector and the upper bounds and lower bounds
     param0 = []  # param vector = [slip slip slip ..... slip depth depth depth.....]
     for i in range(configs["num_faults"]):  # initial guess for the slip is 20 mm (m)
-        param0.append(0.02)
+        slip_guess = np.max([0.02, lower_bound[i]])  # the initial guess is either 20 mm or the minimum of range
+        param0.append(slip_guess)
     for i in range(configs["num_faults"]):  # initial guess for the lower-depth km is 1 km
         param0.append(2.0)
-    lower_bound = np.zeros((configs["num_faults"]*2, ))   # lower bound on slip and depth is zero
-    upper_bound = np.multiply(5, np.ones((configs["num_faults"]*2, )))  # upper bound on slip is 50 mm, depth is 5 km
-    upper_bound[0:configs["num_faults"]] = 0.050
     return param0, lower_bound, upper_bound
 
 
@@ -172,58 +248,66 @@ def write_outputs(data, model, fitted_params, lam, gamma, expname):
     return
 
 
-def invert_data():
-    data = InSAR_1D_Object.inputs.inputs_txt(configs["datafile"])  # read as insar1d object
+def read_data_and_faults(config):
+    data = InSAR_1D_Object.inputs.inputs_txt(config["datafile"])  # read as insar1d object
     disp_points = data.get_disp_points()
-    cart_disp_points = PyCoulomb.utilities.convert_ll2xy_disp_points(disp_points, configs["zerolon"],
-                                                                     configs["zerolat"])  # ll to cart.
-    faults = PyCoulomb.fault_slip_object.file_io.io_slippy.read_slippy_distribution(configs["faultfile"])
+    cart_disp_points = PyCoulomb.utilities.convert_ll2xy_disp_points(disp_points, config["zerolon"],
+                                                                     config["zerolat"])  # ll to cart.
+    faults = PyCoulomb.fault_slip_object.file_io.io_slippy.read_slippy_distribution(config["faultfile"])
     PyCoulomb.fault_slip_object.file_io.io_slippy.write_slippy_distribution(faults, "used_faults.txt")
-    lam = 1  # Minimum norm Tikhonov smoothing regularization strength
-    gamma = 50  # Laplacian regularization strength
-    param0, lb, ub = set_up_initial_params_and_bounds()
+    return data, cart_disp_points, faults
 
-    # Establish forward model and cost function
-    def forward_model(params):  # params = vector of size 82, 41 slips and 41 depths
-        insar_1d_model = elastic_model(params, cart_disp_points, faults)
-        return insar_1d_model
 
-    # Smoothing residuals (first differences) on first half of vector
-    def smoothing_residuals(m2, gamma):
-        return gamma * np.diff(m2)
+def invert_data():
+    # We can vary the smoothing parameter and determine the most appropriate one through L-curve analysis
+    data, cart_disp_points, faults = read_data_and_faults(configs)
 
-    def residuals(m, data, gamma, lam):
-        data_misfit = forward_model(m).LOS - data.LOS
-        m2 = m[0:configs["num_faults"]]  # slip is the first half of the model vector
-        tikhonov = lam * m  # Tikhonov (minimum-norm) regularization
-        smoothing = smoothing_residuals(m2, gamma)
-        return np.concatenate((data_misfit, smoothing, tikhonov))
+    # lam_array = [0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
+    lam_array = [1]
+    # lam = 1  # Minimum norm Tikhonov smoothing regularization strength
+    param0, lb, ub = set_up_initial_params_and_bounds()  # create initial parameter vector
 
-    # result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam))  # slip, dep
-    # print(result.x)
-    # model_pred = forward_model(result.x)
-    # model_pred = convert_xy_to_ll_insar1D(model_pred, configs["zerolon"], configs["zerolat"])
-    # create_data_model_misfit_plot(data, model_pred, result.x, faults, "inverse_data_v_model.png")
-    # write_outputs(data, model_pred, result.x, lam, gamma, 'inverse')
+    for lam in lam_array:
+        gamma = 50  # Laplacian Regularization strength
 
-    testcase_params = param0
-    simple_model = forward_model(testcase_params)  # InSAR1D object
-    simple_model = convert_xy_to_ll_insar1D(simple_model, configs["zerolon"], configs["zerolat"])
-    create_data_model_misfit_plot(data, simple_model, testcase_params, faults, "testcase_data_v_model.png")
-    write_outputs(data, simple_model, testcase_params, lam, gamma, 'testcase')
+        # Establish forward model and cost function
+        def forward_model(params):  # params = vector of size 82, 41 slips and 41 depths
+            insar_1d_model = elastic_model(params, cart_disp_points, faults)
+            return insar_1d_model
+
+        # Smoothing residuals (first differences) on first half of vector
+        def smoothing_residuals(m2, gamma):
+            return gamma * np.diff(m2)
+
+        def residuals(m, data, gamma, lam):
+            data_misfit = forward_model(m).LOS - data.LOS
+            m2 = m[0:configs["num_faults"]]  # slip is the first half of the model vector
+            mdepth = m[configs["num_faults"]:]
+            tikhonov = lam * mdepth  # Tikhonov (minimum-norm) regularization
+            smoothing = smoothing_residuals(m2, gamma)
+            return np.concatenate((data_misfit, smoothing, tikhonov))
+
+        expname = 'Multi_Param/smoothing_'+str(lam)
+        result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam))  # slip, z
+        print(result.x)
+        model_pred = forward_model(result.x)
+        model_pred = convert_xy_to_ll_insar1D(model_pred, configs["zerolon"], configs["zerolat"])
+        create_data_model_misfit_plot(data, model_pred, result.x, faults, expname+"_data_v_model.png")
+        write_outputs(data, model_pred, result.x, lam, gamma, expname)
+
+    # testcase_params = param0
+    # simple_model = forward_model(testcase_params)  # InSAR1D object
+    # simple_model = convert_xy_to_ll_insar1D(simple_model, configs["zerolon"], configs["zerolat"])
+    # create_data_model_misfit_plot(data, simple_model, testcase_params, faults, "testcase_data_v_model.png")
+    # write_outputs(data, simple_model, testcase_params, lam, gamma, 'testcase')
     return
 
 
 def invert_data_2param():
-    data = InSAR_1D_Object.inputs.inputs_txt(configs["datafile"])  # read as insar1d object
-    disp_points = data.get_disp_points()
-    cart_disp_points = PyCoulomb.utilities.convert_ll2xy_disp_points(disp_points, configs["zerolon"],
-                                                                     configs["zerolat"])  # ll to cart.
-    faults = PyCoulomb.fault_slip_object.file_io.io_slippy.read_slippy_distribution(configs["faultfile"])
-    PyCoulomb.fault_slip_object.file_io.io_slippy.write_slippy_distribution(faults, "used_faults.txt")
+    data, cart_disp_points, faults = read_data_and_faults(configs)
     param0 = [0.020, 2.0]
     lb, ub = [0.0, 0.0], [0.050, 5.0]
-    lam = 8  # Minimum norm Tikhonov smoothing regularization strength
+    lam = 7  # Minimum norm Tikhonov smoothing regularization strength
 
     # Establish forward model and cost function
     def forward_model(params):  # params = vector of size 82, 41 slips and 41 depths
@@ -236,7 +320,8 @@ def invert_data_2param():
         return np.concatenate((data_misfit, tikhonov))
 
     expname = "two_param_smooth8"
-    result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, lam))  # slip, dep
+    result = least_squares(residuals, x0=param0, verbose=2, bounds=[lb, ub], args=(data, lam),
+                           method='trf', x_scale=[0.01, 1.0])  # slip, dep
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = convert_xy_to_ll_insar1D(model_pred, configs["zerolon"], configs["zerolat"])
@@ -251,9 +336,73 @@ def invert_data_2param():
     return
 
 
+def investigate_jacobian_2param():
+    data, cart_disp_points, faults = read_data_and_faults(configs)
+    param0 = [0.020, 2.0]
+    lb, ub = [0.0, 0.0], [0.050, 5.0]
+    lam = 0  # Minimum norm Tikhonov smoothing regularization strength
+
+    # Establish forward model and cost function
+    def forward_model_rectangle(params):  # params = vector of size 82, 41 slips and 41 depths
+        insar_1d_model = elastic_model(params, cart_disp_points, faults)
+        return insar_1d_model
+
+    # Establish forward model and cost function
+    def forward_model_ellipse(params):  # params = vector of size 82, 41 slips and 41 depths
+        insar_1d_model = elastic_model(params, cart_disp_points, faults)
+        return insar_1d_model
+
+    def residuals(m, data, lam):
+        data_misfit = forward_model_ellipse(m).LOS - data.LOS
+        tikhonov = lam * m  # Tikhonov (minimum-norm) regularization
+        return np.concatenate((data_misfit, tikhonov))
+
+    model_pred = forward_model_ellipse([0.02, 2.75])
+    model_pred = convert_xy_to_ll_insar1D(model_pred, configs["zerolon"], configs["zerolat"])
+    create_data_model_misfit_plot(data, model_pred, [0.02, 2.75], faults, "ellipse_data_v_model.png")
+    model_pred = forward_model_rectangle([0.02, 2.20])
+    model_pred = convert_xy_to_ll_insar1D(model_pred, configs["zerolon"], configs["zerolat"])
+    create_data_model_misfit_plot(data, model_pred, [0.02, 2.20], faults, "rectangle_data_v_model.png")
+
+    def wrapped_residual(x):
+        return residuals(x, data, lam)
+
+    r = residuals(param0, data, lam)
+    print("residual norm:", np.linalg.norm(r))
+    print("residual max:", np.max(np.abs(r)))
+
+    J = approx_fprime(param0, wrapped_residual)
+    print("Jacobian norm:", np.linalg.norm(J))
+    print("Jacobian Shape:", np.shape(J))
+    print("Jacobian:", J)
+
+    f, axarr = plt.subplots(1, 2, figsize=(9, 5), dpi=300)
+    slip_jacobian = J[0:1407, 0]
+    depth_jacobian = J[0:1407, 1]
+    x_vals = [x.lon for x in cart_disp_points]
+    y_vals = [x.lat for x in cart_disp_points]
+    print(np.shape(x_vals), np.shape(y_vals), np.shape(slip_jacobian))
+    im1 = axarr[0].scatter(x_vals, y_vals, c=slip_jacobian, cmap='viridis')
+    axarr[0].set_title("Jacobian with Slip")
+    _cbar1 = f.colorbar(im1, ax=axarr[0])
+    im2 = axarr[1].scatter(x_vals, y_vals, c=depth_jacobian, cmap='viridis')
+    axarr[1].set_title("Jacobian with Depth")
+    _cbar2 = f.colorbar(im2, ax=axarr[1])
+    plt.savefig("Jacobian_spatial.png")
+
+    f, axarr = plt.subplots(2, 1, figsize=(10, 8), dpi=300)
+    axarr[0].plot(J[:, 0])
+    axarr[1].plot(J[:, 1])
+    plt.savefig("Jacobian.png")
+
+    return
+
+
 def do_main():
-    # invert_data()   # Build upon the Inversion stress_driven, using InSAR1D object as data, invert for S0 and Z
-    invert_data_2param()  # create a smaller inversion for testing speed-ups, like GPU and desktop work
+    invert_data()   # Build upon the Inversion stress_driven, using InSAR1D object as data, invert for S0 and Z
+    # invert_data_2param()  # create a smaller inversion for testing speed-ups, like GPU and desktop work
+    # investigate_jacobian_2param()
+    # show_sampling()
     return
 
 
