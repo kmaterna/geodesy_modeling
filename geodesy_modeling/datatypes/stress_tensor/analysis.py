@@ -1,7 +1,7 @@
 
 import numpy as np
 import pandas as pd
-from Tectonic_Utils.geodesy import fault_vector_functions as fvf
+from tectonic_utils.geodesy import fault_vector_functions as fvf
 from elastic_stresses_py.PyCoulomb import conversion_math
 
 """

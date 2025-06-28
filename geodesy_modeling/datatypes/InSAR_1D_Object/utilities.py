@@ -5,7 +5,7 @@ LOS is in mm
 
 import numpy as np
 from .class_model import Insar1dObject
-from Tectonic_Utils.geodesy import insar_vector_functions as ivs
+from tectonic_utils.geodesy import insar_vector_functions as ivs
 
 
 def combine_objects(Obj1: Insar1dObject, Obj2: Insar1dObject):

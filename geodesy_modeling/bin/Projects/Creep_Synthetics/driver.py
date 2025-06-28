@@ -5,8 +5,8 @@ import sys
 from elastic_stresses_py.PyCoulomb import configure_calc, input_values, run_dc3d, output_manager, io_additionals
 from geodesy_modeling.datatypes.InSAR_2D_Object import model_enu_grids_into_los
 from geodesy_modeling.datatypes.creepmeter import slip_1d_profiles, creepmeter_obj
-import Tectonic_Utils.geodesy.haversine as haversine
-import Tectonic_Utils.geodesy.fault_vector_functions as fault_vector_functions
+import tectonic_utils.geodesy.haversine as haversine
+import tectonic_utils.geodesy.fault_vector_functions as fault_vector_functions
 
 # 29 May 2024
 # Steps:

@@ -8,7 +8,7 @@ import datetime as dt
 from gnss_timeseries_viewers.gps_tools import vel_functions
 import elastic_stresses_py.PyCoulomb.coulomb_collections as cc
 import elastic_stresses_py.PyCoulomb.fault_slip_object as fso
-from Tectonic_Utils.geodesy import euler_pole
+from tectonic_utils.geodesy import euler_pole
 
 
 def read_leveling(filename):

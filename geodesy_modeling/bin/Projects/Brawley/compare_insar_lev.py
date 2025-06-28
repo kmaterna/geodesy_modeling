@@ -19,7 +19,7 @@ import matplotlib.cm as cm
 import datetime as dt
 import sys
 from geodesy_modeling import general_utils
-from Tectonic_Utils.read_write import general_io
+from tectonic_utils.read_write import general_io
 from .brawley_io import get_file_dictionary
 import geodesy_modeling
 

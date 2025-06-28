@@ -14,7 +14,7 @@ from elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle import triangle_okada
 import numpy as np
 import matplotlib.pyplot as plt
-from Tectonic_Utils.geodesy import insar_vector_functions, fault_vector_functions
+from tectonic_utils.geodesy import insar_vector_functions, fault_vector_functions
 from geodesy_modeling.datatypes import InSAR_1D_Object
 from scipy.optimize import least_squares
 from scipy.optimize import approx_fprime

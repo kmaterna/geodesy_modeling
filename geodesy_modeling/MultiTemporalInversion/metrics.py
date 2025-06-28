@@ -7,7 +7,7 @@ Useful for L-curve analysis.
 """
 
 import numpy as np
-from Tectonic_Utils.seismo import moment_calculations
+from tectonic_utils.seismo import moment_calculations
 import slippy.io
 
 

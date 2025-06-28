@@ -1,7 +1,7 @@
 # Get the locations of points adjacent to the fault, i.e., a synthetic creep-meter
 
-import Tectonic_Utils.geodesy.haversine as haversine
-import Tectonic_Utils.geodesy.fault_vector_functions as fault_vector_functions
+import tectonic_utils.geodesy.haversine as haversine
+import tectonic_utils.geodesy.fault_vector_functions as fault_vector_functions
 
 
 def get_synthetic_creepmeter_points(lon0, lat0, strike, length_km, creepmeter_length):

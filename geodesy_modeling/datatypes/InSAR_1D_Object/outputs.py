@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from Tectonic_Utils.geodesy import insar_vector_functions
+from tectonic_utils.geodesy import insar_vector_functions
 from geodesy_modeling import general_utils
 
 

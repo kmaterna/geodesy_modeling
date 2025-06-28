@@ -8,7 +8,7 @@ import sys
 import pandas
 import h5py
 from cubbie.read_write_insar_utilities import isce_read_write
-from Tectonic_Utils.geodesy import insar_vector_functions
+from tectonic_utils.geodesy import insar_vector_functions
 from geodesy_modeling.general_utils import convert_rates_to_disps
 from .class_model import Insar1dObject
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle.file_io import io_other

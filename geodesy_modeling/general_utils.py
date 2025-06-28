@@ -4,7 +4,7 @@ Mathematical functions independent of object specifics
 
 import numpy as np
 import scipy
-from Tectonic_Utils.geodesy import haversine, insar_vector_functions
+from tectonic_utils.geodesy import haversine, insar_vector_functions
 
 
 def get_nearest_pixel_in_raster(raster_lon, raster_lat, target_lon, target_lat, min_dist_cutoff_km=0.25):

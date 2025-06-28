@@ -3,8 +3,8 @@ Input functions for 2D InSAR-format data
 """
 
 import numpy as np
-from Tectonic_Utils.read_write import netcdf_read_write
-from Tectonic_Utils.geodesy import insar_vector_functions as insar_vect
+from tectonic_utils.read_write import netcdf_read_write
+from tectonic_utils.geodesy import insar_vector_functions as insar_vect
 from cubbie.read_write_insar_utilities import isce_read_write, jpl_uav_read_write
 from .class_model import Insar2dObject
 

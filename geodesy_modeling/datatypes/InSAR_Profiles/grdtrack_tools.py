@@ -5,7 +5,7 @@ Tools to manipulate profiles from GMT GRDTRACK
 import numpy as np
 import scipy.signal
 import matplotlib.pyplot as plt
-from Tectonic_Utils.geodesy import haversine
+from tectonic_utils.geodesy import haversine
 from geodesy_modeling import general_utils
 
 

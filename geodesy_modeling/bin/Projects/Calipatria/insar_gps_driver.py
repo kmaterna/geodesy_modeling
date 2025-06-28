@@ -11,7 +11,7 @@ import geodesy_modeling.Inversion.inversion_tools as inv_tools
 import geodesy_modeling.Inversion.GfElement.GfElement as GF_element
 import geodesy_modeling.Inversion.GfElement.rw_insar_gfs as rw_insar_gfs
 from geodesy_modeling.datatypes.InSAR_1D_Object import Insar1dObject
-import Tectonic_Utils.seismo.moment_calculations as mo
+import tectonic_utils.seismo.moment_calculations as mo
 import numpy as np
 import scipy.optimize
 import matplotlib.pyplot as plt

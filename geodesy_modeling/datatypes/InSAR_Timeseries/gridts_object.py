@@ -1,6 +1,6 @@
 import datetime as dt
 import numpy as np
-from Tectonic_Utils.read_write import netcdf_read_write
+from tectonic_utils.read_write import netcdf_read_write
 from geodesy_modeling.datatypes.InSAR_1D_Object import class_model
 
 

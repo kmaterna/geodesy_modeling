@@ -2,7 +2,7 @@ import datetime as dt
 import matplotlib
 import numpy as np
 from geodesy_modeling import general_utils
-from Tectonic_Utils.read_write import netcdf_read_write
+from tectonic_utils.read_write import netcdf_read_write
 from matplotlib import pyplot as plt, cm as cm
 
 

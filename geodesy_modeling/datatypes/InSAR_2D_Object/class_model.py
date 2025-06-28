@@ -1,5 +1,5 @@
 import numpy as np
-from Tectonic_Utils.geodesy import insar_vector_functions as ivf
+from tectonic_utils.geodesy import insar_vector_functions as ivf
 from geodesy_modeling import general_utils
 from cubbie.math_tools import grid_tools
 

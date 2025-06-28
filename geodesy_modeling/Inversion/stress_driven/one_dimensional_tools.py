@@ -9,7 +9,7 @@ This toolbox can:
 """
 
 import numpy as np
-import Tectonic_Utils.geodesy.fault_vector_functions as fvf
+import tectonic_utils.geodesy.fault_vector_functions as fvf
 from elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as fso
 import matplotlib.pyplot as plt
 from elastic_stresses_py import PyCoulomb

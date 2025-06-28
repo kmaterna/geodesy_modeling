@@ -5,7 +5,7 @@ Write/output/plotting functions for InSAR 2D data format
 import pygmt
 import numpy as np
 import matplotlib.pyplot as plt
-from Tectonic_Utils.read_write import netcdf_read_write
+from tectonic_utils.read_write import netcdf_read_write
 from . import inputs
 from geodesy_modeling import general_utils
 from elastic_stresses_py.PyCoulomb import utilities as overall_utils
