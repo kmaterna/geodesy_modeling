@@ -12,8 +12,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
 import argparse
-import os
-import sys
 import json
 import elastic_stresses_py.PyCoulomb.fault_slip_object.file_io.io_slippy
 from elastic_stresses_py import PyCoulomb
@@ -31,6 +29,7 @@ def project_model_disp_points_into_insar1d(model_disp_points, configs):
     Project some modeled displacements points into the LOS and package them as InSAR1D object.
 
     :param model_disp_points: list of Disp Point objects
+    :param configs: dictionary of config parameters for the experiment, like insar flight angle
     :return: InSAR_1D object
     """
     u = np.array([x.dE_obs for x in model_disp_points])
@@ -48,11 +47,13 @@ def project_model_disp_points_into_insar1d(model_disp_points, configs):
     return insar_data
 
 
-def convert_xy_to_ll_insar1D(insar1D, zerolon, zerolat):
+def convert_xy_to_ll_insar1D(insar1D, configs):
     """
     Do the last step, turning the model results into a useful InSAR1D object in lat-lon space
     """
-    [real_lons, real_lats] = fault_vector_functions.xy2lonlat(insar1D.lon, insar1D.lat, zerolon, zerolat)
+    [real_lons, real_lats] = fault_vector_functions.xy2lonlat(insar1D.lon, insar1D.lat,
+                                                              configs["zerolon"],
+                                                              configs["zerolat"])
     lkvE, lkvN, lkvU = insar_vector_functions.flight_incidence_angles2look_vector(configs["flight_angle"],
                                                                                   configs["incidence_angle"],
                                                                                   look_direction='right')
@@ -115,6 +116,7 @@ def elastic_model(param_vector, cart_disp_points, faults, configs):
     :param cart_disp_points: used only for location of points, in cartesian coordinates
     :param param_vector: vector of surface_slip values and depth-values for the various elliptical slip distributions
     :param faults: used for sources; the fault slip will be re-set to an elliptical slip distribution
+    :param configs: dictionary of configuration parameters for the experiment
     :return: InSAR_1D_object, a matching object to the data structure. The LOS values contain the model predictions.
     """
     fault_list = []
@@ -181,7 +183,7 @@ def create_data_model_misfit_plot(datapts, modelpts, best_params, faults, outnam
     return
 
 
-def write_outputs(data, model, fitted_params, lam, gamma, expname):
+def write_outputs(data, model, fitted_params, lam, gamma, expname, configs):
     if len(fitted_params) > 2:
         fitted_params = np.array(fitted_params).reshape(2, configs["num_faults"]).T
         f, axarr = plt.subplots(2, 1, figsize=(14, 10), dpi=300)
@@ -208,7 +210,6 @@ def read_data_and_faults(config):
     cart_disp_points = PyCoulomb.utilities.convert_ll2xy_disp_points(disp_points, config["zerolon"],
                                                                      config["zerolat"])  # ll to cart.
     faults = PyCoulomb.fault_slip_object.file_io.io_slippy.read_slippy_distribution(config["faultfile"])
-    PyCoulomb.fault_slip_object.file_io.io_slippy.write_slippy_distribution(faults, "used_faults.txt")
     return data, cart_disp_points, faults
 
 
@@ -254,9 +255,9 @@ def invert_data(arguments):
     result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam))  # slip, z
     print(result.x)
     model_pred = forward_model(result.x)
-    model_pred = convert_xy_to_ll_insar1D(model_pred, configs["zerolon"], configs["zerolat"])
+    model_pred = convert_xy_to_ll_insar1D(model_pred, configs)
     create_data_model_misfit_plot(data, model_pred, result.x, faults, expname+"_data_v_model.png")
-    write_outputs(data, model_pred, result.x, lam, gamma, expname)
+    write_outputs(data, model_pred, result.x, lam, gamma, expname, configs)
 
     # testcase_params = param0
     # simple_model = forward_model(testcase_params)  # InSAR1D object
