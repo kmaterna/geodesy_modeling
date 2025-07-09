@@ -126,7 +126,7 @@ def add_flight_vector(fig, flight_heading, look_dir, region):
 
 def map_wrapped_insar(grd_filename, plotname, text_annot=None, flight_heading=None, look_dir="right",
                       disp_points=None, region=None, refloc=None, wrapped=False,
-                      disp_points_color=None):
+                      disp_points_color=None, vmin=-10, vmax=10, label_inc=2):
     """
     Pygmt map of wrapped InSAR deformation with optional annotations
 
@@ -140,6 +140,9 @@ def map_wrapped_insar(grd_filename, plotname, text_annot=None, flight_heading=No
     :param refloc: optional lon/lat for plotting reference pixel
     :param wrapped: default False. If True, the plot is assumed to be wrapped (-pi to pi) on a cycle color scale
     :param region: optional array, [W, E, S, N] for the plot
+    :param vmin: optional, minimum for unwrapped colorbar
+    :param vmax: optional, maximum for unwrapped colorbar
+    :param label_inc: optional, labeling increment for unwrapped colorbar
     """
     InSAR_Obj = inputs.inputs_grd(grd_filename)
     print("Plotting file %s " % plotname)
@@ -153,9 +156,8 @@ def map_wrapped_insar(grd_filename, plotname, text_annot=None, flight_heading=No
         label_inc = 1.57  # for wrapped phase
         label = "Phase"
     else:  # currently hard-coded for different applications
-        pygmt.makecpt(cmap="polar", series="-10/10/0.01", background="o", output="mycpt.cpt")
+        pygmt.makecpt(cmap="polar", series=str(vmin)+"/"+str(vmax)+"/0.01", background="o", output="mycpt.cpt")
         title = "Unwrapped LOS Displacement"
-        label_inc = 2  # For unwrapped displacement.  Currently hard-coded
         label = "LOS Deformation (mm)"
 
     # Build a PyGMT plot
