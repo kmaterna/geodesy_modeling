@@ -34,6 +34,8 @@ class Insar2dObject:
                              " versus ", np.shape(self.lkv_E))
         if look_direction not in ['right', 'left']:
             raise ValueError("Look direction %s must be either left or right" % self.look_direction)
+        if np.max(self.lon) > 180:  # wrap to -180:180 in case of longitude 235E etc.
+            self.lon = np.subtract(self.lon, 360)
         if np.shape(self.coherence) != np.shape(self.LOS):
             raise ValueError("Shape of InSAR data doesn't match shape of coherence:", np.shape(self.LOS),
                              " versus ", np.shape(self.coherence))
@@ -111,9 +113,9 @@ class Insar2dObject:
         flight, inc = ivf.look_vector2flight_incidence_angles(E, N, U, look_direction=lookdir)
         return E, N, U, flight, inc
 
-    def get_azimuth_incidence_grid(self, lookdir='right'):
+    def get_azimuth_incidence_grid(self):
         """
         Compute incidence angle across the grid, using the 3-component look vector and the look direction.
         """
-        az, inc = ivf.look_vector2flight_incidence_angles(self.lkv_E, self.lkv_N, self.lkv_U, lookdir)
+        az, inc = ivf.look_vector2flight_incidence_angles(self.lkv_E, self.lkv_N, self.lkv_U, self.look_direction)
         return az, inc

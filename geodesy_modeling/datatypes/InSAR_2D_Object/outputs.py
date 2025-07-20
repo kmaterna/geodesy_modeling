@@ -49,7 +49,7 @@ def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname):
     :param plotname: string
     """
     print("Plotting %s " % plotname)
-    az, inc = InSAR_2D_obj.get_azimuth_incidence_grid(InSAR_2D_obj.look_direction)
+    az, inc = InSAR_2D_obj.get_azimuth_incidence_grid()
     inc[inc > 90] = np.nan  # ignore incidence angles greater than 90
     inc[inc < 0] = np.nan
 
@@ -99,6 +99,17 @@ def plot_disp_point_annotations(fig, disp_points, disp_points_color=None, cmap=N
     else:  # just plot triangles for location
         fig.plot(x=model_lon, y=model_lat, style='t0.07i', fill='black', pen="thin,black")
     return fig
+
+
+def plot_coherence(InSAR_2D_obj, figname):
+    # Plot the coherence
+    x, y = InSAR_2D_obj.lon, InSAR_2D_obj.lat
+    plt.figure(dpi=300, figsize=(9, 9))
+    extent = (np.min(x), np.max(x), np.min(y), np.max(y))
+    plt.imshow(InSAR_2D_obj.coherence, extent=extent)
+    plt.colorbar()
+    plt.savefig(figname)
+    return
 
 
 def plot_reference_annotations(fig, refpoint):
