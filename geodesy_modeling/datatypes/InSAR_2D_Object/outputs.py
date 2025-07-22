@@ -6,6 +6,7 @@ import pygmt
 import numpy as np
 import matplotlib.pyplot as plt
 from tectonic_utils.read_write import netcdf_read_write
+from tectonic_utils.geodesy import insar_vector_functions
 from . import inputs
 from geodesy_modeling import general_utils
 from elastic_stresses_py.PyCoulomb import utilities as overall_utils
@@ -53,21 +54,91 @@ def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname):
     inc[inc > 90] = np.nan  # ignore incidence angles greater than 90
     inc[inc < 0] = np.nan
 
+    X, Y = np.meshgrid(InSAR_2D_obj.lon, InSAR_2D_obj.lat)
+
     fig, axs = plt.subplots(1, 2, dpi=300, figsize=(8, 5))
     fig.subplots_adjust(wspace=0.5)  # Increase horizontal space
-    d1 = axs[0].imshow(inc, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
-                                    InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
+    d1 = axs[0].pcolormesh(X, Y, inc)
     axs[0].set_xlabel('Longitude', fontsize=14)
     axs[0].set_ylabel('Latitude', fontsize=14)
     axs[0].set_title('Incidence')
     _cb = fig.colorbar(d1, label="Incidence (degrees from vertical)", ax=axs[0])
-    d2 = axs[1].imshow(az, extent=(InSAR_2D_obj.lon.min(), InSAR_2D_obj.lon.max(),
-                                   InSAR_2D_obj.lat.min(), InSAR_2D_obj.lat.max()))
+    d2 = axs[1].pcolormesh(X, Y, az)
     axs[1].set_xlabel('Longitude', fontsize=14)
     axs[1].set_title('Azimuth, '+InSAR_2D_obj.look_direction+'-looking')
     _cb = fig.colorbar(d2, label="Azimuth (degrees CW from north)", ax=axs[1])
 
     plt.savefig(plotname)
+    plt.close()
+    return
+
+
+def plot_entire_object(myobj, plotname):
+    """
+    Create a plot of phase, coherence, azimuth, and incidence for the object.
+    This should help you check that the axes are flipped properly.
+
+    :param myobj: object of type InSAR_2D
+    :param plotname: string, filename
+    :return:
+    """
+    print("Plotting %s " % plotname)
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 8), constrained_layout=True)
+    az, inc = insar_vector_functions.look_vector2flight_incidence_angles(myobj.lkv_E, myobj.lkv_N, myobj.lkv_U,
+                                                                         myobj.look_direction)
+    datasets = [myobj.LOS, myobj.coherence, inc, az]
+    titles = ["LOS", "Coherence", "Incidence", "Azimuth"]
+    X, Y = np.meshgrid(myobj.lon, myobj.lat)
+
+    for ax, Z, title in zip(axs.flat, datasets, titles):
+        # Plot raster
+        im = ax.pcolormesh(X, Y, Z, cmap="viridis", shading="auto")
+
+        # Axis labelling
+        ax.set_xlabel("Longitude")
+        ax.set_ylabel("Latitude")
+        ax.set_title(title, pad=6)
+
+        # Individual color‑bar
+        cbar = fig.colorbar(im, ax=ax)
+        cbar.set_label("Value")
+
+    plt.savefig(plotname)
+    plt.close()
+    return
+
+
+def plot_coherence(InSAR_2D_obj, figname):
+    """
+    :param InSAR_2D_obj: Insar 2d object
+    :param figname: string, name where file will be saved
+    """
+    # Plot the coherence
+    X, Y = np.meshgrid(InSAR_2D_obj.lon, InSAR_2D_obj.lat)
+    plt.figure(dpi=300, figsize=(9, 9))
+    plt.pcolormesh(X, Y, InSAR_2D_obj.coherence)
+    plt.colorbar()
+    plt.savefig(figname)
+    plt.close()
+    return
+
+
+def plot_los_information(InSAR_2D_obj, figname, vmin=None, vmax=None):
+    """
+    :param InSAR_2D_obj: Insar 2d object
+    :param figname: string, name where file will be saved
+    :param vmin: float, minimum for color scale
+    :param vmax: float, maximum for color scale
+    """
+    # Plot the phase information
+    X, Y = np.meshgrid(InSAR_2D_obj.lon, InSAR_2D_obj.lat)
+    plt.figure(dpi=300, figsize=(9, 9))
+    if vmin and vmax:
+        plt.pcolormesh(X, Y, InSAR_2D_obj.LOS, vmin=vmin, vmax=vmax)
+    else:
+        plt.pcolormesh(X, Y, InSAR_2D_obj.LOS)
+    plt.colorbar()
+    plt.savefig(figname)
     plt.close()
     return
 
@@ -99,17 +170,6 @@ def plot_disp_point_annotations(fig, disp_points, disp_points_color=None, cmap=N
     else:  # just plot triangles for location
         fig.plot(x=model_lon, y=model_lat, style='t0.07i', fill='black', pen="thin,black")
     return fig
-
-
-def plot_coherence(InSAR_2D_obj, figname):
-    # Plot the coherence
-    x, y = InSAR_2D_obj.lon, InSAR_2D_obj.lat
-    plt.figure(dpi=300, figsize=(9, 9))
-    extent = (np.min(x), np.max(x), np.min(y), np.max(y))
-    plt.imshow(InSAR_2D_obj.coherence, extent=extent)
-    plt.colorbar()
-    plt.savefig(figname)
-    return
 
 
 def plot_reference_annotations(fig, refpoint):

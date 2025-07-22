@@ -9,59 +9,91 @@ from cubbie.read_write_insar_utilities import isce_read_write, jpl_uav_read_writ
 from .class_model import Insar2dObject
 
 
-def inputs_grd(los_grdfile, _rdrlosfile=None):
+def inputs_grd(los_grdfile, lkvE_file=None, lkvN_file=None, lkvU_file=None, coh_file=None):
     """
     Read netcdf file.
 
-    :param los_grdfile: string, filename
-    :param _rdrlosfile: string, filename, will be used for incidence and azimuth in the future
+    :param los_grdfile: string, filename of grd file
+    :param lkvE_file: string, filename of grd file
+    :param lkvN_file: string, filename of grd file
+    :param lkvU_file: string, filename of grd file
+    :param coh_file: string, filename of grd file
     :returns InSAR_Obj: InSAR_2D_Object
     """
     [lon, lat, LOS] = netcdf_read_write.read_any_grd(los_grdfile)
-    holder = np.zeros(np.shape(LOS))
-
-    # Here, will write an input function for when there's a corresponding look vector file in GMTSAR format.
-    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=holder, lkv_E=holder, lkv_N=holder, lkv_U=holder)
+    lkvE, lkvN, lkvU = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)))
+    coh = np.ones((len(lat), len(lon)))
+    # Here, we read corresponding look vector information in GMTSAR format.
+    if lkvE_file:
+        _, _, lkvE = netcdf_read_write.read_netcdf4(lkvE_file)
+    if lkvN_file:
+        _, _, lkvN = netcdf_read_write.read_netcdf4(lkvN_file)
+    if lkvU_file:
+        _, _, lkvU = netcdf_read_write.read_netcdf4(lkvU_file)
+    if coh_file:
+        _, _, coh = netcdf_read_write.read_netcdf4(coh_file)
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
+                              lkv_E=lkvE, lkv_N=lkvN, lkv_U=lkvU, coherence=coh, starttime=None, endtime=None)
     return InSAR_Obj
 
 
-def inputs_phase_isce(iscefile, los_rdr_file=None):
+def inputs_phase_isce(iscefile, los_rdr_file=None, coh_file=None):
     """
     Create a 2D InSAR object from ISCE phase data.  Returns the scalar field in LOS, such as wrapped phase.
 
     :param iscefile: string, filename
     :param los_rdr_file: string, filename, ISCE los.rdr file
+    :param coh_file: string, filename, ISCE coherence file
     :returns: InSAR_2D_object
     """
-    lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml')
+    lon, lat, LOS = isce_read_write.read_phase_data(iscefile)
     incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)))
-    LOS = isce_read_write.read_phase_data(iscefile)
+    coh = np.ones((len(lat), len(lon)))
     if los_rdr_file:
         _, _, incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
         _, _, azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
+    if coh_file:
+        _, _, coh = isce_read_write.read_scalar_data(coh_file, band=1)
+    if lat[1] < lat[0]:
+        lat = np.flipud(lat)
+        LOS = np.flipud(LOS)
+        incidence = np.flipud(incidence)
+        azimuth = np.flipud(azimuth)
+        coh = np.flipud(coh)
     lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None,
+                              coherence=coh)
     return InSAR_Obj
 
 
-def inputs_scalar_isce(iscefile, los_rdr_file=None):
+def inputs_scalar_isce(iscefile, los_rdr_file=None, coh_file=None):
     """
     Create a 2D InSAR object from ISCE data.  Returns the scalar field in LOS, such as unwrapped phase.
 
     :param iscefile: string, filename
     :param los_rdr_file: string, filename, ISCE los.rdr file
+    :param coh_file: string, filename, ISCE coherence file
     :returns: InSAR_2D_object
     """
-    lon, lat = isce_read_write.get_xarray_yarray_from_xml(iscefile+'.xml')
+    lon, lat, LOS = isce_read_write.read_scalar_data(iscefile)
     incidence, azimuth = np.empty((len(lat), len(lon))), np.empty((len(lat), len(lon)))
-    LOS = isce_read_write.read_scalar_data(iscefile)
+    coh = np.ones((len(lat), len(lon)))
     if los_rdr_file:
         _, _, incidence = isce_read_write.read_scalar_data(los_rdr_file, band=1)
         _, _, azimuth = isce_read_write.read_scalar_data(los_rdr_file, band=2)
+    if coh_file:
+        _, _, coh = isce_read_write.read_scalar_data(coh_file, band=1)
+    if lat[1] < lat[0]:
+        lat = np.flipud(lat)
+        LOS = np.flipud(LOS)
+        incidence = np.flipud(incidence)
+        azimuth = np.flipud(azimuth)
+        coh = np.flipud(coh)
     lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None)
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None,
+                              coherence=coh)
     return InSAR_Obj
 
 
@@ -112,11 +144,17 @@ def inputs_from_uavsar_igrams(data_file, ann_file, corr_file=None):
     # Read JPL UAVSAR data into 2d insar object
     x, y, phase, _ = jpl_uav_read_write.read_igram_data(data_file, ann_file, igram_type='ground')
     inc, az = jpl_uav_read_write.read_los_rdr_geo_from_ground_ann_file(ann_file, x, y)  # takes 20 seconds
-    e, n, u = insar_vect.flight_incidence_angles2look_vector(az, inc, 'left')
     if corr_file:
         coh = jpl_uav_read_write.read_corr_data(corr_file, ann_file)
     else:
         coh = None
+    if y[1] < y[0]:
+        y = np.flipud(y)
+        phase = np.flipud(phase)
+        inc = np.flipud(inc)
+        az = np.flipud(az)
+        coh = np.flipud(coh)
+    e, n, u = insar_vect.flight_incidence_angles2look_vector(az, inc, 'left')
     mydata = Insar2dObject(x, y, phase, LOS_unc=np.zeros(np.shape(phase)), lkv_E=e, lkv_N=n, lkv_U=u,
                            look_direction='left', coherence=coh)
     return mydata

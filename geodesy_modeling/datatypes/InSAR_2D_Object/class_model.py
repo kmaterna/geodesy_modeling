@@ -11,8 +11,8 @@ class Insar2dObject:
     """
     def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None,
                  look_direction='right', coherence=None):
-        self.lon = lon  # 1d array
-        self.lat = lat  # 1d array
+        self.lon = lon  # 1d array, increasing order from west to east
+        self.lat = lat  # 1d array. Using the GMT convention, the first row is the lowest latitude, i.e., south.
         self.LOS = LOS  # displacements, in mm, 2d Grid
         self.LOS_unc = LOS_unc   # grid, in mm, 2d Grid
         self.lkv_E = lkv_E  # Ground to Satellite, 2d grid
@@ -39,6 +39,9 @@ class Insar2dObject:
         if np.shape(self.coherence) != np.shape(self.LOS):
             raise ValueError("Shape of InSAR data doesn't match shape of coherence:", np.shape(self.LOS),
                              " versus ", np.shape(self.coherence))
+        if self.lat[1] < self.lat[0]:
+            raise ValueError("Latitude array increases upward; this is backwards from the convention and your "
+                             "arrays may be upside-down.")
 
     def impose_InSAR_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on some InSAR data. """
