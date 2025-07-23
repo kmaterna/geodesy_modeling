@@ -11,6 +11,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 import matplotlib.colors as mcolors
 from ..InSAR_1D_Object.class_model import Insar1dObject
+from tectonic_utils.geodesy import haversine
 
 
 def get_square_2n_size(LOS):
@@ -25,6 +26,24 @@ def get_square_2n_size(LOS):
     while np.power(2, i) < np.max((nx, ny)):
         i += 1
     return i
+
+
+def nearest_distance_to_fault(target_lon, target_lat, fault_pts_lon, fault_pts_lat, distance=100):
+    """
+    Find the nearest point on the fault trace to a target point of interest.
+    This is useful in case you want a customized downsampling scheme involving distance to a major fault.
+
+    :param target_lon: float, longitude
+    :param target_lat: float, latitude
+    :param fault_pts_lon: list of longitudes
+    :param fault_pts_lat: list of latitudes
+    :param distance: a starting value larger than the maximum distance we are likely to ever encounter, in km.
+    """
+    for xf, yf in zip(fault_pts_lon, fault_pts_lat):
+        d = haversine.distance((yf, xf), (target_lat, target_lon))
+        if d < distance:
+            distance = d
+    return distance
 
 
 def create_padded_boxes(insar2d_obj, nx_padding, ny_padding):
@@ -121,7 +140,8 @@ def summarize_quadtree_pixels(Atable, lons, lats, LOS, coh, lkvE, lkvN, lkvU):
     return insar1d_pixels, valid_A_list
 
 
-def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=0, min_pixels=4):
+def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=0, min_pixels=4,
+                             custom_function=None):
     """
     Data structure: [IMIN IMAX JMIN JMAX VAR NGOOD NTOTAL]
 
@@ -130,6 +150,7 @@ def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=
     :param nx_padding: option to move the dataset horizontally within the square of power of two
     :param ny_padding: option to move the dataset vertically within the square of power of two
     :param min_pixels: the size of the smallest leaf, default 4.
+    :param custom_function: optional conditional function that can be used to split or not-split the leaves
     :return:
     """
     print("Entering quadtree downsampling routine")
@@ -142,11 +163,18 @@ def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=
     def split_condition(Amatrix):
         return (Amatrix[:, 4] > var_max) & ((Amatrix[:, 5]/Amatrix[:, 6]) > 0.5) & (Amatrix[:, 6] > min_pixels)
 
+    # If the user wants, you can redefine the conditional function used to split the leaves.
+    # Otherwise, we will just use the default split condition based on variance, nans, and minimum size.
+    if custom_function is None:
+        split_condition_function = split_condition
+    else:
+        split_condition_function = custom_function
+
     # Initialize the routine by a single leaf over the entire box
     IMIN, JMIN = 0, 0
     IMAX, JMAX = np.shape(LOS)
-    IMAX = IMAX - 1
-    JMAX = JMAX - 1
+    IMAX = IMAX - 1  # converting matlab to python, zero-indexed
+    JMAX = JMAX - 1  # converting matlab to python, zero-indexed
     VAR = np.nanvar(LOS)
     NGOOD = np.sum(~np.isnan(LOS))
     NTOTAL = np.size(LOS)
@@ -188,7 +216,7 @@ def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=
         else:
             A = np.vstack([Asave, Anew])
 
-        IOsplit = split_condition(A)
+        IOsplit = split_condition_function(A)
 
     print('Ending after iter ', iterations, 'with ', len(A), 'leaves')
 
@@ -215,9 +243,10 @@ def quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_
                      outfile="qt_ds_pixels.txt"):
     """
     Plot the outputs of a quadtree calcultion in a 2-panel figure showing all the leaves.
+    Also write the output leaves into a table showing each pixel.
 
-    :param insar2d_obj: the original insar2d object
-    :param insar1d_object: the resulting insar1d object
+    :param insar2d_obj: the original insar_2d object
+    :param insar1d_object: the resulting insar_1d object
     :param valid_A: the quadtree leaves matrix that tells how big each leaf is
     :param lons: the lon array that corresponds with the A matrix
     :param lats: the lat array that corresponds with the A matrix
@@ -250,8 +279,8 @@ def quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_
 
     for i in range(len(valid_A)):
         x, y = draw_box_coordinates_geographic(valid_A[i, :], lons, lats)
-        axarr[1].plot(x, y, color='black')
-    coll = PatchCollection(patches, cmap=cmap, norm=norm, edgecolor='k')
+        axarr[1].plot(x, y, color='black', linewidth=0.01)
+    coll = PatchCollection(patches, cmap=cmap, norm=norm, edgecolor='k', linewidth=0.01)
     coll.set_array(np.array(rect_vals))
     axarr[1].add_collection(coll)
     axarr[1].set_aspect('equal')
@@ -299,8 +328,9 @@ def write_insar_ds_invertible_format(InSAR_obj, valid_A, lons, lats, filename):
 
 
 def qtree_compute(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=0, min_pixels=4,
-                  plotting_file="quadtree_ds_results.png", outfile="qt_ds_pixels.txt"):
+                  plotting_file="quadtree_ds_results.png", outfile="qt_ds_pixels.txt",
+                  custom_function=None):
     insar1d_object, valid_A, lons, lats = do_quadtree_downsampling(insar2d_obj, var_max, nx_padding,
-                                                                   ny_padding, min_pixels)
+                                                                   ny_padding, min_pixels, custom_function)
     quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_file, outfile)
     return
