@@ -9,7 +9,8 @@ class Insar1dObject:
     The vector entries represent one pixel each.
     Displacements are Displacements, not velocities (for now)
     """
-    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None):
+    def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None,
+                 coherence=None):
         self.lon = lon  # list or 1d vector
         self.lat = lat  # list or 1d vector
         self.LOS = LOS  # list or 1d vector of displacements, in mm
@@ -19,12 +20,16 @@ class Insar1dObject:
         self.lkv_U = lkv_U  # Ground to Satellite, 1d vector
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
+        if coherence is None:
+            self.coherence = np.ones(np.shape(LOS))  # 1d vector, optional
+        else:
+            self.coherence = coherence
         if not self.check_internal_sanity():
-            raise(ValueError, "Error! The lengths of the arrays in the object does not match")
+            raise (ValueError, "Error! The lengths of the arrays in the object does not match")
 
     def impose_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on InSAR data"""
-        lon, lat, LOS, LOS_unc, unit_E, unit_N, unit_U = [], [], [], [], [], [], []
+        lon, lat, LOS, LOS_unc, unit_E, unit_N, unit_U, coherence = [], [], [], [], [], [], [], []
         for i in range(len(self.lon)):
             if bbox[0] <= self.lon[i] <= bbox[1] and bbox[2] <= self.lat[i] <= bbox[3]:
                 lon.append(self.lon[i])
@@ -34,13 +39,14 @@ class Insar1dObject:
                 unit_E.append(self.lkv_E[i])
                 unit_N.append(self.lkv_N[i])
                 unit_U.append(self.lkv_U[i])
+                coherence.append(self.coherence[i])
         newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
-                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime)
+                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime, coherence=coherence)
         return newInSAR_obj
 
     def remove_nans(self, verbose=False):
         """Remove Nans from 1D InSAR object"""
-        lon, lat, LOS, LOS_unc, unit_E, unit_N, unit_U = [], [], [], [], [], [], []
+        lon, lat, LOS, LOS_unc, unit_E, unit_N, unit_U, coherence = [], [], [], [], [], [], [], []
         for i in range(len(self.lon)):
             if np.isnan(self.LOS[i]):
                 continue
@@ -52,8 +58,10 @@ class Insar1dObject:
                 unit_E.append(self.lkv_E[i])
                 unit_N.append(self.lkv_N[i])
                 unit_U.append(self.lkv_U[i])
+                coherence.append(self.coherence[i])
         newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
-                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime)
+                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime,
+                                     coherence=coherence)
         if verbose:
             print("Removing nans from 1D InSAR obj. Starting with %d, ending with %d pixels" % (len(self.lon),
                                                                                                 len(newInSAR_obj.lon)))
@@ -62,7 +70,7 @@ class Insar1dObject:
     def flip_los_sign(self):
         new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1), LOS_unc=self.LOS_unc,
                                       lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U, starttime=self.starttime,
-                                      endtime=self.endtime)
+                                      endtime=self.endtime, coherence=self.coherence)
         return new_InSAR_obj
 
     def get_average_los_within_box(self, target_lon, target_lat, averaging_window):
@@ -70,7 +78,7 @@ class Insar1dObject:
         Averaging window in degrees.
         Search the averaging window in both directions from target loc, and average the data.
         """
-        new_los, new_unc, new_lkvE, new_lkvN, new_lkvU = [], [], [], [], []
+        new_los, new_unc, new_lkvE, new_lkvN, new_lkvU, new_coherence = [], [], [], [], [], []
         for i in range(len(self.lon)):
             if target_lon - averaging_window <= self.lon[i] <= target_lon + averaging_window:
                 if target_lat - averaging_window <= self.lat[i] <= target_lat + averaging_window:
@@ -79,9 +87,11 @@ class Insar1dObject:
                     new_lkvE.append(self.lkv_E[i])
                     new_lkvN.append(self.lkv_N[i])
                     new_lkvU.append(self.lkv_U[i])
+                    new_coherence.append(self.coherence[i])
         new_InSAR_obj = Insar1dObject(lon=target_lon, lat=target_lat, LOS=np.nanmean(new_los),
                                       LOS_unc=np.nanmean(new_unc), lkv_E=np.nanmean(new_lkvE),
                                       lkv_N=np.nanmean(new_lkvN), lkv_U=np.nanmean(new_lkvU),
+                                      coherence=np.nanmean(new_coherence),
                                       starttime=self.starttime, endtime=self.endtime)
         return new_InSAR_obj
 
@@ -103,7 +113,7 @@ class Insar1dObject:
         newInSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=new_los, LOS_unc=self.LOS_unc,
                                      lkv_E=np.zeros(np.shape(self.lon)), lkv_N=np.zeros(np.shape(self.lon)),
                                      lkv_U=np.ones(np.shape(self.lon)), starttime=self.starttime,
-                                     endtime=self.endtime)
+                                     endtime=self.endtime, coherence=self.coherence)
         return newInSAR_obj
 
     def get_coordinate_tuples(self):
@@ -134,7 +144,7 @@ class Insar1dObject:
         """
         new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
-                                      starttime=self.starttime, endtime=self.endtime)
+                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence)
         return new_InSAR_obj
 
     def check_internal_sanity(self):
@@ -150,5 +160,7 @@ class Insar1dObject:
         if len(self.lkv_N) != lenx:
             return 0
         if len(self.lkv_U) != lenx:
+            return 0
+        if len(self.coherence) != lenx:
             return 0
         return 1
