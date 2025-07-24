@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 from ..InSAR_1D_Object.class_model import Insar1dObject
 from tectonic_utils.geodesy import haversine
 
@@ -254,7 +255,8 @@ def quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_
     :param outfile: string, filename for txt pixels
     :return:
     """
-    print("Plotting the results of quadtree downsampling in %s" % plotting_file)
+    write_insar_ds_invertible_format(insar1d_object, valid_A, lons, lats, outfile)
+
     fig, axarr = plt.subplots(1, 2, dpi=300, figsize=(14, 10), constrained_layout=True)
     vmin = np.nanmin(insar2d_obj.LOS)
     vmax = np.nanmax(insar2d_obj.LOS)
@@ -290,8 +292,48 @@ def quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_
 
     _cbar = fig.colorbar(im, ax=axarr.ravel().tolist(), label='Value')
     plt.savefig(plotting_file)
+    return
 
-    write_insar_ds_invertible_format(insar1d_object, valid_A, lons, lats, outfile)
+
+def plot_quadtree_results_file(txtfile, plot_file, vmin=None, vmax=None):
+    """Simple function to read the outputs of a txt file and visualize it into a plot."""
+    print("Plotting the results of quadtree downsampling %s in %s" % (txtfile, plot_file))
+    _, _, disp, sigma, coherence, unitE, unitN, unitU, TLx, BRx, TLy, BRy = np.loadtxt(txtfile, unpack=True)
+
+    plt.figure(dpi=300, figsize=(10, 10), constrained_layout=True)
+    ax = plt.gca()
+    if vmin is None:
+        vmin = np.nanmin(disp)
+    if vmax is None:
+        vmax = np.nanmax(disp)
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = plt.cm.viridis
+    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])  # required so the colorbar knows it has “data”
+
+    # Main panel: Colored values of LOS for each leaf.
+    patches, rect_vals = [], []
+    for i in range(len(disp)):
+        w = BRx[i] - TLx[i]
+        h = TLy[i] - BRy[i]
+        if ~np.isnan(w) and ~np.isnan(h):
+            patches.append(Rectangle((TLx[i], BRy[i]), w, h))
+            rect_vals.append(disp[i])
+
+    for i in range(len(disp)):
+        x = [TLx[i], TLx[i], BRx[i], BRx[i], TLx[i]]
+        y = [TLy[i], BRy[i], BRy[i], TLy[i], TLy[i]]
+        ax.plot(x, y, color='black', linewidth=0.01)
+    coll = PatchCollection(patches, cmap=cmap, norm=norm, edgecolor='k', linewidth=0.01)
+    coll.set_array(np.array(rect_vals))
+    ax.add_collection(coll)
+    ax.set_aspect('equal')
+    ax.set_title('%d Quadtree rectangles' % (len(disp)))
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+
+    plt.colorbar(sm, ax=ax, label='Displacement (mm)')
+    plt.savefig(plot_file)
     return
 
 
