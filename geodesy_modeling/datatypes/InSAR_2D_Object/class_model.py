@@ -70,6 +70,22 @@ class Insar2dObject:
                                       look_direction=self.look_direction, coherence=self.coherence)
         return new_InSAR_obj
 
+    def apply_coherence_mask(self, coherence_threshold, mask_value=np.nan):
+        """
+        Convert any LOS values where coherence < coherence_threshold into a mask value, typically nan
+
+        :param coherence_threshold: float, between 0 and 1
+        :param mask_value: default np.nan
+        :return:
+        """
+        los = self.LOS
+        los[self.coherence < coherence_threshold] = mask_value  # implement coherence mask
+        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=los,
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N,
+                                      lkv_U=self.lkv_U, starttime=self.starttime, endtime=self.endtime,
+                                      look_direction=self.look_direction, coherence=self.coherence)
+        return new_InSAR_obj
+
     def subtract_reference(self, refidx, tolerance=0.005):
         """
         Subtract the value of the reference pixel, essentially creating a referenced object.
