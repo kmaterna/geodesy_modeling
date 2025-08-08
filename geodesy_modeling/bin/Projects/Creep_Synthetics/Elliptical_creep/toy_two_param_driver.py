@@ -46,7 +46,8 @@ def elastic_model(params, cart_disp_points, faults, configs):
     :param configs: dictionary containing many geometry parameters
     :return: InSAR_1D_object, a matching object to the data structure. The LOS values contain the model predictions.
     """
-    surface_slip, bottom_depth, ref0 = params[0], params[1], params[2]  # for small inversion. KEY LINE.
+    surface_slip, bottom_depth = params[0], params[1]  # for small inversion. KEY LINE.
+    a, b, c = params[2], params[3], params[4]  # the three parameters for the plane fitting to the data
     fault_list = []
     for j, fault in enumerate(faults):
         # Here we could use one value for the entire fault length, or use a spatial distribution of values.
@@ -70,16 +71,16 @@ def elastic_model(params, cart_disp_points, faults, configs):
     model_disp_points = triangle_okada.compute_cartesian_def_tris(inputs, default_params, cart_disp_points)  # run okada
     insar_1d_model = inversion_utilities.project_disp_points_into_insar1d(model_disp_points, configs["flight_angle"],
                                                                           configs["incidence_angle"])  # cartesian space
-    insar_1d_model = insar_1d_model.subtract_value(ref0)   # subtract a reference pixel from everything
-    # Next: Implement a planar fit to the data, which has two planar parameters for x and y and a constant offset
+    # Implement a planar fit to the data, which has three planar parameters for x and y and a constant offset
+    insar_1d_model = insar_1d_model.subtract_ramp(a, b, c)
     print("Faults and points: %d and %d" % (len(fault_list), len(insar_1d_model.LOS)))
     return insar_1d_model  # in mm, with lon/lat in cartesian space
 
 
 def invert_data_2param(configs):
     data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs)
-    param0 = [0.020, 2.0, 0]
-    lb, ub = [0.0, 0.0, -5.0], [0.050, 5.0, 5.0]
+    param0 = [0.020, 2.0, 0, 0, 0]
+    lb, ub = [0.0, 0.0, -50, -50, -5.0], [0.050, 5.0, 50, 50, 5.0]  # last three parameters are a, b, and c for plane
     lam = 7  # Minimum-norm Tikhonov smoothing regularization strength
 
     # Establish forward model and cost function
@@ -94,7 +95,7 @@ def invert_data_2param(configs):
 
     expname = "two_param_smooth7"
     result = least_squares(residuals, x0=param0, verbose=2, bounds=[lb, ub], args=(data, lam),
-                           method='trf', x_scale=[0.01, 1.0, 1.0])  # slip, dep, reference_pixel
+                           method='trf', x_scale=[0.01, 1.0, 5.0, 5.0, 1.0])  # slip, dep, ramp-ramp-refpix
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)

@@ -19,7 +19,7 @@ def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
     Then write out the data again.
     """
     InSAR_Obj = inputs_txt(insar_textfile)
-    noplane_Obj = remove_ramp(InSAR_Obj, ref_coord)
+    noplane_Obj = remove_best_fit_ramp(InSAR_Obj, ref_coord)
     print("Writing ramp-removed data into file %s " % ramp_removed_file)
     plotting_ramp_results(InSAR_Obj, noplane_Obj, insar_textfile+".png")
     write_insar_invertible_format(noplane_Obj, ramp_removed_file)
@@ -55,8 +55,9 @@ def remove_constant_insarformat(InSAR_Obj: Insar1dObject, ref_coord=None):
     return new_InSAR_Obj
 
 
-def remove_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
-    """"
+def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
+    """
+    Find the best-fitting ramp from a set of InSAR observations and remove it from the data.
     Plane equation: ax + by + c = z
     Solving Ax = B
     We will re-reference if provided.
@@ -75,15 +76,13 @@ def remove_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
     model = model[0]
 
     # Removing the planar model
-    new_disp = []
-    for i in range(len(InSAR_Obj.lon)):
-        ramp_solution = model[0] * InSAR_Obj.lon[i] + model[1] * InSAR_Obj.lat[i] + model[2]
-        new_disp.append(InSAR_Obj.LOS[i] - ramp_solution)
+    ramp_solution = model[0] * InSAR_Obj + model[1] * InSAR_Obj + model[2]
+    new_disp = np.subtract(InSAR_Obj.LOS, ramp_solution)
 
     # Re-reference if necessary
     if ref_coord:
         ref_plane = model[0] * ref_coord[0] + model[1] * ref_coord[1] + model[2]
-        new_disp = [x - ref_plane for x in new_disp]
+        new_disp = np.subtract(new_disp, ref_plane)
 
     new_InSAR_Obj = Insar1dObject(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
                                   lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,

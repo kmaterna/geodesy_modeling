@@ -151,12 +151,12 @@ def write_uavsar_displacements(config):
 
         # Now we optionally remove a ramp.
         if new_interval_dict["remove_ramp"] == 1:
-            geodesy_modeling.datatypes.InSAR_1D_Object.remove_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
-                                                                                        ref_coord=config['reference_ll'])
+            geodesy_modeling.datatypes.InSAR_1D_Object.remove_best_fit_ramp.remove_ramp_filewise(uav_textfile, uav_textfile,
+                                                                                                 ref_coord=config['reference_ll'])
 
         # Now we optionally remove a constant
         if new_interval_dict["remove_constant"] == 1:
-            geodesy_modeling.datatypes.InSAR_1D_Object.remove_ramp.remove_constant_filewise(uav_textfile, uav_textfile)
+            geodesy_modeling.datatypes.InSAR_1D_Object.remove_best_fit_ramp.remove_constant_filewise(uav_textfile, uav_textfile)
 
         # Now we make a plot
         InSAR_Obj = geodesy_modeling.datatypes.InSAR_1D_Object.inputs.inputs_txt(uav_textfile)

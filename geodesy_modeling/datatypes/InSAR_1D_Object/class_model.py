@@ -11,19 +11,19 @@ class Insar1dObject:
     """
     def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None,
                  coherence=None):
-        self.lon = lon  # list or 1d vector
-        self.lat = lat  # list or 1d vector
-        self.LOS = LOS  # list or 1d vector of displacements, in mm
-        self.LOS_unc = LOS_unc   # 1d vector, in mm
-        self.lkv_E = lkv_E  # Ground to Satellite, 1d vector
-        self.lkv_N = lkv_N  # Ground to Satellite, 1d vector
-        self.lkv_U = lkv_U  # Ground to Satellite, 1d vector
+        self.lon = np.array(lon)  # list or 1d vector
+        self.lat = np.array(lat)  # list or 1d vector
+        self.LOS = np.array(LOS)  # list or 1d vector of displacements, in mm
+        self.LOS_unc = np.array(LOS_unc)   # 1d vector, in mm
+        self.lkv_E = np.array(lkv_E)  # Ground to Satellite, 1d vector
+        self.lkv_N = np.array(lkv_N)  # Ground to Satellite, 1d vector
+        self.lkv_U = np.array(lkv_U)  # Ground to Satellite, 1d vector
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
         if coherence is None:
             self.coherence = np.ones(np.shape(LOS))  # 1d vector, optional
         else:
-            self.coherence = coherence
+            self.coherence = np.array(coherence)
         if not self.check_internal_sanity():
             raise (ValueError, "Error! The lengths of the arrays in the object does not match")
 
@@ -143,6 +143,22 @@ class Insar1dObject:
         :param value: float, in the same units as LOS data.
         """
         new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
+                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence)
+        return new_InSAR_obj
+
+    def subtract_ramp(self, a, b, c):
+        """
+        Remove a given ramp from the InSAR points. This assumes you know the parameters of your ramp.
+        Plane equation: ax + by + c = z
+
+        :param a: float, x term
+        :param b: float, y term
+        :param c: float, constant term
+        """
+        ramp_solution = a * self.lon + b * self.lat + c
+        new_LOS = np.subtract(self.LOS, ramp_solution)  # Removing the planar model
+        new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=new_LOS,
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
                                       starttime=self.starttime, endtime=self.endtime, coherence=self.coherence)
         return new_InSAR_obj

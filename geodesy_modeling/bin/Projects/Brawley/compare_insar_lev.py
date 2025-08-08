@@ -201,7 +201,7 @@ def drive_single_uavsar_intf_compare(exp_file_dict, time_bounds, uavsar_filename
                                                                                               starttime=time_bounds[0], endtime=time_bounds[1])
     InSAR_Data = InSAR_Data.remove_nans()
     InSAR_Data = InSAR_Data.flip_los_sign()
-    InSAR_Data = geodesy_modeling.datatypes.InSAR_1D_Object.remove_ramp.remove_ramp(InSAR_Data)  # experimental step
+    InSAR_Data = geodesy_modeling.datatypes.InSAR_1D_Object.remove_best_fit_ramp.remove_best_fit_ramp(InSAR_Data)  # experimental step
     myLev = geodesy_modeling.datatypes.Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1])  # one slice
     one_to_one_comparison(myLev, InSAR_Data, "UAV", outfile, label="LOS", proj_vertical=1, lkv=lkv)
     return
@@ -232,7 +232,7 @@ def drive_uavsar_ts_compare(exp_file_dict, lev_slice, uav_slice, outfile):
     myLev = geodesy_modeling.datatypes.Leveling_Object.LevStation.get_onetime_displacements_list(myLev, lev_slice[0], lev_slice[1])  # one slice
     myUAVSAR_insarobj = geodesy_modeling.datatypes.UAVSAR.utilities.get_onetime_displacements(myUAVSAR_TS, uav_slice[0], uav_slice[1])
     myUAVSAR_insarobj = myUAVSAR_insarobj.flip_los_sign()
-    myUAVSAR_insarobj = geodesy_modeling.datatypes.InSAR_1D_Object.remove_ramp.remove_ramp(myUAVSAR_insarobj)  # experimental step
+    myUAVSAR_insarobj = geodesy_modeling.datatypes.InSAR_1D_Object.remove_best_fit_ramp.remove_best_fit_ramp(myUAVSAR_insarobj)  # experimental step
     one_to_one_comparison(myLev, myUAVSAR_insarobj, "InSAR_Timeseries", outfile, gps_lon=gps_lon, gps_lat=gps_lat,
                           gps_names=gps_names, label="LOS", proj_vertical=1, lkv=lkv)
     return
