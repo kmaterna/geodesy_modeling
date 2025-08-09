@@ -67,6 +67,7 @@ def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
     :returns: 1D insar object
     """
     nonan_obj = InSAR_Obj.remove_nans()
+    # Solve for the best-fitting ramp of equation ax + by + c = z
     Z = []
     A = np.zeros((len(nonan_obj.lon), 3))
     for i in range(len(nonan_obj.lon)):
@@ -76,7 +77,7 @@ def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
     model = model[0]
 
     # Removing the planar model
-    ramp_solution = model[0] * InSAR_Obj + model[1] * InSAR_Obj + model[2]
+    ramp_solution = model[0] * InSAR_Obj.lon + model[1] * InSAR_Obj.lat + model[2]
     new_disp = np.subtract(InSAR_Obj.LOS, ramp_solution)
 
     # Re-reference if necessary
@@ -86,7 +87,8 @@ def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
 
     new_InSAR_Obj = Insar1dObject(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
                                   lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,
-                                  starttime=InSAR_Obj.starttime, endtime=InSAR_Obj.endtime)
+                                  starttime=InSAR_Obj.starttime, endtime=InSAR_Obj.endtime,
+                                  coherence=InSAR_Obj.coherence)
     return new_InSAR_Obj
 
 
