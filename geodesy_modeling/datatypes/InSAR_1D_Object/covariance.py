@@ -37,6 +37,8 @@ def compute_insar_varigram(insarobj, rmin, rmax, dr, Nmax, rng=None):
     """
     Estimate the semi-varigram structure within an InSAR interferogram, assuming the noise structure is isotropic,
     and has an exponential function with distance.
+    Note that if your lat/lon are in degrees, this could cause some distortion in the Cartesian distance metric,
+    especially if you're working in the high latitudes where lon and lat do not have similar length scales.
 
     C(r) = sigma * exp(-r/L)
     From Lohman and Simons, 2005.
@@ -98,6 +100,8 @@ def compute_insar_varigram(insarobj, rmin, rmax, dr, Nmax, rng=None):
     order = np.argsort(rout)
     rnew = rout[order]
     znew = zout[order]
+    # znew[znew<0] = 0  # if any of the far-distances end up having more variance than the entire dataset,
+    # # then we set them to equal variance to the entire dataset
 
     # fit C(r) = sigma * exp(-r/L)  #
     def model(r_, sigma0, L0):
@@ -157,4 +161,39 @@ def plot_full_covd(covd, outfilename):
     plt.colorbar(label='Covariance (mm^2)')
     plt.savefig(outfilename)
     plt.close()
+    return
+
+
+def write_covd_parameters(L, sigma, outfile):
+    """
+    :param L: lengthscale, float
+    :param sigma: amplitude of the variance near zero distance, float
+    :param outfile: string, filename
+    """
+    print("Writing covariance exponential parameters in file %s" % outfile)
+    with open(outfile, 'w') as ofile:
+        ofile.write("# Lengthscale, Sigma\n")
+        ofile.write("%f %f" % (L, sigma))
+    return
+
+
+def read_covd_parameters(infile):
+    print("Reading file %s " % infile)
+    with open(infile) as ifile:
+        ifile.readline()
+        data = ifile.readline()
+        L = float(data.split()[0])
+        sigma = float(data.split()[1])
+    return L, sigma
+
+
+def write_covd(covd, outfile):
+    """
+    Write the full covariance matrix into a text file for safekeeping.
+
+    :param covd: numpy 2d array
+    :param outfile: string, filename
+    """
+    print("Writing full covariance matrix to file %s " % outfile)
+    np.savetxt(outfile, covd)
     return

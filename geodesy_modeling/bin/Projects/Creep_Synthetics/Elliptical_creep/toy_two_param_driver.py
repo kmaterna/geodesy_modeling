@@ -25,6 +25,7 @@ from geodesy_modeling.datatypes.InSAR_1D_Object import covariance
 top_configs = {"datafile": "../../Prepare_Data/InSAR_Data/downsampled_data.txt",
                "faultfile": "../../../Get_Fault_Model/model_fault_patches_39.txt",
                "fieldfile": "../../Prepare_Data/Field_Data/slip_minimums.txt",
+               "cov_parameters": "../../Prepare_Data/InSAR_Data/covariance_matrix_parameters.txt",
                "max_disloc_depth": 5.0,
                "num_faults": 39,
                "top_depth": 0,
@@ -87,8 +88,7 @@ def invert_data_2param(configs):
 
     # We are going to determine the real covariance matrix, and compute the inverse by
     # one of the two triangular matrices in the Cholesky decomposition.
-    rnew, znew, sigma, L = covariance.compute_insar_varigram(data, 0.001, 1.0, 0.01, 100000)
-    covariance.plot_cov_results(rnew, znew, sigma, L, "covariance_structure.png")
+    L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
     cov = covariance.build_Cd(data, sigma, L)
     covariance.plot_full_covd(cov, 'covariance_matrix.png')
 

@@ -9,6 +9,7 @@ import pandas
 import h5py
 from cubbie.read_write_insar_utilities import isce_read_write
 from tectonic_utils.geodesy import insar_vector_functions
+from tectonic_utils.read_write import netcdf_read_write
 from geodesy_modeling.general_utils import convert_rates_to_disps
 from .class_model import Insar1dObject
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle.file_io import io_other
@@ -188,4 +189,39 @@ def inputs_lohman_mcguire_2007(filename):
     InSAR_data = Insar1dObject(lon=lon, lat=lat, LOS=data, LOS_unc=placeholder, lkv_E=placeholder, lkv_N=placeholder,
                                lkv_U=placeholder, starttime=dt.datetime.strptime('21-08-2005', '%d-%m-%Y'),
                                endtime=dt.datetime.strptime('25-09-2005', '%d-%m-%Y'))
+    return InSAR_data
+
+
+def inputs_grd(grdfilename, incidence_angle=None, azimuth_angle=None, lkvE_file=None, lkvN_file=None, lkvU_file=None,
+               cohfile=None, starttime=None, endtime=None):
+    """
+    :param grdfilename: string, grdfile, required
+    :param incidence_angle: float, optional way of providing incidence angle
+    :param azimuth_angle: float, optional way of providing azimuth angle
+    :param lkvE_file: string, optional filename
+    :param lkvN_file: string, optional filename
+    :param lkvU_file: string, optional filename
+    :param cohfile: string, optional filename for coherence information
+    :param starttime: optional, datetime object
+    :param endtime: optional, datetime object
+    :return: insar1D object
+    """
+    x, y, los = netcdf_read_write.read_netcdf4(grdfilename)
+    X, Y = np.meshgrid(x, y)
+    los1d = los.reshape(-1)
+    x1d = X.reshape(-1)
+    y1d = Y.reshape(-1)
+    placeholder = np.zeros(np.shape(los1d))
+    if lkvE_file:
+        _, _, lkvE = netcdf_read_write.read_netcdf4(lkvE_file)
+        _, _, lkvN = netcdf_read_write.read_netcdf4(lkvN_file)
+        _, _, lkvU = netcdf_read_write.read_netcdf4(lkvU_file)
+    else:
+        lkvE, lkvN, lkvU = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth_angle, incidence_angle)
+    if cohfile:
+        _, _, coh = netcdf_read_write.read_netcdf4(cohfile)
+    else:
+        coh = None
+    InSAR_data = Insar1dObject(lon=x1d, lat=y1d, LOS=los1d, LOS_unc=placeholder, lkv_E=lkvE, lkv_N=lkvN,
+                               lkv_U=lkvU, starttime=starttime, endtime=endtime, coherence=coh)
     return InSAR_data
