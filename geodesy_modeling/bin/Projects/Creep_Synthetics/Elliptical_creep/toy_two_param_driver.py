@@ -20,6 +20,7 @@ from scipy.linalg import cholesky, solve_triangular
 import elliptical_utilities  # local import
 import inversion_utilities  # local import
 from geodesy_modeling.datatypes.InSAR_1D_Object import covariance
+import os
 
 
 top_configs = {"datafile": "../../Prepare_Data/InSAR_Data/downsampled_data.txt",
@@ -81,7 +82,8 @@ def elastic_model(params, cart_disp_points, faults, configs):
 
 
 def invert_data_2param(configs):
-    data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs)
+    data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs, os.path.join('Two_Param_Tests',
+                                                                                                    'used_faults.txt'))
     param0 = [0.020, 2.0, 0, 0, 0]
     lb, ub = [0.0, 0.0, -50, -50, -5.0], [0.050, 5.0, 50, 50, 5.0]  # last three parameters are a, b, and c for plane
     lam = 1.7  # Minimum-norm Tikhonov smoothing regularization strength
@@ -90,11 +92,11 @@ def invert_data_2param(configs):
     # one of the two triangular matrices in the Cholesky decomposition.
     L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
     cov = covariance.build_Cd(data, sigma, L)
-    covariance.plot_full_covd(cov, 'covariance_matrix.png')
+    covariance.plot_full_covd(cov, os.path.join('Two_Param_Tests', 'covariance_matrix.png'))
 
     # Whitening the covariance matrix through Cholesky decomposition
     Lt_mat = cholesky(cov, lower=True, check_finite=False)
-    covariance.plot_full_covd(Lt_mat, 'cholesky_Lt.png')
+    covariance.plot_full_covd(Lt_mat, os.path.join('Two_Param_Tests', 'cholesky_Lt.png'))
 
     def make_data_whitener(Cd):
         # Cd must be SPD. If near-singular, consider jitter or SVD.
@@ -124,8 +126,9 @@ def invert_data_2param(configs):
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
-    inversion_utilities.data_model_misfit_plot(data, model_pred, result.x, faults, expname+"_data_v_model.png")
-    inversion_utilities.write_outputs(data, model_pred, result.x, lam, 0, expname, configs)
+    inversion_utilities.data_model_misfit_plot(data, model_pred, result.x, faults,
+                                               os.path.join('Two_Param_Tests', expname+"_data_v_model.png"))
+    inversion_utilities.write_outputs(data, model_pred, result.x, lam, 0, 'Two_Param_Tests', expname, configs)
 
     # testcase_params = param0
     # simple_model = forward_model(testcase_params)  # InSAR1D object

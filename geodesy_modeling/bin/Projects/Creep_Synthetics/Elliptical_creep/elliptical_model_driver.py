@@ -16,8 +16,11 @@ import json
 from elastic_stresses_py import PyCoulomb
 from elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as fso
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle import triangle_okada
+from geodesy_modeling.datatypes.InSAR_1D_Object import covariance
+from scipy.linalg import cholesky, solve_triangular
 import elliptical_utilities  # local import
 import inversion_utilities  # local import
+import os
 
 
 default_params = PyCoulomb.configure_calc.get_lightweight_config_params(mu=30e9, lame1=30e9, B=0)
@@ -38,7 +41,7 @@ def elastic_model(param_vector, cart_disp_points, faults, configs):
         # Here we could use one value for the entire fault length, or use a spatial distribution of values.
         surface_slip, bottom_depth = param_vector[j], param_vector[j+configs["num_faults"]]  # for real faults. KEY LINE
         used_depths, widths, modeled_slip = elliptical_utilities.get_tuned_depth_arrays(configs['top_depth'],
-                                                                                        configs['disloc_depth'],
+                                                                                        configs['max_disloc_depth'],
                                                                                         configs["sampling_interval"],
                                                                                         surface_slip,
                                                                                         bottom_depth)
@@ -91,12 +94,35 @@ def invert_data(arguments):
     if not isinstance(configs, dict):
         raise TypeError("Expected a JSON object at top level")
 
-    data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs)
+    data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs, os.path.join(arguments.output,
+                                                                                                    'used_faults.txt'))
 
     print("Experiment Setup: Arguments: ")
     print("Gamma Laplacian Smoothing Strength: ", arguments.laplacian)
     print("Lambda Tikhonov Smoothing Strength: ", arguments.tikhonov)
     print("Output Directory: ", arguments.output)
+    os.makedirs(arguments.output, exist_ok=True)
+
+    # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
+    L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
+    cov = covariance.build_Cd(data, sigma, L)
+    covariance.plot_full_covd(cov, os.path.join(arguments.output, 'covariance_matrix.png'))
+
+    # Whitening the covariance matrix through Cholesky decomposition
+    Lt_mat = cholesky(cov, lower=True, check_finite=False)
+    covariance.plot_full_covd(Lt_mat, os.path.join(arguments.output, 'cholesky_Lt.png'))
+
+    def make_data_whitener(Cd):
+        # Cd must be symmetric-positive-definite. If near-singular, consider jitter or SVD.
+        Ld = cholesky(Cd, lower=True, check_finite=False)  # Cd = Ld Ld^T
+
+        # Wd @ x == solve(Ld, x) ⇒ Wd = Ld^{-1} without forming it
+        def Wd_apply0(x):
+            # handle 1D vector or 2D matrix (apply to columns)
+            return solve_triangular(Ld, x, lower=True, check_finite=False)
+        return Wd_apply0
+
+    Wd_apply = make_data_whitener(cov)
 
     lam = arguments.tikhonov
     gamma = arguments.laplacian
@@ -112,7 +138,7 @@ def invert_data(arguments):
         return gamma0 * np.diff(m2)
 
     def residuals(m, data0, gamma0, lam0):
-        data_misfit = forward_model(m).LOS - data0.LOS
+        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         m2 = m[0:configs["num_faults"]]  # slip is the first half of the model vector
         mdepth = m[configs["num_faults"]:]
         tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization
@@ -120,18 +146,23 @@ def invert_data(arguments):
         return np.concatenate((data_misfit, smoothing, tikhonov))
 
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
+
+    # NEXT: Put the additional three parameters for offset and planar fit.
     result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam))  # slip, z
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
-    inversion_utilities.data_model_misfit_plot(data, model_pred, result.x, faults, expname+"_data_v_model.png")
-    inversion_utilities.write_outputs(data, model_pred, result.x, lam, gamma, expname, configs)
+    inversion_utilities.data_model_misfit_plot(data, model_pred, result.x, faults,
+                                               os.path.join(arguments.output, expname+"_data_v_model.png"))
+    inversion_utilities.write_outputs(data, model_pred, result.x, lam, gamma, arguments.output, expname, configs)
 
     # testcase_params = param0
     # simple_model = forward_model(testcase_params)  # InSAR1D object
-    # simple_model = inversion_utilities.convert_xy_to_ll_insar1D(simple_model, configs["zerolon"], configs["zerolat"])
-    # inversion_utilities.data_model_misfit_plot(data, simple_model, testcase_params, faults, "testcase_model.png")
-    # inversion_utilities.write_outputs(data, simple_model, testcase_params, lam, gamma, 'testcase')
+    # simple_model = inversion_utilities.convert_xy_to_ll_insar1D(simple_model, configs)
+    # inversion_utilities.data_model_misfit_plot(data, simple_model, testcase_params, faults,
+    #                                            outname=os.path.join(arguments.output, "testcase_model.png"))
+    # inversion_utilities.write_outputs(data, simple_model, testcase_params, lam, gamma, arguments.output,
+    #                                   'testcase', configs)
     return
 
 

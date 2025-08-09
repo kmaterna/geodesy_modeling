@@ -1,6 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 from tectonic_utils.geodesy import insar_vector_functions, fault_vector_functions
 from geodesy_modeling.datatypes import InSAR_1D_Object
 from elastic_stresses_py import PyCoulomb
@@ -48,14 +49,14 @@ def project_disp_points_into_insar1d(model_disp_points, flight_angle, incidence_
     return insar_data
 
 
-def read_data_and_faults(config):
+def read_data_and_faults(config, write_out_faults_file='used_faults.txt'):
     """ Read all the required data files and fault geometry files. """
     data = InSAR_1D_Object.inputs.inputs_txt(config["datafile"])  # read as insar1d object
     disp_points = data.get_disp_points()
     cart_disp_points = PyCoulomb.utilities.convert_ll2xy_disp_points(disp_points, config["zerolon"],
                                                                      config["zerolat"])  # ll to cart, for performance.
     faults = PyCoulomb.fault_slip_object.file_io.io_slippy.read_slippy_distribution(config["faultfile"])
-    PyCoulomb.fault_slip_object.file_io.io_slippy.write_slippy_distribution(faults, "used_faults.txt")
+    PyCoulomb.fault_slip_object.file_io.io_slippy.write_slippy_distribution(faults, write_out_faults_file)
     return data, cart_disp_points, faults
 
 
@@ -82,7 +83,7 @@ def data_model_misfit_plot(datapts, modelpts, best_params, faults, outname):
     return
 
 
-def write_outputs(data, model, fitted_params, lam, gamma, expname, configs):
+def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, configs):
     if len(fitted_params) > 6:
         # If there are a lot of parameters, let's make a plot of them. Should formalize this later.
         fitted_params = np.array(fitted_params).reshape(2, configs["num_faults"]).T
@@ -91,13 +92,15 @@ def write_outputs(data, model, fitted_params, lam, gamma, expname, configs):
         axarr[0].set_ylabel('Slip (m)')
         axarr[1].plot(fitted_params[:, 1])
         axarr[1].set_ylabel('Depth (km)')
-        plt.savefig(expname+"_model_params_results.png")
+        plt.savefig(os.path.join(outdir, expname+"_model_params_results.png"))
     residuals = data.LOS - model.LOS
     rms = np.sqrt(np.mean(residuals**2))
     outdata = np.vstack((data.lon, data.lat, data.lkv_E, data.lkv_N, data.lkv_U, data.LOS, model.LOS)).T
-    np.savetxt(expname+"_data_vs_model_predictions.txt", outdata, header="lon, lat, lkv_E, lkv_N, lkv_U, data, model")
-    np.savetxt(expname+"_fitted_parameters.txt", fitted_params, header="Params slip(m) depth(km) reference")
-    with open(expname+"_metrics.txt", 'w') as outfile:
+    outfilename = os.path.join(outdir, expname+'_data_vs_model_predictions.txt')
+    np.savetxt(outfilename, outdata, header="lon, lat, lkv_E, lkv_N, lkv_U, data, model")
+    outfilename = os.path.join(outdir, expname + '_fitted_parameters.txt')
+    np.savetxt(outfilename, fitted_params, header="Params slip(m) depth(km) reference")
+    with open(os.path.join(outdir, expname+"_metrics.txt"), 'w') as outfile:
         outfile.write("RMS: %f mm\n" % rms)
         outfile.write("lam (tikhonov): %f\n" % lam)
         outfile.write("gamma (smoothing): %f\n" % gamma)
