@@ -16,8 +16,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
 from scipy.optimize import approx_fprime
+from scipy.linalg import cholesky, solve_triangular
 import elliptical_utilities  # local import
 import inversion_utilities  # local import
+from geodesy_modeling.datatypes.InSAR_1D_Object import covariance
 
 
 top_configs = {"datafile": "../../Prepare_Data/InSAR_Data/downsampled_data.txt",
@@ -81,7 +83,30 @@ def invert_data_2param(configs):
     data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs)
     param0 = [0.020, 2.0, 0, 0, 0]
     lb, ub = [0.0, 0.0, -50, -50, -5.0], [0.050, 5.0, 50, 50, 5.0]  # last three parameters are a, b, and c for plane
-    lam = 7  # Minimum-norm Tikhonov smoothing regularization strength
+    lam = 1.7  # Minimum-norm Tikhonov smoothing regularization strength
+
+    # We are going to determine the real covariance matrix, and compute the inverse by
+    # one of the two triangular matrices in the Cholesky decomposition.
+    rnew, znew, sigma, L = covariance.compute_insar_varigram(data, 0.001, 1.0, 0.01, 100000)
+    covariance.plot_cov_results(rnew, znew, sigma, L, "covariance_structure.png")
+    cov = covariance.build_Cd(data, sigma, L)
+    covariance.plot_full_covd(cov, 'covariance_matrix.png')
+
+    # Whitening the covariance matrix through Cholesky decomposition
+    Lt_mat = cholesky(cov, lower=True, check_finite=False)
+    covariance.plot_full_covd(Lt_mat, 'cholesky_Lt.png')
+
+    def make_data_whitener(Cd):
+        # Cd must be SPD. If near-singular, consider jitter or SVD.
+        Ld = cholesky(Cd, lower=True, check_finite=False)  # Cd = Ld Ld^T
+
+        # Wd @ x == solve(Ld, x) ⇒ Wd = Ld^{-1} without forming it
+        def Wd_apply0(x):
+            # handle 1D vector or 2D matrix (apply to columns)
+            return solve_triangular(Ld, x, lower=True, check_finite=False)
+        return Wd_apply0
+
+    Wd_apply = make_data_whitener(cov)
 
     # Establish forward model and cost function
     def forward_model(params):  # params = vector of size 82, 41 slips and 41 depths
@@ -89,7 +114,7 @@ def invert_data_2param(configs):
         return insar_1d_model
 
     def residuals(m, data0, lam0):
-        data_misfit = forward_model(m).LOS - data0.LOS
+        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         tikhonov = lam0 * m  # Tikhonov (minimum-norm) regularization
         return np.concatenate((data_misfit, tikhonov))
 

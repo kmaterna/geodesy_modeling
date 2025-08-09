@@ -69,7 +69,7 @@ def data_model_misfit_plot(datapts, modelpts, best_params, faults, outname):
     axes[0].set_title("Input Data")
     # Show the model
     im2 = axes[1].scatter(modelpts.lon, modelpts.lat, c=modelpts.LOS, vmin=vmin, vmax=vmax)
-    axes[1].set_title("Model, Elliptical, depth0= %.2f km" % best_params[-1])
+    axes[1].set_title("Model, Elliptical, depth0= %.2f km" % best_params[-1])  # this could be printing something diff.
     for item in faults:
         lons, lats = item.get_updip_corners_lon_lat()
         axes[1].plot(lons, lats)
