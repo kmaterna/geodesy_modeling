@@ -126,14 +126,14 @@ def invert_data_2param(configs):
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
-    inversion_utilities.data_model_misfit_plot(data, model_pred, result.x, faults,
+    inversion_utilities.data_model_misfit_plot(data, model_pred, faults,
                                                os.path.join('Two_Param_Tests', expname+"_data_v_model.png"))
     inversion_utilities.write_outputs(data, model_pred, result.x, lam, 0, 'Two_Param_Tests', expname, configs)
 
     # testcase_params = param0
     # simple_model = forward_model(testcase_params)  # InSAR1D object
     # simple_model = inversion_utilities.convert_xy_to_ll_insar1D(simple_model, configs["zerolon"], configs["zerolat"])
-    # inversion_utilities.data_model_misfit_plot(data, simple_model, testcase_params, faults, "two_param_model.png")
+    # inversion_utilities.data_model_misfit_plot(data, simple_model, faults, "two_param_model.png")
     # inversion_utilities.write_outputs(data, simple_model, testcase_params, 0, 0, 'two_param')
     return
 
@@ -160,10 +160,10 @@ def investigate_jacobian_2param(configs):
 
     model_pred = forward_model_ellipse([0.02, 2.75])
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
-    inversion_utilities.data_model_misfit_plot(data, model_pred, [0.02, 2.75], faults, "ellipse_data_v_model.png")
+    inversion_utilities.data_model_misfit_plot(data, model_pred, faults, "ellipse_data_v_model.png")
     model_pred = forward_model_rectangle([0.02, 2.20])
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
-    inversion_utilities.data_model_misfit_plot(data, model_pred, [0.02, 2.20], faults, "rectangle_data_v_model.png")
+    inversion_utilities.data_model_misfit_plot(data, model_pred, faults, "rectangle_data_v_model.png")
 
     def wrapped_residual(x):
         return residuals(x, data, lam)

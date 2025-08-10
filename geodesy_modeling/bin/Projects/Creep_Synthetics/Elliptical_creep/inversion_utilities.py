@@ -60,7 +60,7 @@ def read_data_and_faults(config, write_out_faults_file='used_faults.txt'):
     return data, cart_disp_points, faults
 
 
-def data_model_misfit_plot(datapts, modelpts, best_params, faults, outname):
+def data_model_misfit_plot(datapts, modelpts, faults, outname):
     """ Visualize the results of your inversion. """
     vmin, vmax = -15, 15
     residuals = datapts.LOS - modelpts.LOS
@@ -70,7 +70,7 @@ def data_model_misfit_plot(datapts, modelpts, best_params, faults, outname):
     axes[0].set_title("Input Data")
     # Show the model
     im2 = axes[1].scatter(modelpts.lon, modelpts.lat, c=modelpts.LOS, vmin=vmin, vmax=vmax)
-    axes[1].set_title("Model, Elliptical, depth0= %.2f km" % best_params[-1])  # this could be printing something diff.
+    axes[1].set_title("Model, Elliptical")
     for item in faults:
         lons, lats = item.get_updip_corners_lon_lat()
         axes[1].plot(lons, lats)
@@ -84,9 +84,10 @@ def data_model_misfit_plot(datapts, modelpts, best_params, faults, outname):
 
 
 def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, configs):
+    num_faults = configs["num_faults"]
     if len(fitted_params) > 6:
         # If there are a lot of parameters, let's make a plot of them. Should formalize this later.
-        fitted_params = np.array(fitted_params).reshape(2, configs["num_faults"]).T
+        fitted_params = np.array(fitted_params)[0:2*num_faults].reshape(2, num_faults).T
         f, axarr = plt.subplots(2, 1, figsize=(14, 10), dpi=300)
         axarr[0].plot(fitted_params[:, 0])
         axarr[0].set_ylabel('Slip (m)')
@@ -99,7 +100,7 @@ def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, 
     outfilename = os.path.join(outdir, expname+'_data_vs_model_predictions.txt')
     np.savetxt(outfilename, outdata, header="lon, lat, lkv_E, lkv_N, lkv_U, data, model")
     outfilename = os.path.join(outdir, expname + '_fitted_parameters.txt')
-    np.savetxt(outfilename, fitted_params, header="Params slip(m) depth(km) reference")
+    np.savetxt(outfilename, fitted_params, header="Params slip(m), depth(km), plane, plane, reference")
     with open(os.path.join(outdir, expname+"_metrics.txt"), 'w') as outfile:
         outfile.write("RMS: %f mm\n" % rms)
         outfile.write("lam (tikhonov): %f\n" % lam)

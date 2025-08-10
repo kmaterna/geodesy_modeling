@@ -37,6 +37,7 @@ def elastic_model(param_vector, cart_disp_points, faults, configs):
     :return: InSAR_1D_object, a matching object to the data structure. The LOS values contain the model predictions.
     """
     fault_list = []
+    a, b, c = param_vector[-3], param_vector[-2], param_vector[-1]  # unpack parameters of the planar fit and refpix
     for j, fault in enumerate(faults):
         # Here we could use one value for the entire fault length, or use a spatial distribution of values.
         surface_slip, bottom_depth = param_vector[j], param_vector[j+configs["num_faults"]]  # for real faults. KEY LINE
@@ -61,27 +62,48 @@ def elastic_model(param_vector, cart_disp_points, faults, configs):
     insar_1d_model = inversion_utilities.project_disp_points_into_insar1d(model_disp_points,
                                                                           configs["flight_angle"],
                                                                           configs["incidence_angle"])  # cart. space
+    # Implement a planar fit to the data, which has three planar parameters for x and y and a constant offset
+    insar_1d_model = insar_1d_model.subtract_ramp(a, b, c)
     print("Faults and points: %d and %d" % (len(fault_list), len(insar_1d_model.LOS)))
     return insar_1d_model  # in mm
 
 
 def set_up_initial_params_and_bounds(configs):
+    """
+    Here we construct an initial parameter vector of length 2N + 3.
+    The last three are plane and refpix parameters.
+    The structure of the parameter vector is [N*slip_m, N*depth_km, a, b, refpix_offset]
+    The structure of lower bounds is [2N+3]
+    The structure of upper bounds is [2N+3]
+    """
     # Set up constraints: lower bound on slip = from fieldwork and creepmeters
-    _, fieldwork_lower_bounds = np.loadtxt(configs['fieldfile'], unpack=True)
-    fieldwork_lower_bounds = np.multiply(fieldwork_lower_bounds, 0.001)  # convert mm to m
-    lower_bound = np.zeros((configs["num_faults"]*2, ))   # lower bound on slip and depth is zero
-    lower_bound[0:configs["num_faults"]] = fieldwork_lower_bounds
-    upper_bound = np.multiply(5, np.ones((configs["num_faults"]*2, )))  # upper bound on slip is 50 mm, depth is 5 km
-    upper_bound[0:configs["num_faults"]] = 0.050
+    numfaults = configs["num_faults"]
+    lower_bound = np.zeros((numfaults*2 + 3, ))  # lower bound on slip and depth starts at zero
+    upper_bound = np.zeros((numfaults*2 + 3,))
+
+    _, fieldwork_data = np.loadtxt(configs['fieldfile'], unpack=True)
+    fieldwork_data = np.multiply(fieldwork_data, 0.001)  # convert mm to m
+
+    # Setting proper bounds
+    lower_bound[0:numfaults] = fieldwork_data  # lower bound on slip from field data
+    upper_bound[0:numfaults] = 0.050  # upper bound on slip is 50 mm
+    lower_bound[numfaults:2*numfaults] = 0  # lower bound on depth is zero
+    upper_bound[numfaults:2*numfaults] = 5  # upper bound on depth is 5 km
+    lower_bound[-3], lower_bound[-2], lower_bound[-1] = -50, -50, -5.0  # parameters for plane and reference pixel
+    upper_bound[-3], upper_bound[-2], upper_bound[-1] = 50, 50, 5.0
 
     # Set up the original parameter vector and the upper bounds and lower bounds
-    param0 = []  # param vector = [slip slip slip ..... slip depth depth depth.....]
+    param0, x_scale = [], []  # param vector = [slip slip slip ..... slip depth depth depth..... a, b, c]
     for i in range(configs["num_faults"]):  # initial guess for the slip is 20 mm (m)
         slip_guess = np.max([0.02, lower_bound[i]])  # the initial guess is either 20 mm or the minimum of range
         param0.append(slip_guess)
+        x_scale.append(0.01)  # scale is mm
     for i in range(configs["num_faults"]):  # initial guess for the lower-depth km is 1 km
         param0.append(2.0)
-    return param0, lower_bound, upper_bound
+        x_scale.append(1.0)
+    param0 = param0 + [0, 0, 0]  # plane, plane, and reference pixel
+    x_scale = x_scale + [5.0, 5.0, 1.0]
+    return param0, lower_bound, upper_bound, x_scale
 
 
 def invert_data(arguments):
@@ -94,14 +116,14 @@ def invert_data(arguments):
     if not isinstance(configs, dict):
         raise TypeError("Expected a JSON object at top level")
 
-    data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs, os.path.join(arguments.output,
-                                                                                                    'used_faults.txt'))
-
     print("Experiment Setup: Arguments: ")
     print("Gamma Laplacian Smoothing Strength: ", arguments.laplacian)
     print("Lambda Tikhonov Smoothing Strength: ", arguments.tikhonov)
     print("Output Directory: ", arguments.output)
     os.makedirs(arguments.output, exist_ok=True)
+
+    data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs, os.path.join(arguments.output,
+                                                                                                    'used_faults.txt'))
 
     # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
     L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
@@ -126,7 +148,7 @@ def invert_data(arguments):
 
     lam = arguments.tikhonov
     gamma = arguments.laplacian
-    param0, lb, ub = set_up_initial_params_and_bounds(configs)  # create initial parameter vector
+    param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs)  # create initial parameter vector
 
     # Establish forward model and cost function
     def forward_model(params):  # params = vector of size 82, 41 slips and 41 depths
@@ -148,18 +170,19 @@ def invert_data(arguments):
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
 
     # NEXT: Put the additional three parameters for offset and planar fit.
-    result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam))  # slip, z
+    result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
+                           x_scale=xscale)  # slip, z, a, b, c
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
-    inversion_utilities.data_model_misfit_plot(data, model_pred, result.x, faults,
+    inversion_utilities.data_model_misfit_plot(data, model_pred, faults,
                                                os.path.join(arguments.output, expname+"_data_v_model.png"))
     inversion_utilities.write_outputs(data, model_pred, result.x, lam, gamma, arguments.output, expname, configs)
 
     # testcase_params = param0
     # simple_model = forward_model(testcase_params)  # InSAR1D object
     # simple_model = inversion_utilities.convert_xy_to_ll_insar1D(simple_model, configs)
-    # inversion_utilities.data_model_misfit_plot(data, simple_model, testcase_params, faults,
+    # inversion_utilities.data_model_misfit_plot(data, simple_model, faults,
     #                                            outname=os.path.join(arguments.output, "testcase_model.png"))
     # inversion_utilities.write_outputs(data, simple_model, testcase_params, lam, gamma, arguments.output,
     #                                   'testcase', configs)
