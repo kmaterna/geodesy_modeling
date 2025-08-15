@@ -146,12 +146,12 @@ def invert_data(arguments):
 
     Wd_apply = make_data_whitener(cov)
 
-    lam = arguments.tikhonov
-    gamma = arguments.laplacian
+    lam = arguments.tikhonov  # lambda = tikhonov smoothing over depth range
+    gamma = arguments.laplacian  # gamma = laplacian smoothing minimizing differences in slip
     param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs)  # create initial parameter vector
 
     # Establish forward model and cost function
-    def forward_model(params):  # params = vector of size 82, 41 slips and 41 depths
+    def forward_model(params):  # params = vector of size 81, 39 slips + 39 depths + plane + offset
         insar_1d_model = elastic_model(params, cart_disp_points, faults, configs)
         return insar_1d_model
 
@@ -161,10 +161,10 @@ def invert_data(arguments):
 
     def residuals(m, data0, gamma0, lam0):
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        m2 = m[0:configs["num_faults"]]  # slip is the first half of the model vector
-        mdepth = m[configs["num_faults"]:]
-        tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization
-        smoothing = smoothing_residuals(m2, gamma0)
+        m2 = m[0:configs["num_faults"]]  # slip is first half of model vector
+        mdepth = m[configs["num_faults"]:-3]  # depth is second half of model vector, with last three reserved for plane
+        tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization on the depth values
+        smoothing = smoothing_residuals(m2, gamma0)  # Laplacian smoothing on the slip values
         return np.concatenate((data_misfit, smoothing, tikhonov))
 
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
