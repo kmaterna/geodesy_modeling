@@ -87,20 +87,21 @@ def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, 
     num_faults = configs["num_faults"]
     if len(fitted_params) > 6:
         # If there are a lot of parameters, let's make a plot of them. Should formalize this later.
-        fitted_params = np.array(fitted_params)[0:2*num_faults].reshape(2, num_faults).T
+        fault_fitted_params = np.array(fitted_params)[0:2*num_faults].reshape(2, num_faults).T
         f, axarr = plt.subplots(2, 1, figsize=(14, 10), dpi=300)
-        axarr[0].plot(fitted_params[:, 0])
+        axarr[0].plot(fault_fitted_params[:, 0])
         axarr[0].set_ylabel('Slip (m)')
-        axarr[1].plot(fitted_params[:, 1])
+        axarr[1].plot(fault_fitted_params[:, 1])
         axarr[1].set_ylabel('Depth (km)')
         plt.savefig(os.path.join(outdir, expname+"_model_params_results.png"))
+    fitted_params = np.array(fitted_params)
     residuals = data.LOS - model.LOS
     rms = np.sqrt(np.mean(residuals**2))
     outdata = np.vstack((data.lon, data.lat, data.lkv_E, data.lkv_N, data.lkv_U, data.LOS, model.LOS)).T
     outfilename = os.path.join(outdir, expname+'_data_vs_model_predictions.txt')
     np.savetxt(outfilename, outdata, header="lon, lat, lkv_E, lkv_N, lkv_U, data, model")
     outfilename = os.path.join(outdir, expname + '_fitted_parameters.txt')
-    np.savetxt(outfilename, fitted_params, header="Params slip(m), depth(km), plane, plane, reference")
+    np.savetxt(outfilename, fitted_params, header="Params slip(m), depth(km), plane, plane, reference")  # whole vector
     with open(os.path.join(outdir, expname+"_metrics.txt"), 'w') as outfile:
         outfile.write("RMS: %f mm\n" % rms)
         outfile.write("lam (tikhonov): %f\n" % lam)
