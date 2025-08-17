@@ -159,12 +159,20 @@ def invert_data(arguments):
     def smoothing_residuals(m2, gamma0):
         return gamma0 * np.diff(m2)
 
+    # Laplacian smoothing residuals (second differences) on first half of vector
+    def laplacian_penalty(m2, gamma0):
+        # second differences
+        r = np.zeros_like(m2)
+        second_diff = m2[:-2] - 2 * m2[1:-1] + m2[2:]
+        r[1:-1] = second_diff
+        return np.sqrt(gamma0) * r
+
     def residuals(m, data0, gamma0, lam0):
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         m2 = m[0:configs["num_faults"]]  # slip is first half of model vector
         mdepth = m[configs["num_faults"]:-3]  # depth is second half of model vector, with last three reserved for plane
         tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization on the depth values
-        smoothing = smoothing_residuals(m2, gamma0)  # Laplacian smoothing on the slip values
+        smoothing = laplacian_penalty(m2, gamma0)  # Laplacian smoothing on the slip values
         return np.concatenate((data_misfit, smoothing, tikhonov))
 
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
