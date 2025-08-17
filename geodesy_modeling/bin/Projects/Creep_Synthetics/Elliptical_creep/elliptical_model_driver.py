@@ -171,7 +171,8 @@ def invert_data(arguments):
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         m2 = m[0:configs["num_faults"]]  # slip is first half of model vector
         mdepth = m[configs["num_faults"]:-3]  # depth is second half of model vector, with last three reserved for plane
-        tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization on the depth values
+        # tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization on the depth values
+        tikhonov = lam0 * m2  # Tikhonov (minimum-norm) regularization on the slip values
         smoothing = laplacian_penalty(m2, gamma0)  # Laplacian smoothing on the slip values
         return np.concatenate((data_misfit, smoothing, tikhonov))
 
