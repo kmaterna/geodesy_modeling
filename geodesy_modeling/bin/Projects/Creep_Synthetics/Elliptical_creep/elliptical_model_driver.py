@@ -165,7 +165,7 @@ def invert_data(arguments):
         r = np.zeros_like(m2)
         second_diff = m2[:-2] - 2 * m2[1:-1] + m2[2:]
         r[1:-1] = second_diff
-        return np.sqrt(gamma0) * r
+        return gamma0 * r
 
     def residuals(m, data0, gamma0, lam0):
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
