@@ -159,6 +159,13 @@ def invert_data(arguments):
     def smoothing_residuals(m2, gamma0):
         return gamma0 * np.diff(m2)
 
+    # Minimum total stress drop penalty: An idea to impose both types of smoothness together.
+    def minimum_stress_drop(lam0, m_slip, m_depth):
+        strain_drop = np.divide(m_slip, m_depth)
+        stress_drop = strain_drop * 1e6  # for unit normalization
+        tikhonov = lam0 * stress_drop
+        return tikhonov
+
     # Laplacian smoothing residuals (second differences) on first half of vector
     def laplacian_penalty(m2, gamma0):
         # second differences
@@ -169,11 +176,11 @@ def invert_data(arguments):
 
     def residuals(m, data0, gamma0, lam0):
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        m2 = m[0:configs["num_faults"]]  # slip is first half of model vector
-        mdepth = m[configs["num_faults"]:-3]  # depth is second half of model vector, with last three reserved for plane
-        # tikhonov = lam0 * mdepth  # Tikhonov (minimum-norm) regularization on the depth values
-        tikhonov = lam0 * m2  # Tikhonov (minimum-norm) regularization on the slip values
-        smoothing = laplacian_penalty(m2, gamma0)  # Laplacian smoothing on the slip values
+        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
+        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
+        # tikhonov = lam0 * m_depth  # Tikhonov (minimum-norm) regularization on the depth values
+        tikhonov = minimum_stress_drop(lam0, m_slip, m_depth)
+        smoothing = laplacian_penalty(m_slip, gamma0)  # Laplacian smoothing on the slip values
         return np.concatenate((data_misfit, smoothing, tikhonov))
 
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
