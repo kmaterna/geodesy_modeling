@@ -173,7 +173,7 @@ def invert_data(arguments):
         m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
         tikhonov = lam0 * m_depth  # Tikhonov (minimum-norm) regularization on the depth values
         laplacian_smooth = laplacian_penalty(m_slip, gamma0)  # Laplacian smoothing on the slip values
-        depth_lapl_smooth = laplacian_smooth(m_depth, gamma0)  # Laplacian smoothing on the depth values too
+        depth_lapl_smooth = laplacian_smooth(m_depth, gamma0*0.01)  # Laplacian smoothing on the depth values too
         depth_regularization = np.add(tikhonov, depth_lapl_smooth)  # combine laplacian and tikhonov for depth
         return np.concatenate((data_misfit, laplacian_smooth, depth_regularization))
 
