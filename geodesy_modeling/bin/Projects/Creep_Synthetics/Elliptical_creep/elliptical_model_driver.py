@@ -11,6 +11,7 @@ Param vector is "SLIP -- DEPTH" for every fault patch.
 
 import numpy as np
 from scipy.optimize import least_squares
+from scipy.sparse import diags
 import argparse
 import json
 from elastic_stresses_py import PyCoulomb
@@ -167,15 +168,42 @@ def invert_data(arguments):
         r[1:-1] = second_diff
         return gamma0 * r
 
-    def residuals(m, data0, gamma0, lam0):
-        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
+    def laplacian_v2(m, lam0, gamma0):
         m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
         m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
         tikhonov = lam0 * m_depth  # Tikhonov (minimum-norm) regularization on the depth values
         laplacian_smooth = laplacian_penalty(m_slip, gamma0)  # Laplacian smoothing on the slip values
         depth_lapl_smooth = laplacian_penalty(m_depth, gamma0*0.01)  # Laplacian smoothing on the depth values too
         depth_regularization = np.add(tikhonov, depth_lapl_smooth)  # combine laplacian and tikhonov for depth
-        return np.concatenate((data_misfit, laplacian_smooth, depth_regularization))
+        return laplacian_smooth, depth_regularization
+
+    def laplacian_v3(m):
+        """ Trying a version where both smoothing parameters are tied together. """
+        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
+        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
+
+        # Doing the smoothing penalty on slip
+        n = len(m_slip)
+        main = -2 * np.ones(n)
+        off = 1 * np.ones(n - 1)
+        main[0] = main[-1] = 0  # Natural at boundaries
+        L = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+        fro_norm = np.sqrt(np.sum(L**2))
+        L = np.divide(L, fro_norm)
+
+        # The minimum norm penalty on depth
+        A = np.eye(len(m_depth))
+        fro_norm = np.sqrt(np.sum(A**2))
+        A = np.divide(A, fro_norm)
+
+        scalar = 0.1  # A choice made by me
+
+        return L*m_slip, scalar*A*m_depth
+
+    def residuals(m, data0, gamma0, lam0):
+        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
+        laplacian_smooth = np.multiply(lam0, laplacian_v3(m))
+        return np.concatenate((data_misfit, laplacian_smooth))
 
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
 
