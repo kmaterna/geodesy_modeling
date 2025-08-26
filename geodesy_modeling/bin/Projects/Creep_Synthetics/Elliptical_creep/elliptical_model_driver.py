@@ -197,13 +197,14 @@ def invert_data(arguments):
         A = np.divide(A, fro_norm)
 
         scalar = 0.1  # A choice made by me
+        A = np.multiply(scalar, A)
 
-        return L*m_slip, scalar*A*m_depth
+        return L@m_slip, A@m_depth
 
     def residuals(m, data0, gamma0, lam0):
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        laplacian_smooth = np.multiply(lam0, laplacian_v3(m))
-        return np.concatenate((data_misfit, laplacian_smooth))
+        l1, l2 = laplacian_v3(m)
+        return np.concatenate((data_misfit, np.multiply(lam0, l1), np.multiply(lam0, l2)))
 
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
 
