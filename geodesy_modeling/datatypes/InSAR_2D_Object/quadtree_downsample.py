@@ -372,7 +372,8 @@ def write_insar_ds_invertible_format(InSAR_obj, valid_A, lons, lats, filename):
 def qtree_compute(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=0, min_pixels=4,
                   plotting_file="quadtree_ds_results.png", outfile="qt_ds_pixels.txt",
                   custom_function=None):
+    """Return an insar1d object instead of an insar2d object. """
     insar1d_object, valid_A, lons, lats = do_quadtree_downsampling(insar2d_obj, var_max, nx_padding,
                                                                    ny_padding, min_pixels, custom_function)
     quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_file, outfile)
-    return
+    return insar1d_object
