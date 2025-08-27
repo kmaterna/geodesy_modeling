@@ -10,7 +10,7 @@ class Insar1dObject:
     Displacements are Displacements, not velocities (for now)
     """
     def __init__(self, lon, lat, LOS, LOS_unc, lkv_E, lkv_N, lkv_U, starttime=None, endtime=None,
-                 coherence=None):
+                 coherence=None, look_direction='right'):
         self.lon = np.array(lon)  # list or 1d vector
         self.lat = np.array(lat)  # list or 1d vector
         self.LOS = np.array(LOS)  # list or 1d vector of displacements, in mm
@@ -20,12 +20,15 @@ class Insar1dObject:
         self.lkv_U = np.array(lkv_U)  # Ground to Satellite, 1d vector
         self.starttime = starttime  # just metadata, datetime object
         self.endtime = endtime  # just metadata, datetime object
+        self.look_direction = 'right'  # metadata
         if coherence is None:
             self.coherence = np.ones(np.shape(LOS))  # 1d vector, optional
         else:
             self.coherence = np.array(coherence)
         if not self.check_internal_sanity():
             raise (ValueError, "Error! The lengths of the arrays in the object does not match")
+        if look_direction not in ['right', 'left']:
+            raise (ValueError, "Error! Look direction must be right or left!")
 
     def impose_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on InSAR data"""
@@ -41,7 +44,8 @@ class Insar1dObject:
                 unit_U.append(self.lkv_U[i])
                 coherence.append(self.coherence[i])
         newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
-                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime, coherence=coherence)
+                                     lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime, coherence=coherence,
+                                     look_direction=self.look_direction)
         return newInSAR_obj
 
     def remove_nans(self, verbose=False):
@@ -61,7 +65,7 @@ class Insar1dObject:
                 coherence.append(self.coherence[i])
         newInSAR_obj = Insar1dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=LOS_unc, lkv_E=unit_E, lkv_N=unit_N,
                                      lkv_U=unit_U, starttime=self.starttime, endtime=self.endtime,
-                                     coherence=coherence)
+                                     coherence=coherence, look_direction=self.look_direction)
         if verbose:
             print("Removing nans from 1D InSAR obj. Starting with %d, ending with %d pixels" % (len(self.lon),
                                                                                                 len(newInSAR_obj.lon)))
@@ -70,7 +74,8 @@ class Insar1dObject:
     def flip_los_sign(self):
         new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.multiply(self.LOS, -1), LOS_unc=self.LOS_unc,
                                       lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U, starttime=self.starttime,
-                                      endtime=self.endtime, coherence=self.coherence)
+                                      endtime=self.endtime, coherence=self.coherence,
+                                      look_direction=self.look_direction)
         return new_InSAR_obj
 
     def get_average_los_within_box(self, target_lon, target_lat, averaging_window):
@@ -92,7 +97,8 @@ class Insar1dObject:
                                       LOS_unc=np.nanmean(new_unc), lkv_E=np.nanmean(new_lkvE),
                                       lkv_N=np.nanmean(new_lkvN), lkv_U=np.nanmean(new_lkvU),
                                       coherence=np.nanmean(new_coherence),
-                                      starttime=self.starttime, endtime=self.endtime)
+                                      starttime=self.starttime, endtime=self.endtime,
+                                      look_direction=self.look_direction)
         return new_InSAR_obj
 
     def proj_los_into_vertical_no_horiz(self, const_lkv=()):
@@ -113,7 +119,7 @@ class Insar1dObject:
         newInSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=new_los, LOS_unc=self.LOS_unc,
                                      lkv_E=np.zeros(np.shape(self.lon)), lkv_N=np.zeros(np.shape(self.lon)),
                                      lkv_U=np.ones(np.shape(self.lon)), starttime=self.starttime,
-                                     endtime=self.endtime, coherence=self.coherence)
+                                     endtime=self.endtime, coherence=self.coherence, look_direction=self.look_direction)
         return newInSAR_obj
 
     def get_coordinate_tuples(self):
@@ -144,7 +150,8 @@ class Insar1dObject:
         """
         new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=np.subtract(self.LOS, value),
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
-                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence)
+                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence,
+                                      look_direction=self.look_direction)
         return new_InSAR_obj
 
     def subtract_ramp(self, a, b, c):
@@ -160,7 +167,8 @@ class Insar1dObject:
         new_LOS = np.subtract(self.LOS, ramp_solution)  # Removing the planar model
         new_InSAR_obj = Insar1dObject(lon=self.lon, lat=self.lat, LOS=new_LOS,
                                       LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
-                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence)
+                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence,
+                                      look_direction=self.look_direction)
         return new_InSAR_obj
 
     def check_internal_sanity(self):

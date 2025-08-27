@@ -43,7 +43,7 @@ class Insar2dObject:
             raise ValueError("Latitude array increases upward; this is backwards from the convention and your "
                              "arrays may be upside-down.")
 
-    def impose_InSAR_bounding_box(self, bbox=(-180, 180, -90, 90)):
+    def impose_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on some InSAR data. """
         xc, yc, los_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.LOS, bbox)
         _, _, unc_c = grid_tools.clip_array_by_bbox(self.lon, self.lat, self.LOS_unc, bbox)

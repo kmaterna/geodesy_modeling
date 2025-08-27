@@ -4,4 +4,4 @@ from . import outputs
 from . import remove_coseismic_model
 from . import remove_ramp
 from . import utilities
-from . import downsample
+from . import downsample_1d

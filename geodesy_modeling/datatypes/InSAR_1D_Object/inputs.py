@@ -142,7 +142,7 @@ def inputs_isce_unw_geo_losrdr(isce_unw_filename, los_filename, starttime=dt.dat
     """
     xarray, yarray, data = isce_read_write.read_isce_unw_geo_alternative(isce_unw_filename)  # for brawley
     incidence = isce_read_write.read_scalar_data(los_filename, band=1)
-    azimuth = isce_read_write.read_scalar_data(los_filename, band=2)
+    azimuth = isce_read_write.read_scalar_data(los_filename, band=2)  # ISCE keeps in degrees CCW from north
     lkv_e, lkv_n, lkv_u = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
 
     [X, Y] = np.meshgrid(xarray, yarray)
@@ -193,35 +193,39 @@ def inputs_lohman_mcguire_2007(filename):
 
 
 def inputs_grd(grdfilename, incidence_angle=None, azimuth_angle=None, lkvE_file=None, lkvN_file=None, lkvU_file=None,
-               cohfile=None, starttime=None, endtime=None):
+               cohfile=None, starttime=None, endtime=None, look_direction='right'):
     """
     :param grdfilename: string, grdfile, required
-    :param incidence_angle: float, optional way of providing incidence angle
-    :param azimuth_angle: float, optional way of providing azimuth angle
-    :param lkvE_file: string, optional filename
-    :param lkvN_file: string, optional filename
-    :param lkvU_file: string, optional filename
+    :param incidence_angle: float, single incidence angle for the entire field, in degrees from the vertical
+    :param azimuth_angle: float, single azimuth angle for the entire field, in degrees CW from north
+    :param lkvE_file: string, optional filename of grd file
+    :param lkvN_file: string, optional filename of grd file
+    :param lkvU_file: string, optional filename of grd file
     :param cohfile: string, optional filename for coherence information
     :param starttime: optional, datetime object
     :param endtime: optional, datetime object
+    :param look_direction: string, either 'left' or 'right', default 'right'
     :return: insar1D object
     """
     x, y, los = netcdf_read_write.read_netcdf4(grdfilename)
     X, Y = np.meshgrid(x, y)
     los1d = los.reshape(-1)
-    x1d = X.reshape(-1)
-    y1d = Y.reshape(-1)
+    x1d, y1d = X.reshape(-1), Y.reshape(-1)
     placeholder = np.zeros(np.shape(los1d))
     if lkvE_file:
         _, _, lkvE = netcdf_read_write.read_netcdf4(lkvE_file)
         _, _, lkvN = netcdf_read_write.read_netcdf4(lkvN_file)
         _, _, lkvU = netcdf_read_write.read_netcdf4(lkvU_file)
     else:
-        lkvE, lkvN, lkvU = insar_vector_functions.calc_lkv_from_rdr_azimuth_incidence(azimuth_angle, incidence_angle)
+        azimuth_angle = azimuth_angle * np.ones(np.shape(los1d))
+        incidence_angle = incidence_angle * np.ones(np.shape(los1d))
+        lkvE, lkvN, lkvU = insar_vector_functions.flight_incidence_angles2look_vector(azimuth_angle, incidence_angle,
+                                                                                      look_direction=look_direction)
     if cohfile:
         _, _, coh = netcdf_read_write.read_netcdf4(cohfile)
     else:
         coh = None
     InSAR_data = Insar1dObject(lon=x1d, lat=y1d, LOS=los1d, LOS_unc=placeholder, lkv_E=lkvE, lkv_N=lkvN,
-                               lkv_U=lkvU, starttime=starttime, endtime=endtime, coherence=coh)
+                               lkv_U=lkvU, starttime=starttime, endtime=endtime, coherence=coh,
+                               look_direction=look_direction)
     return InSAR_data

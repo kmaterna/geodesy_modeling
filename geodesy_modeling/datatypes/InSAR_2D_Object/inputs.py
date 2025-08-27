@@ -9,15 +9,20 @@ from cubbie.read_write_insar_utilities import isce_read_write, jpl_uav_read_writ
 from .class_model import Insar2dObject
 
 
-def inputs_grd(los_grdfile, lkvE_file=None, lkvN_file=None, lkvU_file=None, coh_file=None):
+def inputs_grd(los_grdfile, lkvE_file=None, lkvN_file=None, lkvU_file=None, coh_file=None,
+               look_direction='right', starttime=None, endtime=None):
     """
-    Read netcdf file.
+    Read netcdf files for LOS and COH information.
+    Optionally, read additional GRD files for the three components of the look vector, from GMTSAR format.
 
     :param los_grdfile: string, filename of grd file
     :param lkvE_file: string, filename of grd file
     :param lkvN_file: string, filename of grd file
     :param lkvU_file: string, filename of grd file
     :param coh_file: string, filename of grd file
+    :param look_direction: string, default 'right'
+    :param starttime: datetime object, default None
+    :param endtime: datetime object, default None
     :returns InSAR_Obj: InSAR_2D_Object
     """
     [lon, lat, LOS] = netcdf_read_write.read_any_grd(los_grdfile)
@@ -33,17 +38,65 @@ def inputs_grd(los_grdfile, lkvE_file=None, lkvN_file=None, lkvU_file=None, coh_
     if coh_file:
         _, _, coh = netcdf_read_write.read_netcdf4(coh_file)
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                              lkv_E=lkvE, lkv_N=lkvN, lkv_U=lkvU, coherence=coh, starttime=None, endtime=None)
+                              lkv_E=lkvE, lkv_N=lkvN, lkv_U=lkvU, coherence=coh,
+                              starttime=starttime, endtime=endtime,
+                              look_direction=look_direction)
     return InSAR_Obj
 
 
-def inputs_phase_isce(iscefile, los_rdr_file=None, coh_file=None):
+def inputs_grd_simple_lkv(los_grdfile, lkvE=None, lkvN=None, lkvU=None, coh_file=None,
+                          incidence_angle=None, azimuth_angle=None,
+                          starttime=None, endtime=None, look_direction='right'):
+    """
+    Create an object using a GRD file for LOS and Coherence.
+    Use simple single values for the look vector information.
+    Either provide the three-component look vector or the incidence-azimuth angles.
+
+    :param los_grdfile: string, filename of grd file
+    :param lkvE: float
+    :param lkvN: float
+    :param lkvU: float
+    :param coh_file: string, filename of grd file
+    :param look_direction: string, default 'right'
+    :param incidence_angle: float, in degrees from the vertical
+    :param azimuth_angle: float, in degrees CW from north
+    :param starttime: datetime object, default None
+    :param endtime: datetime object, default None
+    :returns InSAR_Obj: InSAR_2D_Object
+    """
+    [lon, lat, LOS] = netcdf_read_write.read_any_grd(los_grdfile)
+    coh = np.ones((len(lat), len(lon)))
+    if coh_file:
+        _, _, coh = netcdf_read_write.read_netcdf4(coh_file)
+    if incidence_angle:
+        lkvE, lkvN, lkvU = insar_vect.flight_incidence_angles2look_vector(azimuth_angle, incidence_angle,
+                                                                          look_direction=look_direction)
+    if lkvE:
+        lkvE = lkvE * np.ones(np.shape(LOS))
+        lkvN = lkvN * np.ones(np.shape(LOS))
+        lkvU = lkvU * np.ones(np.shape(LOS))
+    else:
+        lkvE = np.zeros(np.shape(LOS))
+        lkvN = np.zeros(np.shape(LOS))
+        lkvU = np.zeros(np.shape(LOS))
+    InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
+                              lkv_E=lkvE, lkv_N=lkvN, lkv_U=lkvU, coherence=coh,
+                              starttime=starttime, endtime=endtime,
+                              look_direction=look_direction)
+    return InSAR_Obj
+
+
+def inputs_phase_isce(iscefile, los_rdr_file=None, coh_file=None,
+                      starttime=None, endtime=None, look_direction='right'):
     """
     Create a 2D InSAR object from ISCE phase data.  Returns the scalar field in LOS, such as wrapped phase.
 
     :param iscefile: string, filename
     :param los_rdr_file: string, filename, ISCE los.rdr file
     :param coh_file: string, filename, ISCE coherence file
+    :param starttime: datetime object, default None
+    :param endtime: datetime object, default None
+    :param look_direction: string, either 'right' or 'left', default None
     :returns: InSAR_2D_object
     """
     lon, lat, LOS = isce_read_write.read_phase_data(iscefile)
@@ -60,20 +113,24 @@ def inputs_phase_isce(iscefile, los_rdr_file=None, coh_file=None):
         incidence = np.flipud(incidence)
         azimuth = np.flipud(azimuth)
         coh = np.flipud(coh)
-    lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
+    lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)  # using isce conventions
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None,
-                              coherence=coh)
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=starttime, endtime=endtime,
+                              coherence=coh, look_direction=look_direction)
     return InSAR_Obj
 
 
-def inputs_scalar_isce(iscefile, los_rdr_file=None, coh_file=None):
+def inputs_scalar_isce(iscefile, los_rdr_file=None, coh_file=None,
+                       starttime=None, endtime=None, look_direction='right'):
     """
     Create a 2D InSAR object from ISCE data.  Returns the scalar field in LOS, such as unwrapped phase.
 
     :param iscefile: string, filename
     :param los_rdr_file: string, filename, ISCE los.rdr file
     :param coh_file: string, filename, ISCE coherence file
+    :param starttime: datetime object, default None
+    :param endtime: datetime object, default None
+    :param look_direction: string, either 'right' or 'left', default None
     :returns: InSAR_2D_object
     """
     lon, lat, LOS = isce_read_write.read_scalar_data(iscefile)
@@ -90,10 +147,10 @@ def inputs_scalar_isce(iscefile, los_rdr_file=None, coh_file=None):
         incidence = np.flipud(incidence)
         azimuth = np.flipud(azimuth)
         coh = np.flipud(coh)
-    lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)
+    lkv_e, lkv_n, lkv_u = insar_vect.calc_lkv_from_rdr_azimuth_incidence(azimuth, incidence)  # using isce conventions
     InSAR_Obj = Insar2dObject(lon=lon, lat=lat, LOS=LOS, LOS_unc=np.zeros(np.shape(LOS)),
-                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=None, endtime=None,
-                              coherence=coh)
+                              lkv_E=lkv_e, lkv_N=lkv_n, lkv_U=lkv_u, starttime=starttime, endtime=endtime,
+                              coherence=coh, look_direction=look_direction)
     return InSAR_Obj
 
 

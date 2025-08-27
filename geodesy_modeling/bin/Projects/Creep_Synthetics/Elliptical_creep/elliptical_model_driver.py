@@ -199,6 +199,8 @@ def invert_data(arguments):
         scalar = 0.1  # A choice made by me
         A = np.multiply(scalar, A)
 
+        # NEXT: Add a weak laplacian smoothing to the depth parameter as well.
+
         return L@m_slip, A@m_depth
 
     def residuals(m, data0, gamma0, lam0):
