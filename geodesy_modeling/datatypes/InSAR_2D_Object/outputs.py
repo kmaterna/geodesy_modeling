@@ -18,6 +18,22 @@ def write_InSAR2D(InSAR_Obj, filename):
     return
 
 
+def write_InSAR2D_grds(InSAR_Obj, filestem):
+    """
+    Write several grd files out to file. This is the inverse of inputs.inputs_grd().
+
+    :param InSAR_Obj: 2d insar object
+    :param filestem: string, stem to which LOS/COH/E/N/U.grd will be added
+    :return:
+    """
+    netcdf_read_write.write_netcdf4(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.LOS, filestem+"_los.grd")
+    netcdf_read_write.write_netcdf4(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.coherence, filestem + "_coh.grd")
+    netcdf_read_write.write_netcdf4(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.lkv_E, filestem + "_lkvE.grd")
+    netcdf_read_write.write_netcdf4(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.lkv_N, filestem + "_lkvN.grd")
+    netcdf_read_write.write_netcdf4(InSAR_Obj.lon, InSAR_Obj.lat, InSAR_Obj.lkv_U, filestem + "_lkvU.grd")
+    return
+
+
 def write_insar2D_invertible_format(InSAR_obj, filename):
     """
     Write InSAR 2D displacements into insar text file that can be inverted.
@@ -59,11 +75,13 @@ def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname):
     fig, axs = plt.subplots(1, 2, dpi=300, figsize=(8, 5))
     fig.subplots_adjust(wspace=0.5)  # Increase horizontal space
     d1 = axs[0].pcolormesh(X, Y, inc)
+    axs[0].set_aspect('equal')
     axs[0].set_xlabel('Longitude', fontsize=14)
     axs[0].set_ylabel('Latitude', fontsize=14)
     axs[0].set_title('Incidence')
     _cb = fig.colorbar(d1, label="Incidence (degrees from vertical)", ax=axs[0])
     d2 = axs[1].pcolormesh(X, Y, az)
+    axs[1].set_aspect('equal')
     axs[1].set_xlabel('Longitude', fontsize=14)
     axs[1].set_title('Azimuth, '+InSAR_2D_obj.look_direction+'-looking')
     _cb = fig.colorbar(d2, label="Azimuth (degrees CW from north)", ax=axs[1])
@@ -75,7 +93,7 @@ def plot_incidence_azimuth_angle(InSAR_2D_obj, plotname):
 
 def plot_entire_object(myobj, plotname):
     """
-    Create a plot of phase, coherence, azimuth, and incidence for the object.
+    Create a 2x2 plot of phase, coherence, azimuth, and incidence for the object.
     This should help you check that the axes are flipped properly.
 
     :param myobj: object of type InSAR_2D
@@ -83,7 +101,7 @@ def plot_entire_object(myobj, plotname):
     :return:
     """
     print("Plotting %s " % plotname)
-    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 8), constrained_layout=True)
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 8), constrained_layout=True, dpi=300)
     az, inc = insar_vector_functions.look_vector2flight_incidence_angles(myobj.lkv_E, myobj.lkv_N, myobj.lkv_U,
                                                                          myobj.look_direction)
     datasets = [myobj.LOS, myobj.coherence, inc, az]
@@ -98,6 +116,7 @@ def plot_entire_object(myobj, plotname):
         ax.set_xlabel("Longitude")
         ax.set_ylabel("Latitude")
         ax.set_title(title, pad=6)
+        ax.set_aspect('equal')
 
         # Individual color‑bar
         cbar = fig.colorbar(im, ax=ax)
@@ -114,16 +133,18 @@ def plot_coherence(InSAR_2D_obj, figname):
     :param figname: string, name where file will be saved
     """
     # Plot the coherence
+    print("Plotting %s " % figname)
     X, Y = np.meshgrid(InSAR_2D_obj.lon, InSAR_2D_obj.lat)
     plt.figure(dpi=300, figsize=(9, 9))
     plt.pcolormesh(X, Y, InSAR_2D_obj.coherence)
-    plt.colorbar()
+    plt.colorbar(label='Coherence')
+    plt.gca().set_aspect('equal')
     plt.savefig(figname)
     plt.close()
     return
 
 
-def plot_los_information(InSAR_2D_obj, figname, vmin=None, vmax=None):
+def plot_los(InSAR_2D_obj, figname, vmin=None, vmax=None):
     """
     :param InSAR_2D_obj: Insar 2d object
     :param figname: string, name where file will be saved
@@ -137,6 +158,7 @@ def plot_los_information(InSAR_2D_obj, figname, vmin=None, vmax=None):
         plt.pcolormesh(X, Y, InSAR_2D_obj.LOS, vmin=vmin, vmax=vmax)
     else:
         plt.pcolormesh(X, Y, InSAR_2D_obj.LOS)
+    plt.gca().set_aspect('equal')
     plt.colorbar()
     plt.savefig(figname)
     plt.close()

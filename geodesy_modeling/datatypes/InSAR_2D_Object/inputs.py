@@ -161,9 +161,9 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
     If constant_incidence_angle is provided, it uses one simple incidence angle and flight angle for the field.
     Future: Options for non-constant incidence angle have not yet been written. Range depends on track/orbit.
 
-    :param e_grdfile: string, filename, with units of meters for default behavior
-    :param n_grdfile: string, filename, with units of meters for default behavior
-    :param u_grdfile: string, filename, with units of meters for default behavior
+    :param e_grdfile: string, filename, displacement with units of meters for default behavior
+    :param n_grdfile: string, filename, displacement with units of meters for default behavior
+    :param u_grdfile: string, filename, displacement with units of meters for default behavior
     :param flight_angle: float, flight angle, degrees CW from n
     :param constant_incidence_angle: float, incidence angle, degrees from vertical, default 35 degrees
     :param convert_m_to_mm: default True. Multiplies by 1000
