@@ -3,7 +3,6 @@ From two InSAR LOS objects with co-registered pixels, perform a decomposition.
 """
 
 import numpy as np
-import sys
 
 
 def east_vertical_decomp(object1, object2):

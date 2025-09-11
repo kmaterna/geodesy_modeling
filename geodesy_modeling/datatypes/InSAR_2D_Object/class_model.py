@@ -2,6 +2,7 @@ import numpy as np
 from tectonic_utils.geodesy import insar_vector_functions as ivf
 from geodesy_modeling import general_utils
 from cubbie.math_tools import grid_tools
+from geodesy_modeling.datatypes import InSAR_1D_Object
 
 
 class Insar2dObject:
@@ -102,6 +103,26 @@ class Insar2dObject:
         new_InSAR_obj = self.subtract_value(refvalue)
         return new_InSAR_obj
 
+    def subtract_ramp(self, a, b, c):
+        """
+        Subtract a ramp from the InSAR phase.
+        Remove a given ramp from the InSAR points. This assumes you know the parameters of your ramp.
+        Plane equation: ax + by + c = z
+
+        :param a: float, parameter attached to lon axis
+        :param b: float, parameter attached to lat axis
+        :param c: float, offset term
+        :return: new InSAR object
+        """
+        X, Y = np.meshgrid(self.lon, self.lat)
+        ramp_solution = a * X + b * Y + c
+        new_LOS = np.subtract(self.LOS, ramp_solution)  # Removing the planar model
+        new_InSAR_obj = Insar2dObject(lon=self.lon, lat=self.lat, LOS=new_LOS,
+                                      LOS_unc=self.LOS_unc, lkv_E=self.lkv_E, lkv_N=self.lkv_N, lkv_U=self.lkv_U,
+                                      starttime=self.starttime, endtime=self.endtime, coherence=self.coherence,
+                                      look_direction=self.look_direction)
+        return new_InSAR_obj
+
     def rewrap_InSAR(self, wavelength):
         """
         Take unwrapped LOS measurements (mm) and artificially wrap them around a certain radar wavelength (mm)
@@ -138,3 +159,26 @@ class Insar2dObject:
         """
         az, inc = ivf.look_vector2flight_incidence_angles(self.lkv_E, self.lkv_N, self.lkv_U, self.look_direction)
         return az, inc
+
+    def convert_to_insar1D(self):
+        """
+        Convert a 2D InSAR object into a 1D InSAR object.
+
+        :return: an InSAR1D object.
+        """
+        X, Y = np.meshgrid(self.lon, self.lat)
+        lon1d = X.ravel()
+        lat1d = Y.ravel()
+        los1d = self.LOS.ravel()
+        losunc1d = self.LOS_unc.ravel()
+        lkv_E1d = self.lkv_E.ravel()
+        lkv_N1d = self.lkv_N.ravel()
+        lkv_U1d = self.lkv_U.ravel()
+        coh1d = self.coherence.ravel()
+
+        insar1d_pixels = InSAR_1D_Object.class_model.Insar1dObject(lon=lon1d, lat=lat1d, LOS=los1d, LOS_unc=losunc1d,
+                                                                   lkv_E=lkv_E1d, lkv_N=lkv_N1d, lkv_U=lkv_U1d,
+                                                                   coherence=coh1d, starttime=self.starttime,
+                                                                   endtime=self.endtime,
+                                                                   look_direction=self.look_direction)
+        return insar1d_pixels

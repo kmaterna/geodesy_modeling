@@ -1,58 +1,32 @@
 """
-June 2020
-Remove a ramp or a constant from 1D InSAR object, either naturally or by GPS
+Remove a ramp or a constant from 1D InSAR object
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
-from geodesy_modeling import general_utils
 from .class_model import Insar1dObject
-from .inputs import inputs_txt
-from .outputs import write_insar_invertible_format
 
 
-def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
+def fit_ramp(InSAR_Obj: Insar1dObject):
     """
-    Solve the least squares problem for the equation of a plane, and then remove it.
-    Then write out the data again.
+    Fit the best-fitting plane to an object of 1D InSAR data.
+
+    :param InSAR_Obj: 1D InSAR object
+    :return: a, b, c
     """
-    InSAR_Obj = inputs_txt(insar_textfile)
-    noplane_Obj = remove_best_fit_ramp(InSAR_Obj, ref_coord)
-    print("Writing ramp-removed data into file %s " % ramp_removed_file)
-    plotting_ramp_results(InSAR_Obj, noplane_Obj, insar_textfile+".png")
-    write_insar_invertible_format(noplane_Obj, ramp_removed_file)
-    return
-
-
-def remove_constant_filewise(insar_textfile, constant_removed_file, ref_coord=None):
-    InSAR_Obj = inputs_txt(insar_textfile)
-    noconst_Obj = remove_constant_insarformat(InSAR_Obj, ref_coord)
-    print("Writing constant-removed data into file %s " % constant_removed_file)
-    plotting_ramp_results(InSAR_Obj, noconst_Obj, insar_textfile+".png")
-    write_insar_invertible_format(noconst_Obj, constant_removed_file)
-    return
-
-
-def remove_constant_insarformat(InSAR_Obj: Insar1dObject, ref_coord=None):
-    """
-    Remove a constant from the InSAR_Obj.
-    If ref_coord, then remove ref_coord.
-    If not, then remove the median value.
-
-    :param InSAR_Obj: 1D insar object
-    :param ref_coord: [lon, lat] of point constrained to be zero.
-    :returns: 1D insar object
-    """
-    if ref_coord:
-        nearest_index, _, _ = general_utils.get_nearest_pixels_in_list(InSAR_Obj.get_coordinate_tuples(),
-                                                                       ref_coord[0], ref_coord[1])
-        constant = InSAR_Obj.LOS[nearest_index]
-    else:
-        constant = np.nanmedian(InSAR_Obj.LOS)
-    new_InSAR_Obj = InSAR_Obj.subtract_value(constant)
-    return new_InSAR_Obj
+    nonan_obj = InSAR_Obj.remove_nans()  # remove nans before fitting
+    # Solve for the best-fitting ramp of equation ax + by + c = z
+    Z = []
+    A = np.zeros((len(nonan_obj.lon), 3))
+    for i in range(len(nonan_obj.lon)):
+        A[i, :] = [nonan_obj.lon[i], nonan_obj.lat[i], 1]
+        Z.append(nonan_obj.LOS[i])
+    model = np.linalg.lstsq(A, Z)
+    model = model[0]
+    a, b, c = model[0], model[1], model[2]
+    return a, b, c
 
 
 def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
@@ -63,41 +37,30 @@ def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
     We will re-reference if provided.
     Otherwise, we will remove the constant associated with the ramp.
     :param InSAR_Obj: 1D insar object
-    :param ref_coord: [lon, lat] of point constrained to be zero.
+    :param ref_coord: (lon, lat) of point constrained to be zero.
     :returns: 1D insar object
     """
-    nonan_obj = InSAR_Obj.remove_nans()
-    # Solve for the best-fitting ramp of equation ax + by + c = z
-    Z = []
-    A = np.zeros((len(nonan_obj.lon), 3))
-    for i in range(len(nonan_obj.lon)):
-        A[i, :] = [nonan_obj.lon[i], nonan_obj.lat[i], 1]
-        Z.append(nonan_obj.LOS[i])
-    model = np.linalg.lstsq(A, Z)
-    model = model[0]
+    a, b, c = fit_ramp(InSAR_Obj)  # Solve for the best-fitting ramp of equation ax + by + c = z
 
     # Removing the planar model
-    ramp_solution = model[0] * InSAR_Obj.lon + model[1] * InSAR_Obj.lat + model[2]
-    new_disp = np.subtract(InSAR_Obj.LOS, ramp_solution)
+    new_insar = InSAR_Obj.subtract_ramp(a, b, c)
 
-    # Re-reference if necessary
+    # Re-reference if provided
     if ref_coord:
-        ref_plane = model[0] * ref_coord[0] + model[1] * ref_coord[1] + model[2]
-        new_disp = np.subtract(new_disp, ref_plane)
-
-    new_InSAR_Obj = Insar1dObject(lon=InSAR_Obj.lon, lat=InSAR_Obj.lat, LOS=new_disp, LOS_unc=InSAR_Obj.LOS_unc,
-                                  lkv_E=InSAR_Obj.lkv_E, lkv_N=InSAR_Obj.lkv_N, lkv_U=InSAR_Obj.lkv_U,
-                                  starttime=InSAR_Obj.starttime, endtime=InSAR_Obj.endtime,
-                                  coherence=InSAR_Obj.coherence)
-    return new_InSAR_Obj
+        ref_plane = a * ref_coord[0] + b * ref_coord[1] + c
+        new_insar = new_insar.subtract_value(ref_plane)
+    return new_insar
 
 
-# FUTURE WORK:
-# def remove_ramp_with_GPS(insar_textfile, gps_textfile):
-#     return
+def plot_ramp_results(Obj1, Obj2, filename):
+    """
+    Plot difference between the object with and without the ramp removal.
 
-
-def plotting_ramp_results(Obj1, Obj2, filename):
+    :param Obj1: Original InSAR 1d object
+    :param Obj2: De-ramped InSAR 1d object
+    :param filename: string
+    :return:
+    """
     vmin = np.nanmin(Obj1.LOS)
     vmax = np.nanmax(Obj1.LOS)
 
