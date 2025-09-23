@@ -11,7 +11,7 @@ from .class_model import Insar1dObject
 
 def fit_ramp(InSAR_Obj: Insar1dObject):
     """
-    Fit the best-fitting plane to an object of 1D InSAR data.
+    Fit the best-fitting plane parameters to an object of InSAR data (1d).
 
     :param InSAR_Obj: 1D InSAR object
     :return: a, b, c
@@ -29,26 +29,17 @@ def fit_ramp(InSAR_Obj: Insar1dObject):
     return a, b, c
 
 
-def remove_best_fit_ramp(InSAR_Obj: Insar1dObject, ref_coord=None):
+def remove_best_fit_ramp(InSAR_Obj: Insar1dObject):
     """
     Find the best-fitting ramp from a set of InSAR observations and remove it from the data.
     Plane equation: ax + by + c = z
     Solving Ax = B
-    We will re-reference if provided.
-    Otherwise, we will remove the constant associated with the ramp.
+
     :param InSAR_Obj: 1D insar object
-    :param ref_coord: (lon, lat) of point constrained to be zero.
     :returns: 1D insar object
     """
     a, b, c = fit_ramp(InSAR_Obj)  # Solve for the best-fitting ramp of equation ax + by + c = z
-
-    # Removing the planar model
-    new_insar = InSAR_Obj.subtract_ramp(a, b, c)
-
-    # Re-reference if provided
-    if ref_coord:
-        ref_plane = a * ref_coord[0] + b * ref_coord[1] + c
-        new_insar = new_insar.subtract_value(ref_plane)
+    new_insar = InSAR_Obj.subtract_ramp(a, b, c)  # Removing the planar model
     return new_insar
 
 

@@ -142,7 +142,7 @@ def summarize_quadtree_pixels(Atable, lons, lats, LOS, coh, lkvE, lkvN, lkvU):
 
 
 def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=0, min_pixels=4,
-                             custom_function=None):
+                             custom_function=None, visualize_results_file="quadtree_downsampling_preliminary.png"):
     """
     Data structure: [IMIN IMAX JMIN JMAX VAR NGOOD NTOTAL]
 
@@ -152,6 +152,7 @@ def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=
     :param ny_padding: option to move the dataset vertically within the square of power of two
     :param min_pixels: the size of the smallest leaf, default 4.
     :param custom_function: optional conditional function that can be used to split or not-split the leaves
+    :param visualize_results_file: optional, file where preliminary results will be visualized
     :return:
     """
     print("Entering quadtree downsampling routine")
@@ -234,8 +235,8 @@ def do_quadtree_downsampling(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=
     plt.xlabel("Array Index")
     plt.ylabel("Array Index")
     plt.title("Preliminary Quadtree Downsampling Scheme")
-    print("Plotting initial results in quadtree_downsampling_preliminary.png")
-    plt.savefig("quadtree_downsampling_preliminary.png")
+    print("Plotting initial results in " + visualize_results_file)
+    plt.savefig(visualize_results_file)
 
     return insar1d_object, valid_A, lons, lats
 
@@ -371,9 +372,10 @@ def write_insar_ds_invertible_format(InSAR_obj, valid_A, lons, lats, filename):
 
 def qtree_compute(insar2d_obj, var_max=0.5, nx_padding=0, ny_padding=0, min_pixels=4,
                   plotting_file="quadtree_ds_results.png", outfile="qt_ds_pixels.txt",
-                  custom_function=None):
-    """Return an insar1d object instead of an insar2d object. """
+                  prelim_vis_file="quadtree_downsampling_preliminary.png", custom_function=None):
+    """Return an insar_1d object instead of an insar_2d object. """
     insar1d_object, valid_A, lons, lats = do_quadtree_downsampling(insar2d_obj, var_max, nx_padding,
-                                                                   ny_padding, min_pixels, custom_function)
+                                                                   ny_padding, min_pixels, custom_function,
+                                                                   visualize_results_file=prelim_vis_file)
     quadtree_outputs(insar2d_obj, insar1d_object, valid_A, lons, lats, plotting_file, outfile)
     return insar1d_object

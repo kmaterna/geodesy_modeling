@@ -70,7 +70,8 @@ def remove_ramp_filewise(insar_textfile, ramp_removed_file, ref_coord=None):
     Then write out the data again.
     """
     InSAR_Obj = inputs.inputs_txt(insar_textfile)
-    noplane_Obj = remove_ramp.remove_best_fit_ramp(InSAR_Obj, ref_coord)
+    noplane_Obj = remove_ramp.remove_best_fit_ramp(InSAR_Obj)
+    noplane_Obj = noplane_Obj.subtract_value(ref_coord)
     print("Writing ramp-removed data into file %s " % ramp_removed_file)
     remove_ramp.plot_ramp_results(InSAR_Obj, noplane_Obj, insar_textfile+".png")
     outputs.write_insar_invertible_format(noplane_Obj, ramp_removed_file)
