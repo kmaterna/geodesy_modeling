@@ -2,6 +2,8 @@
 
 
 from ..InSAR_1D_Object import covariance
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def compute_insar_varigram(insarobj, rmin, rmax, dr, Nmax, rng=None):
@@ -25,3 +27,41 @@ def compute_insar_varigram(insarobj, rmin, rmax, dr, Nmax, rng=None):
     insar1d = insarobj.convert_to_insar1D()
     rnew, znew, sigma, L = covariance.compute_insar_varigram(insar1d, rmin, rmax, dr, Nmax, rng=rng)
     return rnew, znew, sigma, L
+
+
+def plot_cov_results(rnew, znew, sigma, L, outfile):
+    """ Plot the covariance vs. distance, both empirical/observed and exponential model fit. """
+    print("Plotting file %s " % outfile)
+    predicted = np.multiply(sigma, np.exp(-rnew / L))  # Estimating the covariance structure as an exponential
+    plt.figure(figsize=(8, 7), dpi=300)
+    plt.plot(rnew, znew, '.k', label='Observed')
+    plt.plot(rnew, predicted, '-r', label='Predicted, L=%.3f, sigma=%.3f' % (L, sigma))
+    plt.xlabel('Distance')
+    plt.ylabel('Covariance (mm^2)')
+    plt.legend()
+    plt.savefig(outfile)
+    plt.close()
+    return
+
+
+def write_covd_parameters(L, sigma, outfile):
+    """
+    :param L: lengthscale, float
+    :param sigma: amplitude of the variance near zero distance, float
+    :param outfile: string, filename
+    """
+    print("Writing covariance exponential parameters in file %s" % outfile)
+    with open(outfile, 'w') as ofile:
+        ofile.write("# Lengthscale, Sigma\n")
+        ofile.write("%f %f" % (L, sigma))
+    return
+
+
+def read_covd_parameters(infile):
+    print("Reading file %s " % infile)
+    with open(infile) as ifile:
+        ifile.readline()
+        data = ifile.readline()
+        L = float(data.split()[0])
+        sigma = float(data.split()[1])
+    return L, sigma
