@@ -196,7 +196,8 @@ def invert_data(arguments):
         fro_norm = np.sqrt(np.sum(A**2))
         A = np.divide(A, fro_norm)
 
-        scalar = 0.1  # A choice made by me
+        # scalar = 0.1  # A choice made by me
+        scalar = arguments.b
         A = np.multiply(scalar, A)
 
         # NEXT: Add a weak laplacian smoothing to the depth parameter as well.
@@ -267,6 +268,13 @@ def parse_arguments():
         "-o", "--output",
         required=True,
         help="Path to the output directory"
+    )
+
+    parser.add_argument(
+        "-b", "--b",
+        type=float,
+        required=True,
+        help="Scalar multiple between smoothing strengths"
     )
 
     # 3. Parse the command line
