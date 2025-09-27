@@ -204,16 +204,50 @@ def invert_data(arguments):
 
         return L@m_slip, A@m_depth
 
-    def residuals(m, data0, gamma0, lam0):
+    def laplacian_v4(m):
+        """
+        Create two residual vectors, one for Laplacian smoothing of the stress drop and
+        one for minimizing the magnitude of the stress drop.
+
+        :return: Two vectors, the laplacian smoothing penalty and the minimum-norm tikhonov penalty
+        """
+        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
+        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
+        strain_drop = np.multiply(1e6, np.divide(m_slip, m_depth))
+
+        # Doing the smoothing penalty on slip
+        n = len(m_slip)
+        main = -2 * np.ones(n)
+        off = 1 * np.ones(n - 1)
+        main[0] = main[-1] = 0  # Natural at boundaries
+        L = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+
+        # The minimum norm penalty on depth
+        A = np.eye(len(strain_drop))
+
+        return L@strain_drop, A@strain_drop
+
+    def residuals_coupled_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         l1, l2 = laplacian_v3(m)
         return np.concatenate((data_misfit, np.multiply(lam0, l1), np.multiply(lam0, l2)))
 
+    def residuals_stress_drop(m, data0, gamm0, lam0):  # if we're regularizing the stress drop
+        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
+        l1, l2 = laplacian_v4(m)
+        return np.concatenate((data_misfit, np.multiply(lam0, l1), np.multiply(gamm0, l2)))
+
     expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
+
+    if arguments.b == -1:
+        residuals = residuals_stress_drop
+    else:
+        residuals = residuals_coupled_L
 
     # NEXT: Put the additional three parameters for offset and planar fit.
     result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
                            x_scale=xscale)  # slip, z, a, b, c
+
     print(result.x)
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
@@ -274,7 +308,7 @@ def parse_arguments():
         "-b", "--b",
         type=float,
         required=True,
-        help="Scalar multiple between smoothing strengths"
+        help="Scalar multiple between smoothing strengths. Set to -1 if you want to smooth the stress drop."
     )
 
     # 3. Parse the command line
