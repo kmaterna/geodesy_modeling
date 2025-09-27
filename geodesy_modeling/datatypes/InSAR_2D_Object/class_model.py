@@ -182,3 +182,28 @@ class Insar2dObject:
                                                                    endtime=self.endtime,
                                                                    look_direction=self.look_direction)
         return insar1d_pixels
+
+    def uniform_downsample_convert_to_1d(self, x_decfactor, y_decfactor):
+        """
+        Downsample a bunch of 2D data into 1D data by downsampling uniformly in x and y directions
+
+        :param x_decfactor: integer, decimation factor
+        :param y_decfactor: integer, decimation factor
+        :return: an InSAR1D object
+        """
+        lons, lats, los, lkvE, lkvN, lkvU, coh = [], [], [], [], [], [], []
+        for i in range(0, len(self.lat), y_decfactor):
+            for j in range(0, len(self.lon), x_decfactor):
+                if not np.isnan(self.LOS[i][j]):
+                    lats.append(self.lat[i])
+                    lons.append(self.lon[j])
+                    los.append(self.LOS[i][j])
+                    coh.append(self.coherence[i][j])
+                    lkvE.append(self.lkv_E[i][j])
+                    lkvN.append(self.lkv_N[i][j])
+                    lkvU.append(self.lkv_U[i][j])
+        insar1d_data = InSAR_1D_Object.class_model.Insar1dObject(lons, lats, los, LOS_unc=np.zeros(np.shape(los)),
+                                                                 lkv_E=lkvE, lkv_N=lkvN, lkv_U=lkvU, coherence=coh,
+                                                                 starttime=self.starttime, endtime=self.endtime,
+                                                                 look_direction=self.look_direction)
+        return insar1d_data
