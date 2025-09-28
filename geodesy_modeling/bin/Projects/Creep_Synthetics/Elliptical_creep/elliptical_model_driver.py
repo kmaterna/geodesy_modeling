@@ -227,10 +227,39 @@ def invert_data(arguments):
 
         return L@strain_drop, A@strain_drop
 
+    def laplacian_v5(m):
+        """
+        Create two residual vectors, one for Laplacian smoothing of the stress drop and
+        one for minimizing the magnitude of the stress drop.
+        We apply the same Laplacian smoothing to the depth and slip parameters, and an additional Tikhonov to depth.
+
+        :return: Two vectors, the laplacian smoothing penalty and the minimum-norm tikhonov penalty
+        """
+        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
+        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
+
+        # Doing the smoothing penalty on slip
+        n = len(m_slip)
+        main = -2 * np.ones(n)
+        off = 1 * np.ones(n - 1)
+        main[0] = main[-1] = 0  # Natural at boundaries
+        L = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+
+        # The minimum norm penalty on depth
+        A = np.eye(len(m_slip))
+
+        return L@m_slip, L@m_depth, A@m_depth
+
     def residuals_coupled_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         l1, l2 = laplacian_v3(m)
         return np.concatenate((data_misfit, np.multiply(lam0, l1), np.multiply(lam0, l2)))
+
+    def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
+        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
+        l1, l2, l3 = laplacian_v5(m)
+        laplacian_part = np.multiply(lam0, l1) + np.multiply(lam0, l2)
+        return np.concatenate((data_misfit, laplacian_part, np.multiply(gamma0, l3)))
 
     def residuals_stress_drop(m, data0, gamm0, lam0):  # if we're regularizing the stress drop
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
@@ -242,7 +271,7 @@ def invert_data(arguments):
     if arguments.b == -1:
         residuals = residuals_stress_drop
     else:
-        residuals = residuals_coupled_L
+        residuals = residuals_double_L
 
     # NEXT: Put the additional three parameters for offset and planar fit.
     result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
