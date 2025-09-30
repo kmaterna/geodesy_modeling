@@ -147,85 +147,10 @@ def invert_data(arguments):
 
     Wd_apply = make_data_whitener(cov)
 
-    lam = arguments.tikhonov  # lambda = tikhonov smoothing over depth range
-    gamma = arguments.laplacian  # gamma = laplacian smoothing minimizing differences in slip
-    param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs)  # create initial parameter vector
-
     # Establish forward model and cost function
     def forward_model(params):  # params = vector of size 81, 39 slips + 39 depths + plane + offset
         insar_1d_model = elastic_model(params, cart_disp_points, faults, configs)
         return insar_1d_model
-
-    # Smoothing residuals (first differences) on first half of vector0uld
-    def smoothing_residuals(m2, gamma0):
-        return gamma0 * np.diff(m2)
-
-    # Laplacian smoothing residuals (second differences) on first half of vector
-    def laplacian_penalty(m2, gamma0):
-        # second differences
-        r = np.zeros_like(m2)
-        second_diff = m2[:-2] - 2 * m2[1:-1] + m2[2:]
-        r[1:-1] = second_diff
-        return gamma0 * r
-
-    def laplacian_v2(m, lam0, gamma0):
-        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
-        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
-        tikhonov = lam0 * m_depth  # Tikhonov (minimum-norm) regularization on the depth values
-        laplacian_smooth = laplacian_penalty(m_slip, gamma0)  # Laplacian smoothing on the slip values
-        depth_lapl_smooth = laplacian_penalty(m_depth, gamma0*0.01)  # Laplacian smoothing on the depth values too
-        depth_regularization = np.add(tikhonov, depth_lapl_smooth)  # combine laplacian and tikhonov for depth
-        return laplacian_smooth, depth_regularization
-
-    def laplacian_v3(m):
-        """ Trying a version where both smoothing parameters are tied together. """
-        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
-        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
-
-        # Doing the smoothing penalty on slip
-        n = len(m_slip)
-        main = -2 * np.ones(n)
-        off = 1 * np.ones(n - 1)
-        main[0] = main[-1] = 0  # Natural at boundaries
-        L = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
-        fro_norm = np.sqrt(np.sum(L**2))
-        L = np.divide(L, fro_norm)
-
-        # The minimum norm penalty on depth
-        A = np.eye(len(m_depth))
-        fro_norm = np.sqrt(np.sum(A**2))
-        A = np.divide(A, fro_norm)
-
-        # scalar = 0.1  # A choice made by me
-        scalar = arguments.b
-        A = np.multiply(scalar, A)
-
-        # NEXT: Add a weak laplacian smoothing to the depth parameter as well.
-
-        return L@m_slip, A@m_depth
-
-    def laplacian_v4(m):
-        """
-        Create two residual vectors, one for Laplacian smoothing of the stress drop and
-        one for minimizing the magnitude of the stress drop.
-
-        :return: Two vectors, the laplacian smoothing penalty and the minimum-norm tikhonov penalty
-        """
-        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
-        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last three reserved for plane
-        strain_drop = np.multiply(1e6, np.divide(m_slip, m_depth))
-
-        # Doing the smoothing penalty on slip
-        n = len(m_slip)
-        main = -2 * np.ones(n)
-        off = 1 * np.ones(n - 1)
-        main[0] = main[-1] = 0  # Natural at boundaries
-        L = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
-
-        # The minimum norm penalty on depth
-        A = np.eye(len(strain_drop))
-
-        return L@strain_drop, A@strain_drop
 
     def laplacian_v5(m):
         """
@@ -243,35 +168,27 @@ def invert_data(arguments):
         main = -2 * np.ones(n)
         off = 1 * np.ones(n - 1)
         main[0] = main[-1] = 0  # Natural at boundaries
-        L = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+        Lapl = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
 
         # The minimum norm penalty on depth
-        A = np.eye(len(m_slip))
+        A = np.eye(len(m_depth))
 
-        return L@m_slip, L@m_depth, A@m_depth
+        return Lapl@m_slip, Lapl@m_depth, A@m_depth, A@m_slip
 
-    def residuals_coupled_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
-        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        l1, l2 = laplacian_v3(m)
-        return np.concatenate((data_misfit, np.multiply(lam0, l1), np.multiply(lam0, l2)))
+    gamma = arguments.tikhonov  # lambda = tikhonov smoothing over depth range
+    lam = arguments.laplacian  # gamma = laplacian smoothing minimizing differences in slip
+    param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs)  # create initial parameter vector
 
     def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        l1, l2, l3 = laplacian_v5(m)
+        l1, l2, l3, l4 = laplacian_v5(m)
         laplacian_part = np.multiply(lam0, l1) + np.multiply(lam0, l2)
-        return np.concatenate((data_misfit, laplacian_part, np.multiply(gamma0, l3)))
+        tikhonov_part = np.multiply(gamma0, l3) + np.multiply(gamma0, l4)  # this l4 part is new experiment
+        return np.concatenate((data_misfit, laplacian_part, tikhonov_part))
 
-    def residuals_stress_drop(m, data0, gamm0, lam0):  # if we're regularizing the stress drop
-        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        l1, l2 = laplacian_v4(m)
-        return np.concatenate((data_misfit, np.multiply(lam0, l1), np.multiply(gamm0, l2)))
+    expname = 'laplacian_'+str(lam)+'_tikhonov_'+str(gamma)
 
-    expname = 'laplacian_'+str(gamma)+'_tikhonov_'+str(lam)
-
-    if arguments.b == -1:
-        residuals = residuals_stress_drop
-    else:
-        residuals = residuals_double_L
+    residuals = residuals_double_L
 
     # NEXT: Put the additional three parameters for offset and planar fit.
     result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
