@@ -253,7 +253,7 @@ def parse_arguments():
     parser.add_argument(
         "-b", "--b",
         type=float,
-        required=True,
+        default=1,
         help="Scalar multiple between smoothing strengths. Set to -1 if you want to smooth the stress drop."
     )
 
