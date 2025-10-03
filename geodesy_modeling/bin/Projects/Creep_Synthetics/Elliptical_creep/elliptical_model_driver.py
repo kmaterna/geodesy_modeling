@@ -87,7 +87,7 @@ def set_up_initial_params_and_bounds(configs):
 
     # Setting proper bounds
     lower_bound[0:numfaults] = fieldwork_data  # lower bound on slip from field data
-    upper_bound[0:numfaults] = 0.050  # upper bound on slip is 50 mm
+    upper_bound[0:numfaults] = 0.100  # upper bound on slip is 100 mm
     lower_bound[numfaults:2*numfaults] = 0  # lower bound on depth is zero
     upper_bound[numfaults:2*numfaults] = 5  # upper bound on depth is 5 km
     lower_bound[-3], lower_bound[-2], lower_bound[-1] = -50, -50, -5.0  # parameters for plane and reference pixel
