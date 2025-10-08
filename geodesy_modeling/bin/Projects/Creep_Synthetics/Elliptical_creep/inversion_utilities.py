@@ -15,24 +15,22 @@ def convert_xy_to_ll_insar1D(insar1D, configs):
     [real_lons, real_lats] = fault_vector_functions.xy2lonlat(insar1D.lon, insar1D.lat,
                                                               configs["zerolon"],
                                                               configs["zerolat"])
-    lkvE, lkvN, lkvU = insar_vector_functions.flight_incidence_angles2look_vector(configs["flight_angle"],
-                                                                                  configs["incidence_angle"],
-                                                                                  look_direction='right')
-    insar_data = InSAR_1D_Object.class_model.Insar1dObject(real_lons, real_lats, insar1D.LOS,
+    insar_data = InSAR_1D_Object.class_model.Insar1dObject(real_lons,
+                                                           real_lats,
+                                                           insar1D.LOS,
                                                            insar1D.LOS_unc,
-                                                           np.multiply(np.ones(np.shape(real_lons)), lkvE),
-                                                           np.multiply(np.ones(np.shape(real_lons)), lkvN),
-                                                           np.multiply(np.ones(np.shape(real_lons)), lkvU))
+                                                           insar1D.lkv_E,
+                                                           insar1D.lkv_N,
+                                                           insar1D.lkv_U)
     return insar_data
 
 
-def project_disp_points_into_insar1d(model_disp_points, flight_angle, incidence_angle):
+def project_disp_points_into_insar1d(model_disp_points, data_1d):
     """
     Project some modeled displacements points into the LOS and package them as InSAR1D object, matching the data.
 
     :param model_disp_points: list of Disp Point objects
-    :param flight_angle: float, in degrees
-    :param incidence_angle: float, in degrees, angle of the look vector away from the vertical
+    :param data_1d: insar1d object that contains look vectors, with the same shape as model_disp_points
     :return: InSAR_1D object
     """
     u = np.array([x.dE_obs for x in model_disp_points])
@@ -40,12 +38,17 @@ def project_disp_points_into_insar1d(model_disp_points, flight_angle, incidence_
     w = np.array([x.dU_obs for x in model_disp_points])
     lons = [x.lon for x in model_disp_points]
     lats = [x.lat for x in model_disp_points]
-    los = insar_vector_functions.def3D_into_LOS(u, v, w, flight_angle=flight_angle, incidence_angle=incidence_angle,
+    lkvE = data_1d.lkv_E
+    lkvN = data_1d.lkv_N
+    lkvU = data_1d.lkv_U
+    flight_angles, incidence_angles = insar_vector_functions.look_vector2flight_incidence_angles(lkvE, lkvN, lkvU,
+                                                                                                 look_direction='right')
+    los = insar_vector_functions.def3D_into_LOS(u, v, w, flight_angle=flight_angles, incidence_angle=incidence_angles,
                                                 look_direction='right')
     los = np.multiply(los, -1000)  # insar1d object is in mm; sign convention is flipped
     insar_data = InSAR_1D_Object.class_model.Insar1dObject(lons, lats, los,
-                                                           np.zeros(np.shape(los)), np.zeros(np.shape(los)),
-                                                           np.zeros(np.shape(los)), np.zeros(np.shape(los)))
+                                                           np.zeros(np.shape(los)), data_1d.lkv_E,
+                                                           data_1d.lkv_N, data_1d.lkv_U)
     return insar_data
 
 
@@ -77,6 +80,9 @@ def data_model_misfit_plot(datapts, modelpts, faults, outname):
     # Show the residuals
     axes[2].scatter(modelpts.lon, modelpts.lat, c=residuals, vmin=vmin, vmax=vmax)
     axes[2].set_title("Residuals, RMS=%.6f mm" % np.sqrt(np.mean(residuals**2)))
+    for item in faults:
+        lons, lats = item.get_updip_corners_lon_lat()
+        axes[2].plot(lons, lats)
     cbar = fig.colorbar(im2, ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     cbar.set_label('LOS Deformation (mm)')
     plt.savefig(outname)

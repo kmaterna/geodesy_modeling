@@ -22,17 +22,19 @@ from scipy.linalg import cholesky, solve_triangular
 import elliptical_utilities  # local import
 import inversion_utilities  # local import
 import os
+import sys
 
 
 default_params = PyCoulomb.configure_calc.get_lightweight_config_params(mu=30e9, lame1=30e9, B=0)
 
 
-def elastic_model(param_vector, cart_disp_points, faults, configs):
+def elastic_model(param_vector, data_1d, cart_disp_points, faults, configs):
     """
     The forward model. The mesh geometry is known separately.
 
     :param cart_disp_points: used only for location of points, in cartesian coordinates
     :param param_vector: vector of surface_slip values and depth-values for the various elliptical slip distributions
+    :param data_1d: 1d_insar_object, which contains the look vector information for each pixel
     :param faults: used for sources; the fault slip will be re-set to an elliptical slip distribution
     :param configs: dictionary of configuration parameters for the experiment
     :return: InSAR_1D_object, a matching object to the data structure. The LOS values contain the model predictions.
@@ -60,9 +62,7 @@ def elastic_model(param_vector, cart_disp_points, faults, configs):
                                                                                     zerolat=configs['zerolat'],
                                                                                     bbox=configs["bbox"])
     model_disp_points = triangle_okada.compute_cartesian_def_tris(inputs, default_params, cart_disp_points)  # run okada
-    insar_1d_model = inversion_utilities.project_disp_points_into_insar1d(model_disp_points,
-                                                                          configs["flight_angle"],
-                                                                          configs["incidence_angle"])  # cart. space
+    insar_1d_model = inversion_utilities.project_disp_points_into_insar1d(model_disp_points, data_1d)  # cart. space
     # Implement a planar fit to the data, which has three planar parameters for x and y and a constant offset
     insar_1d_model = insar_1d_model.subtract_ramp(a, b, c)
     print("Faults and points: %d and %d" % (len(fault_list), len(insar_1d_model.LOS)))
@@ -109,8 +109,6 @@ def set_up_initial_params_and_bounds(configs):
 
 def invert_data(arguments):
     # We can vary the smoothing parameter and determine the most appropriate one through L-curve analysis
-    # lam = 1  # Minimum norm Tikhonov smoothing regularization strength
-    # gamma = 50  # Laplacian Regularization strength
 
     with open(arguments.config) as f:
         configs = json.load(f)
@@ -123,9 +121,31 @@ def invert_data(arguments):
     print("Output Directory: ", arguments.output)
     os.makedirs(arguments.output, exist_ok=True)
 
+    gamma = arguments.tikhonov  # lambda = tikhonov smoothing over depth range
+    lam = arguments.laplacian  # gamma = laplacian smoothing minimizing differences in slip
+
     data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs, os.path.join(arguments.output,
                                                                                                     'used_faults.txt'))
+    # "data" is a insar1d object, so it contains all of its look vector information.
 
+    # Establish forward model and cost function
+    def forward_model(params):  # params = vector of size 81, 39 slips + 39 depths + plane + offset
+        insar_1d_model = elastic_model(params, data, cart_disp_points, faults, configs)
+        return insar_1d_model
+
+    # If we're doing a forward model:
+    if arguments.forward:
+        print("Forward modeling from file %s." % arguments.forward)
+        param_vector = np.loadtxt(arguments.forward)
+        model_pred = forward_model(param_vector)
+        model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
+        inversion_utilities.data_model_misfit_plot(data, model_pred, faults,
+                                                   os.path.join(arguments.output, "test_data_v_model.png"))
+        inversion_utilities.write_outputs(data, model_pred, param_vector, lam, gamma, arguments.output,
+                                          "test_", configs)
+        sys.exit(0)
+
+    # If we're doing a full inversion, let's move on to the covariance information.
     # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
     L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
     cov = covariance.build_Cd(data, sigma, L)
@@ -146,11 +166,6 @@ def invert_data(arguments):
         return Wd_apply0
 
     Wd_apply = make_data_whitener(cov)
-
-    # Establish forward model and cost function
-    def forward_model(params):  # params = vector of size 81, 39 slips + 39 depths + plane + offset
-        insar_1d_model = elastic_model(params, cart_disp_points, faults, configs)
-        return insar_1d_model
 
     def laplacian_v5(m):
         """
@@ -173,17 +188,15 @@ def invert_data(arguments):
         # The minimum norm penalty on depth
         A = np.eye(len(m_depth))
 
-        return Lapl@m_slip, Lapl@m_depth, A@m_depth, A@m_slip
+        return Lapl@m_slip, Lapl@m_depth, A@m_slip, A@m_depth
 
-    gamma = arguments.tikhonov  # lambda = tikhonov smoothing over depth range
-    lam = arguments.laplacian  # gamma = laplacian smoothing minimizing differences in slip
     param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs)  # create initial parameter vector
 
     def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-        l1, l2, l3, l4 = laplacian_v5(m)
-        laplacian_part = np.multiply(lam0, l1) + np.multiply(lam0, l2)
-        tikhonov_part = np.multiply(gamma0, l3) + np.multiply(gamma0, l4)  # this l4 part is new experiment
+        l1, l2, l3, l4 = laplacian_v5(m)  # slip, depth, slip, depth
+        laplacian_part = np.multiply(lam0*10, l1) + np.multiply(lam0, l2)
+        tikhonov_part = np.multiply(gamma0*10, l3) + np.multiply(gamma0, l4)  # this l4 part is new experiment
         return np.concatenate((data_misfit, laplacian_part, tikhonov_part))
 
     expname = 'laplacian_'+str(lam)+'_tikhonov_'+str(gamma)
@@ -248,6 +261,12 @@ def parse_arguments():
         "-o", "--output",
         required=True,
         help="Path to the output directory"
+    )
+
+    parser.add_argument(
+        "-f", "--forward",
+        default=None,
+        help="Path to forward model file"
     )
 
     parser.add_argument(

@@ -36,7 +36,7 @@ def write_insar_invertible_format(InSAR_obj, filename, unc_min=0):
     return
 
 
-def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_annot=None, refpix=None,
+def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=(), lats_annot=(), refpix=None,
                title=None, colormap='viridis'):
     """lons_annot and lat_annot are for lines to annotate the plot, such as faults or field boundaries"""
     print("Plotting insar in file %s " % plotname)
@@ -45,7 +45,7 @@ def plot_insar(InSAR_Obj, plotname, vmin=None, vmax=None, lons_annot=None, lats_
         im = plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap, vmin=vmin, vmax=vmax)
     else:
         im = plt.scatter(InSAR_Obj.lon, InSAR_Obj.lat, c=InSAR_Obj.LOS, s=28, cmap=colormap)
-    if lons_annot:
+    if len(lons_annot) > 0:
         plt.plot(lons_annot, lats_annot, color='darkred')
     if refpix:  # expect a list or tuple, (lon, lat)
         plt.plot(refpix[0], refpix[1], '.', color='red')
