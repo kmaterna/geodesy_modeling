@@ -195,8 +195,8 @@ def invert_data(arguments):
     def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         l1, l2, l3, l4 = laplacian_v5(m)  # slip, depth, slip, depth
-        laplacian_part = np.multiply(lam0*10, l1) + np.multiply(lam0, l2)
-        tikhonov_part = np.multiply(gamma0*10, l3) + np.multiply(gamma0, l4)  # this l4 part is new experiment
+        laplacian_part = np.multiply(lam0*100, l1) + np.multiply(lam0, l2)
+        tikhonov_part = np.multiply(gamma0*100, l3) + np.multiply(gamma0, l4)  # this l4 part is new experiment
         return np.concatenate((data_misfit, laplacian_part, tikhonov_part))
 
     expname = 'laplacian_'+str(lam)+'_tikhonov_'+str(gamma)
