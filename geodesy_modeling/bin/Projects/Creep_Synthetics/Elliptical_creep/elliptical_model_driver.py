@@ -121,8 +121,8 @@ def invert_data(arguments):
     print("Output Directory: ", arguments.output)
     os.makedirs(arguments.output, exist_ok=True)
 
-    gamma = arguments.tikhonov  # lambda = tikhonov smoothing over depth range
-    lam = arguments.laplacian  # gamma = laplacian smoothing minimizing differences in slip
+    gamma = arguments.tikhonov  # tikhonov smoothing over depth range
+    lam = arguments.laplacian  # laplacian smoothing minimizing differences in slip
 
     data, cart_disp_points, faults = inversion_utilities.read_data_and_faults(configs, os.path.join(arguments.output,
                                                                                                     'used_faults.txt'))
@@ -140,7 +140,8 @@ def invert_data(arguments):
         model_pred = forward_model(param_vector)
         model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
         inversion_utilities.data_model_misfit_plot(data, model_pred, faults,
-                                                   os.path.join(arguments.output, "test_data_v_model.png"))
+                                                   os.path.join(arguments.output, "test_data_v_model.png"),
+                                                   region=(-115.88, -115.65, 32.90, 33.05), s=20)
         inversion_utilities.write_outputs(data, model_pred, param_vector, lam, gamma, arguments.output,
                                           "test_", configs)
         sys.exit(0)
@@ -211,7 +212,8 @@ def invert_data(arguments):
     model_pred = forward_model(result.x)
     model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
     inversion_utilities.data_model_misfit_plot(data, model_pred, faults,
-                                               os.path.join(arguments.output, expname+"_data_v_model.png"))
+                                               os.path.join(arguments.output, expname+"_data_v_model.png"),
+                                               region=(-115.88, -115.65, 32.90, 33.05), s=20)
     inversion_utilities.write_outputs(data, model_pred, result.x, lam, gamma, arguments.output, expname, configs)
 
     # testcase_params = param0

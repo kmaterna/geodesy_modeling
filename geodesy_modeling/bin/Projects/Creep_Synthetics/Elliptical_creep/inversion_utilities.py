@@ -63,26 +63,32 @@ def read_data_and_faults(config, write_out_faults_file='used_faults.txt'):
     return data, cart_disp_points, faults
 
 
-def data_model_misfit_plot(datapts, modelpts, faults, outname):
+def data_model_misfit_plot(datapts, modelpts, faults, outname, region, s=20):
     """ Visualize the results of your inversion. """
     vmin, vmax = -15, 15
     residuals = datapts.LOS - modelpts.LOS
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), dpi=300)
     # Show the data
-    _im1 = axes[0].scatter(datapts.lon, datapts.lat, c=datapts.LOS, vmin=vmin, vmax=vmax)
+    _im1 = axes[0].scatter(datapts.lon, datapts.lat, c=datapts.LOS, vmin=vmin, vmax=vmax, s=s)
     axes[0].set_title("Input Data")
+    axes[0].set_xlim([region[0], region[1]])
+    axes[0].set_ylim([region[2], region[3]])
     # Show the model
-    im2 = axes[1].scatter(modelpts.lon, modelpts.lat, c=modelpts.LOS, vmin=vmin, vmax=vmax)
+    im2 = axes[1].scatter(modelpts.lon, modelpts.lat, c=modelpts.LOS, vmin=vmin, vmax=vmax, s=s)
     axes[1].set_title("Model, Elliptical")
     for item in faults:
         lons, lats = item.get_updip_corners_lon_lat()
-        axes[1].plot(lons, lats)
+        axes[1].plot(lons, lats, linewidth=0.5)
+    axes[1].set_xlim([region[0], region[1]])
+    axes[1].set_ylim([region[2], region[3]])
     # Show the residuals
-    axes[2].scatter(modelpts.lon, modelpts.lat, c=residuals, vmin=vmin, vmax=vmax)
+    axes[2].scatter(modelpts.lon, modelpts.lat, c=residuals, vmin=vmin, vmax=vmax, s=s)
     axes[2].set_title("Residuals, RMS=%.6f mm" % np.sqrt(np.mean(residuals**2)))
     for item in faults:
         lons, lats = item.get_updip_corners_lon_lat()
-        axes[2].plot(lons, lats)
+        axes[2].plot(lons, lats, linewidth=0.5)
+    axes[2].set_xlim([region[0], region[1]])
+    axes[2].set_ylim([region[2], region[3]])
     cbar = fig.colorbar(im2, ax=axes, orientation='vertical', fraction=0.02, pad=0.04)
     cbar.set_label('LOS Deformation (mm)')
     plt.savefig(outname)
