@@ -1,6 +1,8 @@
 import numpy as np
 from tectonic_utils.geodesy import insar_vector_functions as ivs
 from elastic_stresses_py.PyCoulomb.disp_points_object.disp_points_object import Displacement_points
+from shapely.geometry import Point
+from shapely.prepared import prep as shapely_prep
 
 
 class Insar1dObject:
@@ -170,6 +172,64 @@ class Insar1dObject:
                                       starttime=self.starttime, endtime=self.endtime, coherence=self.coherence,
                                       look_direction=self.look_direction)
         return new_InSAR_obj
+
+    def exclude_polygons(self, polygons_union, inplace=False):
+        """
+        Return a filtered copy (or modify in place) excluding points inside polygons_union.
+
+        Parameters
+        ----------
+        polygons_union : shapely geometry, such as shapely.geometry.Polygon
+            A precomputed unary union (Polygon or MultiPolygon) of exclusion regions.
+            poly_example = Polygon([
+                                    (-115.7577951705853, 33.04308571863883),
+                                    (-115.7425599928433, 33.02768144493102),
+                                    (-115.7192694607208, 33.01866143827083),
+                                    (-115.7577951705853, 33.04308571863883)
+                                    ])
+        inplace : bool
+            If True, modify self; otherwise return a new Insar1dObject.
+        """
+        prepared = shapely_prep(polygons_union)
+
+        keep_idx = []
+        for i, (x, y) in enumerate(zip(self.lon, self.lat)):
+            pt = Point(float(x), float(y))
+            if not prepared.contains(pt):
+                keep_idx.append(i)
+
+        # Slice arrays
+        def _sl(a):
+            if a is None:
+                return None
+            return np.asarray(a)[keep_idx]
+
+        lon_s = _sl(self.lon)
+        lat_s = _sl(self.lat)
+        los_s = _sl(self.LOS)
+        unc_s = _sl(getattr(self, 'LOS_unc', None))
+        lkve_s = _sl(getattr(self, 'lkv_E', None))
+        lkvn_s = _sl(getattr(self, 'lkv_N', None))
+        lkvu_s = _sl(getattr(self, 'lkv_U', None))
+        coh_s = _sl(getattr(self, 'coherence', None))
+
+        if inplace:
+            self.lon = lon_s
+            self.lat = lat_s
+            self.LOS = los_s
+            self.LOS_unc = unc_s
+            self.lkv_E = lkve_s
+            self.lkv_N = lkvn_s
+            self.lkv_U = lkvu_s
+            self.coherence = coh_s
+            return self
+
+        return Insar1dObject(
+            lon=lon_s, lat=lat_s, LOS=los_s, LOS_unc=unc_s,
+            lkv_E=lkve_s, lkv_N=lkvn_s, lkv_U=lkvu_s,
+            starttime=self.starttime, endtime=self.endtime,
+            coherence=coh_s, look_direction=self.look_direction,
+        )
 
     def check_internal_sanity(self):
         lenx = len(self.lon)

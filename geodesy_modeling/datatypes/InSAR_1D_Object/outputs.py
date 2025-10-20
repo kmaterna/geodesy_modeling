@@ -4,6 +4,10 @@ Write and output functions for 1D InSAR data format
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
+import os
+import zipfile
+import tempfile
 import datetime as dt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from tectonic_utils.geodesy import insar_vector_functions
@@ -98,4 +102,136 @@ def plot_look_vectors(Data, plotname):
     axarr[2].set_title("Look Vector Up", fontsize=title_fontsize)
 
     plt.savefig(plotname)
+    return
+
+
+def write_kml_points(InSAR_obj, outfile, cmap='RdBu_r', vmin=None, vmax=None, n_bins=11,
+                     alpha=1.0, icon_href='http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png',
+                     icon_scale=0.9, include_name=False, include_extended=True, kmz=False, unit='mm'):
+    """
+    Write a KML (or KMZ) with point Placemarks colored by LOS displacement.
+
+    Parameters
+    ----------
+    InSAR_obj : Insar1dObject
+        1D InSAR object containing lon, lat, LOS and optional coherence.
+    outfile : str
+        Path to output .kml or .kmz file.
+    cmap : str
+        Matplotlib colormap name.
+    vmin, vmax : float or None
+        Color range limits; if None, uses robust percentiles (2, 98).
+    n_bins : int
+        Number of discrete color bins/styles.
+    alpha : float
+        Overall alpha in [0,1] applied to styles.
+    icon_href : str
+        Icon URL for point styling.
+    icon_scale : float
+        Icon scale for point styling.
+    include_name : bool
+        If True, include the value of the point as a text attribute in the KML.
+    include_extended : bool
+        If True, include ExtendedData with LOS (and coherence if available).
+    kmz : bool
+        If True, write a KMZ; otherwise write plain KML.
+    unit : str
+        Unit string to annotate LOS values (e.g., 'mm').
+    """
+    print("Writing InSAR displacements into file %s " % outfile)
+
+    los = np.asarray(InSAR_obj.LOS, dtype=float)
+    lon = np.asarray(InSAR_obj.lon, dtype=float)
+    lat = np.asarray(InSAR_obj.lat, dtype=float)
+
+    valid = ~np.isnan(los)
+    los_valid = los[valid]
+    lon_valid = lon[valid]
+    lat_valid = lat[valid]
+
+    if vmin is None or vmax is None:
+        p2, p98 = np.nanpercentile(los_valid, [2, 98])
+        if vmin is None:
+            vmin = p2
+        if vmax is None:
+            vmax = p98
+    if vmin == vmax:
+        vmin -= 1.0
+        vmax += 1.0
+
+    cmap_obj = cm.get_cmap(cmap, n_bins)
+    edges = np.linspace(vmin, vmax, n_bins + 1)
+    idx = np.digitize(los_valid, edges, right=False) - 1
+    idx[idx < 0] = 0
+    idx[idx >= n_bins] = n_bins - 1
+
+    def rgba_to_kml_color(r, g, b, a):
+        aa = int(round(a * alpha * 255))
+        rr = int(round(r * 255))
+        gg = int(round(g * 255))
+        bb = int(round(b * 255))
+        return f"{aa:02x}{bb:02x}{gg:02x}{rr:02x}"
+
+    styles = []
+    for i in range(n_bins):
+        rgba = cmap_obj(i / max(1, n_bins - 1))
+        styles.append(rgba_to_kml_color(rgba[0], rgba[1], rgba[2], rgba[3]))
+
+    name = os.path.basename(outfile)
+
+    # Build KML content
+    parts = []
+    parts.append('<?xml version="1.0" encoding="UTF-8"?>')
+    parts.append('<kml xmlns="http://www.opengis.net/kml/2.2">')
+    parts.append('<Document>')
+    parts.append(f'<name>{name}</name>')
+
+    # Styles
+    for i, col in enumerate(styles):
+        parts.append(f'<Style id="s{i}">')
+        parts.append('<IconStyle>')
+        parts.append(f'<color>{col}</color>')
+        parts.append(f'<scale>{icon_scale}</scale>')
+        parts.append('<Icon>')
+        parts.append(f'<href>{icon_href}</href>')
+        parts.append('</Icon>')
+        parts.append('</IconStyle>')
+        parts.append('</Style>')
+
+    # Placemarks
+    coh = getattr(InSAR_obj, 'coherence', None)
+    for i in range(len(lon_valid)):
+        style_id = idx[i]
+        val = los_valid[i]
+        x = lon_valid[i]
+        y = lat_valid[i]
+        parts.append('<Placemark>')
+        if include_name:
+            parts.append(f'<name>{val:.3f} {unit}</name>')
+        if include_extended:
+            parts.append('<ExtendedData>')
+            parts.append(f'<Data name="LOS"><value>{val:.6f}</value></Data>')
+            if coh is not None and not np.isnan(coh[valid][i]):
+                parts.append(f'<Data name="coherence"><value>{float(coh[valid][i]):.4f}</value></Data>')
+            parts.append('</ExtendedData>')
+        parts.append(f'<styleUrl>#s{style_id}</styleUrl>')
+        parts.append('<Point>')
+        parts.append(f'<coordinates>{x:.6f},{y:.6f},0</coordinates>')
+        parts.append('</Point>')
+        parts.append('</Placemark>')
+
+    parts.append('</Document>')
+    parts.append('</kml>')
+    kml_text = "\n".join(parts)
+
+    if kmz:
+        with tempfile.TemporaryDirectory() as td:
+            doc_path = os.path.join(td, 'doc.kml')
+            with open(doc_path, 'w') as f:
+                f.write(kml_text)
+            with zipfile.ZipFile(outfile, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+                zf.write(doc_path, arcname='doc.kml')
+    else:
+        with open(outfile, 'w') as f:
+            f.write(kml_text)
     return
