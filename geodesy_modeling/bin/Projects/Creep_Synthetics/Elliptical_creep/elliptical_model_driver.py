@@ -93,16 +93,23 @@ def set_up_initial_params_and_bounds(configs):
     lower_bound[-3], lower_bound[-2], lower_bound[-1] = -50, -50, -5.0  # parameters for plane and reference pixel
     upper_bound[-3], upper_bound[-2], upper_bound[-1] = 50, 50, 5.0
 
+    if configs['starting_point'] is not None:
+        param0 = np.loadtxt(configs['starting_point'])
+    else:
+        param0 = []   # param vector = [slip slip slip ..... slip depth depth depth..... a, b, c]
+        for i in range(configs["num_faults"]):  # initial guess for the slip is 20 mm (m)
+            slip_guess = np.max([0.02, lower_bound[i]])  # the initial guess is either 20 mm or the minimum of range
+            param0.append(slip_guess)
+        for i in range(configs["num_faults"]):  # initial guess for the lower-depth km is 1 km
+            param0.append(2.0)
+        param0 = param0 + [0, 0, 0]  # plane, plane, and reference pixel
+
     # Set up the original parameter vector and the upper bounds and lower bounds
-    param0, x_scale = [], []  # param vector = [slip slip slip ..... slip depth depth depth..... a, b, c]
+    x_scale = []  #
     for i in range(configs["num_faults"]):  # initial guess for the slip is 20 mm (m)
-        slip_guess = np.max([0.02, lower_bound[i]])  # the initial guess is either 20 mm or the minimum of range
-        param0.append(slip_guess)
         x_scale.append(0.01)  # scale is mm
     for i in range(configs["num_faults"]):  # initial guess for the lower-depth km is 1 km
-        param0.append(2.0)
         x_scale.append(1.0)
-    param0 = param0 + [0, 0, 0]  # plane, plane, and reference pixel
     x_scale = x_scale + [5.0, 5.0, 1.0]
     return param0, lower_bound, upper_bound, x_scale
 
