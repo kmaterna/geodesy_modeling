@@ -23,6 +23,7 @@ import elliptical_utilities  # local import
 import inversion_utilities  # local import
 import os
 import sys
+from scipy.stats import qmc  # Sobol / LHS
 
 
 default_params = PyCoulomb.configure_calc.get_lightweight_config_params(mu=30e9, lame1=30e9, B=0)
@@ -202,7 +203,7 @@ def invert_data(arguments):
 
         return Lapl@m_slip, Lapl@m_depth, A@m_slip, A@m_depth
 
-    param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs, arguments)  # create initial parameter vector
+    param0, lower_b, upper_b, xscale = set_up_initial_params_and_bounds(configs, arguments)  # initial parameter vector
 
     def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
@@ -215,9 +216,36 @@ def invert_data(arguments):
 
     residuals = residuals_double_L
 
-    # NEXT: Put the additional three parameters for offset and planar fit.
-    result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
-                           x_scale=xscale)  # slip, z, a, b, c
+    lb, ub = np.asarray(lower_b), np.asarray(upper_b)
+    d = len(lb)
+
+    # Sobol sequence for space-filling initializations
+    n_starts = 128  # scale up/down with your budget
+    sampler = qmc.Sobol(d=d, scramble=True)
+    X = qmc.scale(sampler.random(n_starts), lb, ub)  # n_starts x d
+
+    best = None
+    counter = 0
+    for x0 in X:
+        x0[-1] = 0
+        x0[-2] = 0
+        x0[-3] = 0  # starting with no plane
+        res = least_squares(residuals, x0, method="trf", bounds=(lb, ub),
+                            args=(data, gamma, lam),
+                            jac="2-point", xtol=1e-10, ftol=1e-10, gtol=1e-10,
+                            max_nfev=2000, x_scale=xscale)
+        if (best is None) or (res.cost < best.cost):
+            best = res
+        counter += 1
+        output_array = np.vstack((x0, lb, ub, res.x)).T
+        np.savetxt(os.path.join(arguments.output, 'params_'+str(counter)+'.txt'), output_array)
+
+    theta_star = best.x
+    result = theta_star
+
+    # # NEXT: Put the additional three parameters for offset and planar fit.
+    # result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
+    #                        x_scale=xscale)  # slip, z, a, b, c
 
     print(result.x)
     model_pred = forward_model(result.x)
