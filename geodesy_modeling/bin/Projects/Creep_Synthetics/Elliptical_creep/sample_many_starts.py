@@ -241,7 +241,7 @@ def invert_data(arguments):
         np.savetxt(os.path.join(arguments.output, 'params_'+str(counter)+'.txt'), output_array)
 
     theta_star = best.x
-    result = theta_star
+    result = best
 
     # # NEXT: Put the additional three parameters for offset and planar fit.
     # result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
