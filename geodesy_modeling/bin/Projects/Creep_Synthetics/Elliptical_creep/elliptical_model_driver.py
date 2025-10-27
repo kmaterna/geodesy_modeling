@@ -217,14 +217,14 @@ def invert_data(arguments):
 
         full_residuals = residuals(param_vector, data, gamma, lam)  # full residual vector, with applied coefficients
 
-        total_misift, data_misfit = inversion_utilities.plot_complete_residual_vector_and_results(full_residuals,
-                                                                                                  data,
-                                                                                                  model_pred,
-                                                                                                  param_vector,
-                                                                                                  faults,
-                                                                                                  arguments.output)
+        total_misift, d_misfit = inversion_utilities.plot_complete_residual_vector_and_results(full_residuals,
+                                                                                               data,
+                                                                                               model_pred,
+                                                                                               param_vector,
+                                                                                               faults,
+                                                                                               arguments.output)
 
-        return data_misfit
+        return d_misfit
 
     else:
         # Visualize the covariance matrix
@@ -242,8 +242,8 @@ def invert_data(arguments):
                                                    os.path.join(arguments.output, expname+"_data_v_model.png"),
                                                    region=(-115.88, -115.65, 32.90, 33.05), s=20)
         inversion_utilities.write_outputs(data, model_pred, result.x, lam, gamma, arguments.output, expname, configs)
-        residuals = data.LOS - model_pred.LOS
-        data_misfit = np.sqrt(np.mean(residuals**2))
+        d_misfit = data.LOS - model_pred.LOS
+        rms_misfit = np.sqrt(np.mean(d_misfit**2))
 
         full_residuals = residuals(result.x, data, gamma, lam)  # full residual vector, with applied coefficients
 
@@ -261,7 +261,7 @@ def invert_data(arguments):
         #                                            outname=os.path.join(arguments.output, "testcase_model.png"))
         # inversion_utilities.write_outputs(data, simple_model, testcase_params, lam, gamma, arguments.output,
         #                                   'testcase', configs)
-        return data_misfit
+        return rms_misfit
 
 
 def do_main(parsed):
