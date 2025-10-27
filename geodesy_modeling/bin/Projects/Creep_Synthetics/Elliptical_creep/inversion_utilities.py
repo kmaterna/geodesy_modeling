@@ -119,3 +119,86 @@ def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, 
         outfile.write("lam (tikhonov): %f\n" % lam)
         outfile.write("gamma (smoothing): %f\n" % gamma)
     return
+
+
+def plot_complete_residual_vector_and_results(full_residuals, data, model_pred, param_vector, faults, outdir):
+    slip_values = param_vector[0:39]
+    depth_values = param_vector[39:39 * 2]
+    normalized_data_resid = full_residuals[0:len(data.LOS)]  # the data part divided by L(Cd)
+    data_residuals = data.LOS - model_pred.LOS  # the pure data residuals, in mm
+    laplacian_slip = full_residuals[len(data.LOS):len(data.LOS) + 39]
+    laplacian_depth = full_residuals[len(data.LOS) + 39:len(data.LOS) + 2 * 39]
+    tikhonov_slip = full_residuals[len(data.LOS) + 2 * 39:len(data.LOS) + 3 * 39]
+    tikhonov_depth = full_residuals[len(data.LOS) + 3 * 39:-1]
+    data_misfit = np.sqrt(np.mean(data_residuals ** 2))
+    chi2 = np.sqrt(np.mean(normalized_data_resid ** 2))
+    lslip = np.sqrt(np.mean(laplacian_slip ** 2))
+    ldepth = np.sqrt(np.mean(laplacian_depth ** 2))
+    tslip = np.sqrt(np.mean(tikhonov_slip ** 2))
+    tdepth = np.sqrt(np.mean(tikhonov_depth ** 2))
+    total_misfit = np.sqrt(np.mean(full_residuals ** 2))
+
+    print(f"  Data misfit: {data_misfit} mm")
+    print(f"  Normalized data misfit: {chi2}")
+    print(f"  Laplacian part: {np.sqrt(np.mean(np.concatenate((laplacian_slip, laplacian_depth)) ** 2))}")
+    print(f"  Tikhonov part: {np.sqrt(np.mean(np.concatenate((tikhonov_slip, tikhonov_depth)) ** 2))}")
+    print(f"  Total Loss Function RMS: {total_misfit}")
+
+    plt.figure(figsize=(5, 5), dpi=300)
+    plt.scatter(data.lon, data.lat, c=abs(normalized_data_resid), s=20, vmin=0, vmax=3.1)
+    plt.colorbar()
+    for item in faults:
+        lons, lats = item.get_updip_corners_lon_lat()
+        plt.plot(lons, lats, linewidth=0.5, color='firebrick')
+    plt.title(f"RMS Data Misfit {data_misfit:.3f} mm and Chi2 {chi2:.3f}")
+    plt.savefig(os.path.join(outdir, 'data_misfit_contributions.png'))
+
+    # --- Figure & layout ---
+    fig = plt.figure(figsize=(10, 7), constrained_layout=False, dpi=300)
+    gs = fig.add_gridspec(
+        nrows=2, ncols=2,
+        width_ratios=[1, 2.2],  # left (square) : right (wide)
+        height_ratios=[1, 1],
+        wspace=0.3, hspace=0.35
+    )
+
+    ax00 = fig.add_subplot(gs[0, 0])  # top-left (square)
+    ax01 = fig.add_subplot(gs[0, 1])  # top-right (rectangular)
+    ax10 = fig.add_subplot(gs[1, 0])  # bottom-left (square)
+    ax11 = fig.add_subplot(gs[1, 1])  # bottom-right (rectangular)
+
+    # --- Left: square plots with colorbars ---
+    im0 = ax00.scatter(data.lon, data.lat, c=abs(data_residuals), s=17, vmin=-3.1, vmax=3.1)
+    ax00.set_title(f'g(m) - d: {data_misfit:.3f} mm rms')
+    ax00.set_aspect('equal', adjustable='box')
+    cbar0 = fig.colorbar(im0, ax=ax00, fraction=0.046, pad=0.04)
+    cbar0.set_label('Value')
+
+    im1 = ax10.scatter(data.lon, data.lat, c=abs(normalized_data_resid), s=17, vmin=0, vmax=3.1)
+    ax10.set_title(f'L^-1 (g(m)-d): {chi2:.3f} rms')
+    ax10.set_aspect('equal', adjustable='box')
+    cbar1 = fig.colorbar(im1, ax=ax10, fraction=0.046, pad=0.04)
+    cbar1.set_label('Value')
+
+    # --- Right: long rectangular plots ---
+    ax01.plot(slip_values, lw=2)
+    ax01.set_title(f'Slip Values: Laplacian = {lslip:.3f}, Tikhonov = {tslip:.3f}')
+    ax01.set_xlabel('Fault segment')
+    ax01.set_ylim([0, 3.0])
+    ax01.set_ylabel('Slip (cm)')
+
+    ax11.plot(depth_values, lw=2)
+    ax11.set_title(f'Depth Values: Laplacian = {ldepth:.3f}, Tikhonov = {tdepth:.3f}')
+    ax11.set_xlabel('Fault segment')
+    ax11.set_ylim([0, 5.0])
+    ax11.set_ylabel('Depth (km)')
+
+    # --- Overall title ---
+    fig.suptitle(f'Total Loss Function Phi: {total_misfit:.3f}', fontsize=14, y=0.98)
+
+    # Leave space for the suptitle
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+
+    plt.savefig(os.path.join(outdir, 'all_loss_contributions.png'))
+
+    return total_misfit, data_misfit

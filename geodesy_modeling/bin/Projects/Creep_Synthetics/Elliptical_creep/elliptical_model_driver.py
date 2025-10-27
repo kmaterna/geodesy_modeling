@@ -143,13 +143,70 @@ def invert_data(arguments):
         insar_1d_model = elastic_model(params, data, cart_disp_points, faults, configs)
         return insar_1d_model
 
+    # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
+    L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
+    cov = covariance.build_Cd(data, sigma, L)
+
+    # Whitening the covariance matrix through Cholesky decomposition
+    Lt_mat = cholesky(cov, lower=True, check_finite=False)
+
+    def make_data_whitener(Cd):
+        # Cd must be symmetric-positive-definite. If near-singular, consider jitter or SVD.
+        Ld = cholesky(Cd, lower=True, check_finite=False)  # Cd = Ld Ld^T
+
+        # Wd @ x == solve(Ld, x) ⇒ Wd = Ld^{-1} without forming it
+        def Wd_apply0(x):
+            # handle 1D vector or 2D matrix (apply to columns)
+            return solve_triangular(Ld, x, lower=True, check_finite=False)
+        return Wd_apply0
+
+    Wd_apply = make_data_whitener(cov)
+
+    def laplacian_v5(m):
+        """
+        Create two residual vectors, one for Laplacian smoothing of the stress drop and
+        one for minimizing the magnitude of the stress drop.
+        We apply the same Laplacian smoothing to the depth and slip parameters, and an additional Tikhonov to depth.
+
+        :return: Two vectors, the laplacian smoothing penalty and the minimum-norm tikhonov penalty
+        """
+        m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
+        m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last 3 reserved for plane
+
+        # Doing the smoothing penalty on slip
+        n = len(m_slip)
+        main = -2 * np.ones(n)
+        off = 1 * np.ones(n - 1)
+        main[0] = main[-1] = 0  # Natural at boundaries
+        Lapl = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+
+        # The minimum norm penalty on depth
+        A = np.eye(len(m_depth))
+
+        return Lapl@m_slip, Lapl@m_depth, A@m_slip, A@m_depth
+
+    param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs, arguments)  # create initial parameter vector
+
+    def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
+        data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
+        l1, l2, l3, l4 = laplacian_v5(m)  # slip, depth, slip, depth
+        beta = 2  # A factor for reasonable balance between the strength of slip smoothing and depth smoothing
+        return np.concatenate((data_misfit,
+                               np.multiply(lam0, l1),  # Laplacian on slip
+                               np.multiply(lam0, l2),   # Laplacian on depth  # We can increase this.
+                               np.multiply(gamma0*beta, l3),  # Tikhonov on slip
+                               np.multiply(gamma0*beta, l4)))  # Tikhonov on depth
+
+    expname = 'laplacian_'+str(lam)+'_tikhonov_'+str(gamma)
+
+    residuals = residuals_double_L
+
     # If we're doing a forward model:
     if arguments.forward:
         print("Forward modeling from file %s." % arguments.forward)
         param_vector = np.loadtxt(arguments.forward)
-        print(np.size(param_vector))
         if np.size(param_vector) > 81:
-            param_vector = param_vector[:, 3]  # use the optimal solution
+            param_vector = param_vector[:, 3]  # use the column that represents the optimal solution
         model_pred = forward_model(param_vector)
         model_pred = inversion_utilities.convert_xy_to_ll_insar1D(model_pred, configs)
         inversion_utilities.data_model_misfit_plot(data, model_pred, faults,
@@ -157,70 +214,24 @@ def invert_data(arguments):
                                                    region=(-115.88, -115.65, 32.90, 33.05), s=20)
         inversion_utilities.write_outputs(data, model_pred, param_vector, lam, gamma, arguments.output,
                                           "test_", configs)
-        residuals = data.LOS - model_pred.LOS
-        data_misfit = np.sqrt(np.mean(residuals**2))
+
+        full_residuals = residuals(param_vector, data, gamma, lam)  # full residual vector, with applied coefficients
+
+        total_misift, data_misfit = inversion_utilities.plot_complete_residual_vector_and_results(full_residuals,
+                                                                                                  data,
+                                                                                                  model_pred,
+                                                                                                  param_vector,
+                                                                                                  faults,
+                                                                                                  arguments.output)
+
         return data_misfit
 
     else:
-        # If we're doing a full inversion, let's move on to the covariance information.
-        # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
-        L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
-        cov = covariance.build_Cd(data, sigma, L)
+        # Visualize the covariance matrix
         covariance.plot_full_covd(cov, os.path.join(arguments.output, 'covariance_matrix.png'))
-
-        # Whitening the covariance matrix through Cholesky decomposition
-        Lt_mat = cholesky(cov, lower=True, check_finite=False)
         covariance.plot_full_covd(Lt_mat, os.path.join(arguments.output, 'cholesky_Lt.png'))
 
-        def make_data_whitener(Cd):
-            # Cd must be symmetric-positive-definite. If near-singular, consider jitter or SVD.
-            Ld = cholesky(Cd, lower=True, check_finite=False)  # Cd = Ld Ld^T
-
-            # Wd @ x == solve(Ld, x) ⇒ Wd = Ld^{-1} without forming it
-            def Wd_apply0(x):
-                # handle 1D vector or 2D matrix (apply to columns)
-                return solve_triangular(Ld, x, lower=True, check_finite=False)
-            return Wd_apply0
-
-        Wd_apply = make_data_whitener(cov)
-
-        def laplacian_v5(m):
-            """
-            Create two residual vectors, one for Laplacian smoothing of the stress drop and
-            one for minimizing the magnitude of the stress drop.
-            We apply the same Laplacian smoothing to the depth and slip parameters, and an additional Tikhonov to depth.
-
-            :return: Two vectors, the laplacian smoothing penalty and the minimum-norm tikhonov penalty
-            """
-            m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
-            m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last 3 reserved for plane
-
-            # Doing the smoothing penalty on slip
-            n = len(m_slip)
-            main = -2 * np.ones(n)
-            off = 1 * np.ones(n - 1)
-            main[0] = main[-1] = 0  # Natural at boundaries
-            Lapl = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
-
-            # The minimum norm penalty on depth
-            A = np.eye(len(m_depth))
-
-            return Lapl@m_slip, Lapl@m_depth, A@m_slip, A@m_depth
-
-        param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs, arguments)  # create initial parameter vector
-
-        def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
-            data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
-            l1, l2, l3, l4 = laplacian_v5(m)  # slip, depth, slip, depth
-            laplacian_part = np.multiply(lam0*100, l1) + np.multiply(lam0, l2)
-            tikhonov_part = np.multiply(gamma0*100, l3) + np.multiply(gamma0, l4)  # this l4 part is new experiment
-            return np.concatenate((data_misfit, laplacian_part, tikhonov_part))
-
-        expname = 'laplacian_'+str(lam)+'_tikhonov_'+str(gamma)
-
-        residuals = residuals_double_L
-
-        # NEXT: Put the additional three parameters for offset and planar fit.
+        # The full least squares analysis
         result = least_squares(residuals, x0=param0, verbose=True, bounds=[lb, ub], args=(data, gamma, lam),
                                x_scale=xscale)  # slip, z, a, b, c
 
@@ -234,6 +245,15 @@ def invert_data(arguments):
         residuals = data.LOS - model_pred.LOS
         data_misfit = np.sqrt(np.mean(residuals**2))
 
+        full_residuals = residuals(result.x, data, gamma, lam)  # full residual vector, with applied coefficients
+
+        _, _ = inversion_utilities.plot_complete_residual_vector_and_results(full_residuals,
+                                                                             data,
+                                                                             model_pred,
+                                                                             result.x,
+                                                                             faults,
+                                                                             arguments.output)
+
         # testcase_params = param0
         # simple_model = forward_model(testcase_params)  # InSAR1D object
         # simple_model = inversion_utilities.convert_xy_to_ll_insar1D(simple_model, configs)
@@ -241,7 +261,7 @@ def invert_data(arguments):
         #                                            outname=os.path.join(arguments.output, "testcase_model.png"))
         # inversion_utilities.write_outputs(data, simple_model, testcase_params, lam, gamma, arguments.output,
         #                                   'testcase', configs)
-    return data_misfit
+        return data_misfit
 
 
 def do_main(parsed):
