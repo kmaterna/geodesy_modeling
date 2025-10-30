@@ -121,7 +121,8 @@ def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, 
     return
 
 
-def plot_complete_residual_vector_and_results(full_residuals, data, model_pred, param_vector, faults, outdir):
+def plot_complete_residual_vector_and_results(full_residuals, data, model_pred, param_vector, faults, outdir,
+                                              laplacian):
     slip_values = param_vector[0:39]
     depth_values = param_vector[39:39 * 2]
     normalized_data_resid = full_residuals[0:len(data.LOS)]  # the data part divided by L(Cd)
@@ -174,27 +175,34 @@ def plot_complete_residual_vector_and_results(full_residuals, data, model_pred, 
     cbar0 = fig.colorbar(im0, ax=ax00, fraction=0.046, pad=0.04)
     cbar0.set_label('Value')
 
-    im1 = ax10.scatter(data.lon, data.lat, c=abs(normalized_data_resid), s=17, vmin=0, vmax=3.1)
+    im1 = ax10.scatter(data.lon, data.lat, c=abs(normalized_data_resid), s=17, vmin=0, vmax=2.1)
     ax10.set_title(f'L^-1 (g(m)-d): {chi2:.3f} rms')
     ax10.set_aspect('equal', adjustable='box')
     cbar1 = fig.colorbar(im1, ax=ax10, fraction=0.046, pad=0.04)
     cbar1.set_label('Value')
 
     # --- Right: long rectangular plots ---
+    x = np.arange(0, 39)
     ax01.plot(slip_values, lw=2)
     ax01.set_title(f'Slip Values: Laplacian = {lslip:.3f}, Tikhonov = {tslip:.3f}')
+    im2 = ax01.scatter(x, slip_values, c=np.abs(laplacian_slip), s=30)
     ax01.set_xlabel('Fault segment')
+    cbar2 = fig.colorbar(im2, ax=ax01, fraction=0.046, pad=0.04)
+    cbar2.set_label("Laplacian")
     ax01.set_ylim([0, 3.0])
     ax01.set_ylabel('Slip (cm)')
 
     ax11.plot(depth_values, lw=2)
     ax11.set_title(f'Depth Values: Laplacian = {ldepth:.3f}, Tikhonov = {tdepth:.3f}')
+    im3 = ax11.scatter(x, depth_values, c=np.abs(laplacian_depth), s=30)
+    cbar3 = fig.colorbar(im3, ax=ax11, fraction=0.046, pad=0.04)
+    cbar3.set_label("Laplacian")
     ax11.set_xlabel('Fault segment')
     ax11.set_ylim([0, 5.0])
     ax11.set_ylabel('Depth (km)')
 
     # --- Overall title ---
-    fig.suptitle(f'Total Loss Function Phi: {total_misfit:.3f}', fontsize=14, y=0.98)
+    fig.suptitle(f'Total Loss Function Phi: {total_misfit:.3f} under Lambda={laplacian:.2f}', fontsize=14, y=0.98)
 
     # Leave space for the suptitle
     fig.tight_layout(rect=[0, 0, 1, 0.95])

@@ -19,6 +19,8 @@ from elastic_stresses_py.PyCoulomb.fault_slip_object import fault_slip_object as
 from elastic_stresses_py.PyCoulomb.fault_slip_triangle import triangle_okada
 from geodesy_modeling.datatypes.InSAR_1D_Object import covariance
 from scipy.linalg import cholesky, solve_triangular
+from tectonic_utils.geodesy import haversine
+import matplotlib.pyplot as plt
 import elliptical_utilities  # local import
 import inversion_utilities  # local import
 import os
@@ -117,6 +119,97 @@ def set_up_initial_params_and_bounds(configs, arguments):
     return param0, lower_bound, upper_bound, x_scale
 
 
+def modify_cov(matrix, data, faults):
+    """
+    :param matrix: covariance matrix
+    :param data: insar1d object
+    :param faults: list of fault_slip_objects
+    :return: another covariance matrix
+    """
+    fault_lons, fault_lats = [], []
+    for i in faults:
+        lons, lats = i.get_updip_corners_lon_lat()
+        fault_lons.append(lons[0])
+        fault_lons.append(lons[1])
+        fault_lats.append(lats[0])
+        fault_lats.append(lats[1])
+
+    is_NE = []
+    distances = []
+    for i in range(len(data.LOS)):
+        pt_lon, pt_lat = data.lon[i], data.lat[i]
+        smallest_distance = 100
+        proper_heading = 0
+        for x, y in zip(fault_lons, fault_lats):
+            small_distance = haversine.distance((y, x), (pt_lat, pt_lon))
+            heading = haversine.calculate_initial_compass_bearing((y, x), (pt_lat, pt_lon))
+            if small_distance < smallest_distance:
+                smallest_distance = small_distance
+                proper_heading = heading
+        distances.append(smallest_distance)  # in km
+        if 0 < proper_heading < 135 or 315 < proper_heading < 360:
+            is_NE.append(1)
+        else:
+            is_NE.append(0)
+
+    # Diagnostic plots only needed during first experiments.
+    # plt.figure(figsize=(5, 5), dpi=300)
+    # plt.scatter(data.lon, data.lat, s=10, c=distances)
+    # plt.plot(fault_lons, fault_lats)
+    # plt.colorbar(label='Distances (km)')
+    # plt.savefig("Distances.png")
+    # plt.close()
+    # plt.figure(figsize=(5, 5), dpi=300)
+    # plt.scatter(data.lon, data.lat, s=10, c=is_NE)
+    # plt.plot(fault_lons, fault_lats)
+    # plt.colorbar()
+    # plt.savefig("Left_right.png")
+    # plt.close()
+    # plt.figure(figsize=(5, 5), dpi=300)
+    # plt.imshow(matrix)
+    # plt.colorbar()
+    # plt.savefig("matrix_before.png")
+    # plt.close()
+
+    # 4) Eigen sanity (Hermitian eigvals are cheap & reliable)
+    w = np.linalg.eigvalsh(matrix)
+    print("eig min/max =", w[0], w[-1])
+    # 5) Condition number proxy
+    cond = w[-1] / max(w[0], 1e-300)
+    print("cond(eig) ≈", cond)
+
+    m, n = np.shape(matrix)
+    counter = 0
+    for i in range(m):
+        for j in range(i):
+            pt1 = (data.lat[i], data.lon[i])
+            pt2 = (data.lat[j], data.lon[j])
+            distance = haversine.distance(pt1, pt2)
+            if is_NE[i] + is_NE[j] == 1:  # if the two pixels are on opposite sides of the fault
+                if distance < 1.5:  # if they are really close together, 1.5 km apart
+                    matrix[i][j] = matrix[j][i] = 1  # change the values to a small number
+                    counter = counter + 1
+    print(f"{counter} pixels out of {np.size(matrix)} pixels changed")
+
+    jitter = 30  # This number is very sensitive. You need to add jitter to make the matrix invertible.
+    matrix = matrix + jitter * np.eye(matrix.shape[0])
+    matrix = 0.5 * (matrix + matrix.T)
+
+    # 4) Eigen sanity (Hermitian eigvals are cheap & reliable)
+    w = np.linalg.eigvalsh(matrix)
+    print("eig min/max =", w[0], w[-1])
+    # 5) Condition number proxy
+    cond = w[-1] / max(w[0], 1e-300)
+    print("cond(eig) ≈", cond)
+
+    plt.figure(figsize=(5, 5), dpi=300)
+    plt.imshow(matrix)
+    plt.colorbar()
+    plt.savefig("matrix_after.png")
+    plt.close()
+    return matrix
+
+
 def invert_data(arguments):
     # We can vary the smoothing parameter and determine the most appropriate one through L-curve analysis
 
@@ -146,6 +239,7 @@ def invert_data(arguments):
     # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
     L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
     cov = covariance.build_Cd(data, sigma, L)
+    cov = modify_cov(cov, data, faults)
 
     # Whitening the covariance matrix through Cholesky decomposition
     Lt_mat = cholesky(cov, lower=True, check_finite=False)
@@ -173,24 +267,26 @@ def invert_data(arguments):
         m_slip = m[0:configs["num_faults"]]  # slip is first half of model vector
         m_depth = m[configs["num_faults"]:-3]  # depth is 2nd half of model vector, with last 3 reserved for plane
 
-        # Doing the smoothing penalty on slip
+        # Doing the smoothing penalty on slip -- second derivative smoothing
         n = len(m_slip)
         main = -2 * np.ones(n)
         off = 1 * np.ones(n - 1)
-        main[0] = main[-1] = 0  # Natural at boundaries
         Lapl = diags([off, main, off], offsets=[-1, 0, 1], format="csr")
+        Lapl[0, 0:3] = 1, -2, 1  # Natural at boundaries
+        Lapl[-1, -4:-1] = 1, -2, 1  # Natural at boundaries
 
-        # The minimum norm penalty on depth
+        # The minimum norm penalty
         A = np.eye(len(m_depth))
+        tikhonov_depth = np.subtract(A@m_depth, np.multiply(1.5, np.ones((np.shape(m_depth)))))  # a reference solution
 
-        return Lapl@m_slip, Lapl@m_depth, A@m_slip, A@m_depth
+        return Lapl@m_slip, Lapl@m_depth, A@m_slip, tikhonov_depth
 
     param0, lb, ub, xscale = set_up_initial_params_and_bounds(configs, arguments)  # create initial parameter vector
 
     def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
         l1, l2, l3, l4 = laplacian_v5(m)  # slip, depth, slip, depth
-        beta = 2  # A factor for reasonable balance between the strength of slip smoothing and depth smoothing
+        beta = 1  # A factor for reasonable balance between the strength of slip smoothing and depth smoothing
         return np.concatenate((data_misfit,
                                np.multiply(lam0, l1),  # Laplacian on slip
                                np.multiply(lam0, l2),   # Laplacian on depth  # We can increase this.
@@ -204,6 +300,9 @@ def invert_data(arguments):
     # If we're doing a forward model:
     if arguments.forward:
         print("Forward modeling from file %s." % arguments.forward)
+        # Visualize the covariance matrix
+        covariance.plot_full_covd(cov, os.path.join(arguments.output, 'covariance_matrix.png'))
+        covariance.plot_full_covd(Lt_mat, os.path.join(arguments.output, 'cholesky_Lt.png'))
         param_vector = np.loadtxt(arguments.forward)
         if np.size(param_vector) > 81:
             param_vector = param_vector[:, 3]  # use the column that represents the optimal solution
@@ -222,7 +321,8 @@ def invert_data(arguments):
                                                                                                model_pred,
                                                                                                param_vector,
                                                                                                faults,
-                                                                                               arguments.output)
+                                                                                               arguments.output,
+                                                                                               arguments.laplacian)
 
         return d_misfit
 
@@ -252,7 +352,8 @@ def invert_data(arguments):
                                                                              model_pred,
                                                                              result.x,
                                                                              faults,
-                                                                             arguments.output)
+                                                                             arguments.output,
+                                                                             arguments.laplacian)
 
         # testcase_params = param0
         # simple_model = forward_model(testcase_params)  # InSAR1D object
