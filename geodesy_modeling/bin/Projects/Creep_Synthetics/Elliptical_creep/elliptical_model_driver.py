@@ -93,7 +93,7 @@ def set_up_initial_params_and_bounds(configs, arguments):
     lower_bound[numfaults:2*numfaults] = 0  # lower bound on depth is zero
     upper_bound[numfaults:2*numfaults] = 5  # upper bound on depth is 5 km
     lower_bound[-3], lower_bound[-2], lower_bound[-1] = -50, -50, -5.0  # parameters for plane and reference pixel
-    upper_bound[-3], upper_bound[-2], upper_bound[-1] = 50, 50, 5.0
+    upper_bound[-3], upper_bound[-2], upper_bound[-1] = 50, 50, 10.0
 
     if configs['starting_point'] is not None:
         param0 = np.loadtxt(configs['starting_point'])

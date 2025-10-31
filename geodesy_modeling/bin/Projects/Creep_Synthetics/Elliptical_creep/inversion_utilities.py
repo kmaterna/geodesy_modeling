@@ -65,7 +65,7 @@ def read_data_and_faults(config, write_out_faults_file='used_faults.txt'):
 
 def data_model_misfit_plot(datapts, modelpts, faults, outname, region, s=20):
     """ Visualize the results of your inversion. """
-    vmin, vmax = -15, 15
+    vmin, vmax = -8, 8
     residuals = datapts.LOS - modelpts.LOS
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), dpi=300)
     # Show the data
