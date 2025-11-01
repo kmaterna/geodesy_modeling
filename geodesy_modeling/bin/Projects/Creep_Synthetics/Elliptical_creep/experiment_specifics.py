@@ -124,7 +124,7 @@ def set_up_initial_params_and_bounds_const_stress(configs, arguments):
     # Setting proper bounds
     lower_bound[0:numfaults] = fieldwork_data  # lower bound on slip from field data
     upper_bound[0:numfaults] = 6  # upper bound on slip is 6 cm
-    lower_bound[-4] = 0   # strain (e-5)
+    lower_bound[-4] = 0.02   # strain (e-5)
     upper_bound[-4] = 10  # strain (e-5)
     lower_bound[-3], lower_bound[-2], lower_bound[-1] = -50, -50, -10.0  # parameters for plane and reference pixel
     upper_bound[-3], upper_bound[-2], upper_bound[-1] = 50, 50, 10.0
