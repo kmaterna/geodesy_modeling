@@ -97,16 +97,16 @@ def data_model_misfit_plot(datapts, modelpts, faults, outname, region, s=20):
 
 def write_outputs(data, model, fitted_params, lam, gamma, outdir, expname: str, configs):
     num_faults = configs["num_faults"]
+    fitted_params = np.array(fitted_params)
     if len(fitted_params) > 6:
         # If there are a lot of parameters, let's make a plot of them. Should formalize this later.
-        fault_fitted_params = np.array(fitted_params)[0:2*num_faults].reshape(2, num_faults).T
+        fault_fitted_params = fitted_params[0:2*num_faults].reshape(2, num_faults).T
         f, axarr = plt.subplots(2, 1, figsize=(14, 10), dpi=300)
         axarr[0].plot(fault_fitted_params[:, 0])
         axarr[0].set_ylabel('Slip (cm)')
         axarr[1].plot(fault_fitted_params[:, 1])
         axarr[1].set_ylabel('Depth (km)')
         plt.savefig(os.path.join(outdir, expname+"_model_params_results.png"))
-    fitted_params = np.array(fitted_params)
     residuals = data.LOS - model.LOS
     rms = np.sqrt(np.mean(residuals**2))
     outdata = np.vstack((data.lon, data.lat, data.lkv_E, data.lkv_N, data.lkv_U, data.LOS, model.LOS)).T
