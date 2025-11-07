@@ -62,13 +62,14 @@ def invert_data(arguments):
     def forward_model(params):  # params = vector of size n + 4,
         # will convert to (2n+3): n slips + n depths + plane + offset
         full_params = const_tau_params_to_full_params(params, configs["num_faults"])  # convert 43 to 81
+        print(full_params)
         insar_1d_model = experiment_specifics.elastic_model(full_params, data, cart_disp_points, faults, configs)
         return insar_1d_model
 
     # Determine covariance matrix, and compute the inverse by triangular matrices in the Cholesky decomposition.
     L, sigma = covariance.read_covd_parameters(configs["cov_parameters"])
     cov = covariance.build_Cd(data, sigma, L)
-    cov = experiment_specifics.modify_cov_to_split_across_fault(cov, data, faults)
+    cov = experiment_specifics.modify_cov_to_split_across_fault(cov, data, faults, jitter=30, lobotomy_value=1)
 
     # Whitening the data through its covariance matrix through Cholesky decomposition
     Lt_mat = cholesky(cov, lower=True, check_finite=False)
@@ -138,8 +139,8 @@ def invert_data(arguments):
 
         np.savetxt(os.path.join(arguments.output, 'fitted_parameters.txt'), param_vector,
                    header="Params slip(cm), strain(1e-5), plane, plane, reference")  # original vector
-        param_vector = const_tau_params_to_full_params(param_vector, configs["num_faults"])  # convert 43 to 81
-        inversion_utilities.write_outputs(data, model_pred, param_vector, lam, gamma, arguments.output,
+        full_param_vector = const_tau_params_to_full_params(param_vector, configs["num_faults"])  # convert 43 to 81
+        inversion_utilities.write_outputs(data, model_pred, full_param_vector, lam, gamma, arguments.output,
                                           "test_", configs)
 
         full_residuals = residuals(param_vector, data, gamma, lam)  # full residual vector, with applied coefficients
@@ -147,7 +148,7 @@ def invert_data(arguments):
         total_misift, d_misfit = inversion_utilities.plot_complete_residual_vector_and_results(full_residuals,
                                                                                                data,
                                                                                                model_pred,
-                                                                                               param_vector,
+                                                                                               full_param_vector,
                                                                                                faults,
                                                                                                arguments.output,
                                                                                                arguments.laplacian)
@@ -171,18 +172,18 @@ def invert_data(arguments):
         np.savetxt(os.path.join(arguments.output, 'fitted_parameters.txt'), result.x,
                    header="Params slip(cm), strain(1e-5), plane, plane, reference")  # original vector
 
-        param_vector = const_tau_params_to_full_params(result.x, configs["num_faults"])  # convert 43 to 81
-        inversion_utilities.write_outputs(data, model_pred, param_vector, lam, gamma, arguments.output, expname,
+        full_param_vector = const_tau_params_to_full_params(result.x, configs["num_faults"])  # convert 43 to 81
+        inversion_utilities.write_outputs(data, model_pred, full_param_vector, lam, gamma, arguments.output, expname,
                                           configs)
         d_misfit = data.LOS - model_pred.LOS
         rms_misfit = np.sqrt(np.mean(d_misfit**2))
 
-        full_residuals = residuals(param_vector, data, gamma, lam)  # full residual vector, with applied coefficients
+        full_residuals = residuals(result.x, data, gamma, lam)  # full residual vector, with applied coefficients
 
         _, _ = inversion_utilities.plot_complete_residual_vector_and_results(full_residuals,
                                                                              data,
                                                                              model_pred,
-                                                                             param_vector,
+                                                                             full_param_vector,
                                                                              faults,
                                                                              arguments.output,
                                                                              arguments.laplacian)

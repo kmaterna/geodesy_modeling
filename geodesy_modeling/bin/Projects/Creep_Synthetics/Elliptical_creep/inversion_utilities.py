@@ -169,13 +169,13 @@ def plot_complete_residual_vector_and_results(full_residuals, data, model_pred, 
     ax11 = fig.add_subplot(gs[1, 1])  # bottom-right (rectangular)
 
     # --- Left: square plots with colorbars ---
-    im0 = ax00.scatter(data.lon, data.lat, c=abs(data_residuals), s=17, vmin=-3.1, vmax=3.1)
+    im0 = ax00.scatter(data.lon, data.lat, c=abs(data_residuals), s=10, vmin=-3.1, vmax=3.1)
     ax00.set_title(f'g(m) - d: {data_misfit:.3f} mm rms')
     ax00.set_aspect('equal', adjustable='box')
     cbar0 = fig.colorbar(im0, ax=ax00, fraction=0.046, pad=0.04)
     cbar0.set_label('Value')
 
-    im1 = ax10.scatter(data.lon, data.lat, c=abs(normalized_data_resid), s=17, vmin=0, vmax=2.1)
+    im1 = ax10.scatter(data.lon, data.lat, c=abs(normalized_data_resid), s=10, vmin=0, vmax=2.1)
     ax10.set_title(f'L^-1 (g(m)-d): {chi2:.3f} rms')
     ax10.set_aspect('equal', adjustable='box')
     cbar1 = fig.colorbar(im1, ax=ax10, fraction=0.046, pad=0.04)

@@ -149,7 +149,7 @@ def set_up_initial_params_and_bounds_const_stress(configs, arguments):
     return param0, lower_bound, upper_bound, x_scale
 
 
-def modify_cov_to_split_across_fault(matrix, data, faults):
+def modify_cov_to_split_across_fault(matrix, data, faults, jitter=30, lobotomy_value=1):
     """
     Create a "lobotomized" version of the classic insar covariance matrix.
     Pixel-pairs close to the fault trace but on opposite sides of it can be fit more with a standard lowest RMS
@@ -159,13 +159,13 @@ def modify_cov_to_split_across_fault(matrix, data, faults):
     :param matrix: covariance matrix determined from noise data away from the fault
     :param data: insar1d object that has the lon/lat of pixel values
     :param faults: list of fault_slip_objects, used for fault traces
+    :param jitter: float, add jitter * identity to keep covariance matrix stable. Results very sensitive to jitter.
+    :param lobotomy_value: float, the lobotomized pixels will have the following small covariance, in mm.
     :return: another covariance matrix
     """
     # Define parameters
     fault_strike = 315  # approximate fault strike
-    jitter = 30  # adding jitter * identity matrix to keep covariance matrix stable. Results very sensitive to jitter
     close_distance = 1.5  # if pixels are closer than this distance, the covariance between them will be reduced
-    lobotomy_value = 1  # the lobotomized pixels will have the following small covariance, in mm.
     # This should be smaller than the given covariances to reduce the weighting on these off-diagonals.
 
     fault_lons, fault_lats = [], []
