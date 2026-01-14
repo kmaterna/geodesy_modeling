@@ -191,7 +191,7 @@ def inputs_from_synthetic_enu_grids(e_grdfile, n_grdfile, u_grdfile, flight_angl
 
 def inputs_from_uavsar_igrams(data_file, ann_file, corr_file=None):
     """
-    Read an interferogram from UAVSAR from the NASA UAVSAR format, complete with look vector information
+    Read an interferogram from UAVSAR from NASA UAVSAR format, complete with look vector information
 
     :param data_file: string, name of binary data file
     :param ann_file: string, name of text file with metadata/annotation
@@ -200,6 +200,34 @@ def inputs_from_uavsar_igrams(data_file, ann_file, corr_file=None):
     """
     # Read JPL UAVSAR data into 2d insar object
     x, y, phase, _ = jpl_uav_read_write.read_igram_data(data_file, ann_file, igram_type='ground')
+    inc, az = jpl_uav_read_write.read_los_rdr_geo_from_ground_ann_file(ann_file, x, y)  # takes 20 seconds
+    if corr_file:
+        coh = jpl_uav_read_write.read_corr_data(corr_file, ann_file)
+    else:
+        coh = None
+    if y[1] < y[0]:
+        y = np.flipud(y)
+        phase = np.flipud(phase)
+        inc = np.flipud(inc)
+        az = np.flipud(az)
+        coh = np.flipud(coh)
+    e, n, u = insar_vect.flight_incidence_angles2look_vector(az, inc, 'left')
+    mydata = Insar2dObject(x, y, phase, LOS_unc=np.zeros(np.shape(phase)), lkv_E=e, lkv_N=n, lkv_U=u,
+                           look_direction='left', coherence=coh)
+    return mydata
+
+
+def inputs_from_uavsar_unw_igrams(data_file, ann_file, corr_file=None):
+    """
+    Read an unwrapped interferogram from UAVSAR from NASA UAVSAR format, complete with look vector information
+
+    :param data_file: string, name of binary data file
+    :param ann_file: string, name of text file with metadata/annotation
+    :param corr_file: string, optional, filename of binary coherence file
+    :return: InSAR2D object
+    """
+    # Read JPL UAVSAR data into 2d insar object
+    x, y, phase = jpl_uav_read_write.read_unw_igram_data(data_file, ann_file, igram_type='ground')
     inc, az = jpl_uav_read_write.read_los_rdr_geo_from_ground_ann_file(ann_file, x, y)  # takes 20 seconds
     if corr_file:
         coh = jpl_uav_read_write.read_corr_data(corr_file, ann_file)
