@@ -17,8 +17,8 @@ class GMTProfile:
         self.azimuth = azimuth  # float
         self.pt_lons = pt_lons  # 1d array
         self.pt_lats = pt_lats  # 1d array
-        self.pt_dist = pt_dist  # 1d array
-        self.pt_azimuth = pt_azimuth  # 1d array
+        self.pt_dist = pt_dist  # 1d array, in km
+        self.pt_azimuth = pt_azimuth  # 1d array, in degrees
         self.pt_value = pt_value  # 1d array
         self.offset = offset  # float.  essentially a type of metadata associated with each profile.
 
