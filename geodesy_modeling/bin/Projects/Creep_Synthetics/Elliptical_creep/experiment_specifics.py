@@ -99,6 +99,10 @@ def set_up_initial_params_and_bounds_full_vector(configs, arguments):
         for i in range(configs["num_faults"]):  # initial guess for the lower-depth km is 1 km
             param0.append(2.0)
         param0 = param0 + [0, 0, 0]  # plane, plane, and reference pixel
+    for i in range(len(masks)):  # last step: turn off certain elements of the solution vector.
+        if masks[i] == 0:
+            param0[i] = 0.0005   # slip bounds
+            param0[i+numfaults] = 0.0005   # depth bounds
 
     # Set up the original parameter vector and the upper bounds and lower bounds
     x_scale = []  #
