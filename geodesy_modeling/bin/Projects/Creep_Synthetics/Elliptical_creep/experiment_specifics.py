@@ -86,8 +86,8 @@ def set_up_initial_params_and_bounds_full_vector(configs, arguments):
         if masks[i] == 0:
             lower_bound[i] = 0   # lower bound on slip
             lower_bound[i+numfaults] = 0   # lower bound on depth
-            upper_bound[i] = 0  # upper bound on slip
-            upper_bound[i+numfaults] = 0  # upper bound on depth
+            upper_bound[i] = 0.001  # upper bound on slip
+            upper_bound[i+numfaults] = 0.001  # upper bound on depth
 
     if configs['starting_point'] is not None:
         param0 = np.loadtxt(configs['starting_point'])
