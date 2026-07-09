@@ -72,6 +72,9 @@ def set_up_initial_params_and_bounds_full_vector(configs, arguments):
     _, fieldwork_data = np.loadtxt(configs['fieldfile'], unpack=True)
     fieldwork_data = np.multiply(fieldwork_data, 0.1)  # convert mm to cm
 
+    # Set up constraints: boolean mask on slip if the InSAR doesn't support it.
+    masks = np.loadtxt(configs['boolean_mask'], unpack=True)
+
     # Setting proper bounds
     lower_bound[0:numfaults] = fieldwork_data  # lower bound on slip from field data
     upper_bound[0:numfaults] = 6  # upper bound on slip is 6 cm
@@ -79,6 +82,12 @@ def set_up_initial_params_and_bounds_full_vector(configs, arguments):
     upper_bound[numfaults:2*numfaults] = 5  # upper bound on depth is 5 km
     lower_bound[-3], lower_bound[-2], lower_bound[-1] = -50, -50, -10.0  # parameters for plane and reference pixel
     upper_bound[-3], upper_bound[-2], upper_bound[-1] = 50, 50, 10.0
+    for i in range(len(masks)):  # last step: turn off certain elements of the solution vector.
+        if masks[i] == 0:
+            lower_bound[i] = 0   # lower bound on slip
+            lower_bound[i+numfaults] = 0   # lower bound on depth
+            upper_bound[i] = 0  # upper bound on slip
+            upper_bound[i+numfaults] = 0  # upper bound on depth
 
     if configs['starting_point'] is not None:
         param0 = np.loadtxt(configs['starting_point'])
