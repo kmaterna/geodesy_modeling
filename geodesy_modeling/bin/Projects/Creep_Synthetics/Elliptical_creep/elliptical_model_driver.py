@@ -67,6 +67,9 @@ def invert_data(arguments):
 
     Wd_apply = make_data_whitener(cov)
 
+    # create initial parameter vector
+    param0, lb, ub, xscale = experiment_specifics.set_up_initial_params_and_bounds_full_vector(configs, arguments)
+
     def laplacian_v5(m):
         """
         Create two residual vectors, one for Laplacian smoothing of the stress drop and
@@ -88,12 +91,14 @@ def invert_data(arguments):
 
         # The minimum norm penalty
         A = np.eye(len(m_depth))
-        tikhonov_depth = np.subtract(A@m_depth, np.multiply(1.5, np.ones((np.shape(m_depth)))))  # a reference solution
+        # Create the Tikhonov depth penalty
+        # Reference solution:
+        upper_bounds = ub[configs["num_faults"]:2*configs["num_faults"]]  # upper bound on depths, either 5 km or 0.001
+        reference_solution = np.multiply(1.5, np.ones(np.shape(m_depth)))  # 1.5 where fault is turned on, 0 otherwise
+        reference_solution[upper_bounds < 0.002] = 0  # turn the reference solution to 0 where faults are turned off
+        tikhonov_depth = np.subtract(A@m_depth, reference_solution)  # a reference solution
 
         return Lapl@m_slip, Lapl@m_depth, A@m_slip, tikhonov_depth
-
-    # create initial parameter vector
-    param0, lb, ub, xscale = experiment_specifics.set_up_initial_params_and_bounds_full_vector(configs, arguments)
 
     def residuals_double_L(m, data0, gamma0, lam0):   # if we're doing normal residuals
         data_misfit = Wd_apply(forward_model(m).LOS - data0.LOS)  # normalize the misfit by the sqrt(cov_matrix)
