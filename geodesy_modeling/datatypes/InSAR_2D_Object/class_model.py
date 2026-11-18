@@ -5,6 +5,11 @@ from cubbie.math_tools import grid_tools
 from geodesy_modeling.datatypes import InSAR_1D_Object
 
 
+def remove_mask(arr):
+    """Convert masked or ordinary arrays to ndarray, replacing masks with NaN."""
+    return np.ma.asarray(arr, dtype=float).filled(np.nan)
+
+
 class Insar2dObject:
     """
     A generalized 2D Grid InSAR format where all data fields are 2D grids.
@@ -43,6 +48,14 @@ class Insar2dObject:
         if self.lat[1] < self.lat[0]:
             raise ValueError("Latitude array increases upward; this is backwards from the convention and your "
                              "arrays may be upside-down.")
+        self.lat = remove_mask(self.lat)
+        self.lon = remove_mask(self.lon)
+        self.LOS = remove_mask(self.LOS)
+        self.LOS_unc = remove_mask(self.LOS_unc)
+        self.lkv_E = remove_mask(self.lkv_E)
+        self.lkv_N = remove_mask(self.lkv_N)
+        self.lkv_U = remove_mask(self.lkv_U)
+        self.coherence = remove_mask(self.coherence)
 
     def impose_bounding_box(self, bbox=(-180, 180, -90, 90)):
         """Impose a bounding box on some InSAR data. """
